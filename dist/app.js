@@ -13,6 +13,14 @@ const defaultApplications = [
 ];
 let applications = JSON.parse(localStorage.getItem('offer-applications') || 'null') || defaultApplications;
 let currentFilter = 'all';
+const defaultEvidence = [
+  {id:101,title:'新用户激活增长实验',source:'星桥科技 · 产品实习',context:'新用户完成注册后的核心功能使用率偏低，我负责定位流失节点并提出改版方案。',action:'分析 3.2 万条行为数据，访谈 18 名用户，设计两轮 A/B 测试并协调设计、研发上线。',result:'新用户次日激活率从 42% 提升至 54%，核心路径流失率下降 16%。',skills:['用户研究','数据分析','A/B 测试','用户增长'],status:'已确认'},
+  {id:102,title:'跨团队版本推进',source:'知行校园 · 项目负责人',context:'项目需求频繁变化，研发与运营对优先级存在分歧。',action:'建立需求评分表和每周评审机制，拆分关键里程碑并同步风险清单。',result:'版本按期上线，平均需求确认周期缩短 30%。',skills:['项目管理','需求分析','跨团队协作'],status:'已确认'},
+  {id:103,title:'商业化功能方案设计',source:'星桥科技 · 产品实习',context:'内容创作者缺少稳定的商业化工具，平台付费转化较低。',action:'完成竞品拆解、创作者分层和付费路径设计，输出 PRD 并推动灰度验证。',result:'首批 260 名创作者参与灰度，付费转化率提升 8.6%。',skills:['商业化策略','竞品分析','产品设计','数据分析'],status:'已确认'},
+  {id:104,title:'校园社群运营项目',source:'校学生会 · 项目经历',context:'新生社群活跃度不足，需要重新设计内容与活动节奏。',action:'策划主题内容和线上活动，但个人贡献与结果数据尚未补齐。',result:'待补充可验证数据。',skills:['内容运营','沟通协作'],status:'待补充'}
+];
+let evidenceItems = JSON.parse(localStorage.getItem('offer-evidence') || 'null') || defaultEvidence;
+let evidenceFilter = 'all';
 
 function showToast(message){
   $('#toastText').textContent = message;
@@ -64,23 +72,101 @@ $('#applicationForm')?.addEventListener('submit',event=>{
 
 const resumeTitles={product:'产品经理通用版 v4',growth:'用户增长方向 v2',campus:'管培生方向 v3',english:'英文简历 v1'};
 $$('.resume-item').forEach(button=>button.addEventListener('click',()=>{$$('.resume-item').forEach(x=>x.classList.remove('active'));button.classList.add('active');$('#resumeTitle').textContent=resumeTitles[button.dataset.resume];}));
-$('#optimizeResume')?.addEventListener('click',()=>{const button=$('#optimizeResume');button.textContent='正在分析…';button.disabled=true;setTimeout(()=>{button.textContent='再次优化';button.disabled=false;showToast('AI 优化建议已更新');},900);});
+$('#optimizeResume')?.addEventListener('click',()=>{showView('analysis');if(!$('#jdInput').value){$('#jdInput').value=sampleJD;updateCount();}showToast('请生成证据矩阵后审阅改写建议');});
 $('#newResume')?.addEventListener('click',()=>showToast('已创建空白简历版本'));
 
-const sampleJD=`岗位职责：\n1. 负责商业化产品的需求分析、方案设计和项目推进；\n2. 通过用户研究和数据分析发现增长机会，制定产品迭代策略；\n3. 协同研发、设计、运营团队推动项目落地，并对核心业务指标负责。\n\n任职要求：\n1. 本科及以上学历，有互联网产品实习经历；\n2. 具备用户洞察、数据分析和 A/B 测试能力；\n3. 良好的逻辑思维、沟通协作和项目管理能力。`;
+function saveEvidence(){localStorage.setItem('offer-evidence',JSON.stringify(evidenceItems));}
+function evidenceHasMetric(item){return /\d+(?:\.\d+)?\s*(?:%|万|千|人|条|次|天|小时)/.test(item.result);}
+function renderEvidence(){
+  if(!$('#evidenceList')) return;
+  const visible=evidenceItems.filter(item=>evidenceFilter==='all'||item.status===evidenceFilter);
+  $('#evidenceCount').textContent=evidenceItems.filter(x=>x.status==='已确认').length;
+  $('#skillCount').textContent=new Set(evidenceItems.flatMap(x=>x.skills)).size;
+  $('#metricCount').textContent=evidenceItems.filter(evidenceHasMetric).length;
+  const confirmed=evidenceItems.filter(x=>x.status==='已确认').length;
+  const readiness=Math.min(100,Math.round(54+confirmed*7+evidenceItems.filter(evidenceHasMetric).length*4));
+  $('#readinessScore').textContent=`${readiness}%`;
+  $('.readiness-bar i').style.width=`${readiness}%`;
+  $('.readiness-card ul').innerHTML=`<li><b>${confirmed}</b> 条已确认经历</li><li><b>${new Set(evidenceItems.flatMap(x=>x.skills)).size}</b> 个能力标签</li><li><b>${evidenceItems.filter(evidenceHasMetric).length}</b> 项量化结果</li>`;
+  $('#evidenceList').innerHTML=visible.map(item=>`<article class="evidence-card ${item.status==='待补充'?'pending':''}"><div class="evidence-card-head"><div><h3>${escapeHTML(item.title)}</h3><span class="evidence-source">${escapeHTML(item.source)}</span></div><span class="verify-pill ${item.status==='待补充'?'pending':''}">${item.status==='已确认'?'✓ 已确认':'! 待补充'}</span></div><dl><dt>背景</dt><dd>${escapeHTML(item.context)}</dd><dt>行动</dt><dd>${escapeHTML(item.action)}</dd><dt>结果</dt><dd class="result">${escapeHTML(item.result)}</dd></dl><div class="skill-tags">${item.skills.map(skill=>`<span class="skill-tag">${escapeHTML(skill)}</span>`).join('')}</div><div class="evidence-action"><small>事实编号 #${item.id}</small><button data-toggle-evidence="${item.id}">${item.status==='已确认'?'标记为待补充':'确认事实可使用'}</button></div></article>`).join('')||'<div class="empty-card"><span>○</span><h2>暂无相符事实</h2><p>切换筛选条件或添加新的经历证据。</p></div>';
+  $$('[data-toggle-evidence]').forEach(button=>button.addEventListener('click',()=>{const item=evidenceItems.find(x=>String(x.id)===button.dataset.toggleEvidence);if(item){item.status=item.status==='已确认'?'待补充':'已确认';saveEvidence();renderEvidence();showToast('事实状态已更新');}}));
+}
+$$('.evidence-filter').forEach(button=>button.addEventListener('click',()=>{$$('.evidence-filter').forEach(x=>x.classList.remove('active'));button.classList.add('active');evidenceFilter=button.dataset.evidenceFilter;renderEvidence();}));
+const evidenceDialog=$('#evidenceDialog');
+$('#addEvidence')?.addEventListener('click',()=>evidenceDialog.showModal());
+$('#evidenceForm')?.addEventListener('submit',event=>{
+  if(event.submitter?.value==='cancel') return;
+  event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));
+  evidenceItems.unshift({id:Date.now(),title:data.title,source:'用户手动添加',context:data.context,action:data.action,result:data.result,skills:data.skills.split(/[,，]/).map(x=>x.trim()).filter(Boolean),status:'已确认'});
+  saveEvidence();renderEvidence();evidenceDialog.close();event.currentTarget.reset();showToast('经历证据已加入事实库');
+});
+
+const sampleJD=`岗位职责：\n1. 负责商业化产品的需求分析、方案设计和项目推进；\n2. 通过用户研究和数据分析发现增长机会，制定产品迭代策略；\n3. 协同研发、设计、运营团队推动项目落地，并对核心业务指标负责。\n\n任职要求：\n1. 本科及以上学历，有互联网产品实习经历；\n2. 具备用户洞察、数据分析和 A/B 测试能力；\n3. 熟练使用 SQL，具备良好的沟通协作和项目管理能力。`;
 $('#fillSample')?.addEventListener('click',()=>{$('#jdInput').value=sampleJD;updateCount();});
 function updateCount(){if($('#charCount')) $('#charCount').textContent=`${$('#jdInput').value.length} 字`;}
 $('#jdInput')?.addEventListener('input',updateCount);
-$('#runAnalysis')?.addEventListener('click',()=>{
-  const text=$('#jdInput').value.trim();
-  if(text.length<20){showToast('请先粘贴完整的职位描述');return;}
+
+const competencyRules=[
+  {label:'需求分析',terms:['需求分析','需求挖掘','需求判断','需求优先级']},
+  {label:'用户研究',terms:['用户研究','用户洞察','用户访谈','用户调研']},
+  {label:'数据分析',terms:['数据分析','数据驱动','指标分析','业务指标']},
+  {label:'A/B 测试',terms:['a/b','ab测试','实验设计','对照实验']},
+  {label:'项目推进',terms:['项目推进','项目管理','推动项目','推动落地','按期上线']},
+  {label:'跨团队协作',terms:['跨团队','协同研发','沟通协作','协调资源']},
+  {label:'商业化策略',terms:['商业化','变现','付费转化']},
+  {label:'用户增长',terms:['用户增长','增长机会','增长策略','转化率']},
+  {label:'产品设计',terms:['方案设计','产品设计','prd','原型设计']},
+  {label:'SQL',terms:['sql','数据库查询']},
+  {label:'英语能力',terms:['英语','英文','cet-6','六级']}
+];
+function extractRequirements(text){
+  const sentences=text.split(/[\n。；;]/).map(x=>x.replace(/^\s*\d+[.、)]?\s*/, '').trim()).filter(x=>x.length>5);
+  const found=[];
+  competencyRules.forEach(rule=>{
+    const sentence=sentences.find(line=>rule.terms.some(term=>line.toLowerCase().includes(term.toLowerCase())));
+    if(sentence) found.push({...rule,sentence,importance:/必须|熟练|具备|任职要求|负责/.test(sentence)?'必备':'重要'});
+  });
+  return found.slice(0,9);
+}
+function matchRequirement(requirement){
+  const candidates=evidenceItems.filter(x=>x.status==='已确认').map(item=>{
+    const haystack=`${item.title} ${item.context} ${item.action} ${item.result} ${item.skills.join(' ')}`.toLowerCase();
+    const hits=requirement.terms.filter(term=>haystack.includes(term.toLowerCase()));
+    const labelHit=haystack.includes(requirement.label.toLowerCase());
+    return {item,hits:Math.max(hits.length,labelHit?1:0)};
+  }).sort((a,b)=>b.hits-a.hits);
+  const best=candidates[0];
+  if(!best||best.hits===0)return {level:'missing',label:'缺少证据',score:0,item:null};
+  const strong=best.hits>=2||best.item.skills.some(skill=>skill.toLowerCase()===requirement.label.toLowerCase());
+  return {level:strong?'strong':'partial',label:strong?'强匹配':'部分匹配',score:strong?1:.55,item:best.item};
+}
+function buildSuggestion(match,requirement){
+  if(!match.item)return `事实库中未找到「${requirement.label}」经历。若确实做过，请先补充背景、行动和结果；没有则保留为真实差距。`;
+  if(match.level==='partial')return `已有相关经历但证据不足。补充你在「${match.item.title}」中的个人判断和可验证结果。`;
+  return `将「${match.item.title}」放在相关经历前部，并优先呈现行动与量化结果。`;
+}
+function renderMatrix(requirements){
+  const matches=requirements.map(req=>({req,match:matchRequirement(req)}));
+  const total=matches.reduce((sum,row)=>sum+row.match.score*(row.req.importance==='必备'?2:1),0);
+  const weight=matches.reduce((sum,row)=>sum+(row.req.importance==='必备'?2:1),0)||1;
+  const score=Math.round(total/weight*100);
+  const counts={strong:matches.filter(x=>x.match.level==='strong').length,partial:matches.filter(x=>x.match.level==='partial').length,missing:matches.filter(x=>x.match.level==='missing').length};
   const result=$('#analysisResult');
-  result.innerHTML='<div class="analysis-empty"><div class="spark">✦</div><h2>正在拆解岗位要求…</h2><p>识别关键词与经历匹配关系</p></div>';
-  setTimeout(()=>{
-    result.innerHTML=`<div class="result-inner"><div class="match-score"><strong>87%</strong><div><h3>匹配度较高</h3><p>核心经历符合，补齐 2 处表达后更有竞争力</p></div></div><div class="result-section"><h3>岗位核心关键词</h3><div class="keyword-cloud"><span>需求分析</span><span>项目推进</span><span>数据分析</span><span>A/B 测试</span><span>用户洞察</span><span class="missing">商业化策略 · 待补充</span></div></div><div class="result-section"><h3>优势匹配</h3><ul><li>已有从需求洞察到项目上线的完整项目经历。</li><li>简历中的增长实验数据能直接支撑岗位要求。</li><li>跨团队协作经验与岗位工作方式吻合。</li></ul></div><div class="result-section"><h3>简历调整建议</h3><ul><li>将项目标题改为“商业化增长实验”，强化业务方向。</li><li>在首段加入 A/B 测试方法和最终转化提升数据。</li><li>补充你在需求优先级判断中的具体决策依据。</li></ul></div><button class="primary" data-view="resumes">带着建议去优化简历 →</button></div>`;
-    result.querySelector('[data-view]').addEventListener('click',()=>showView('resumes'));
-  },850);
-});
+  result.innerHTML=`<div class="matrix-head"><div class="matrix-score"><strong>${score}%</strong><div><h2>${score>=80?'证据覆盖良好':score>=60?'具备基础匹配':'存在关键证据缺口'}</h2><p>分数由岗位要求的重要度与事实覆盖强度计算</p></div></div><div class="matrix-summary"><span><b>${counts.strong}</b> 强匹配</span><span><b>${counts.partial}</b> 部分匹配</span><span><b>${counts.missing}</b> 缺少证据</span></div></div><div class="matrix-wrap"><table class="evidence-matrix"><thead><tr><th>岗位要求</th><th>重要度</th><th>覆盖</th><th>事实依据</th><th>下一步动作</th></tr></thead><tbody>${matches.map(({req,match})=>`<tr><td class="requirement-cell"><strong>${escapeHTML(req.label)}</strong><small>${escapeHTML(req.sentence)}</small></td><td><span class="importance ${req.importance==='必备'?'must':''}">${req.importance}</span></td><td><span class="coverage ${match.level}">${match.label}</span></td><td><div class="evidence-quote">${match.item?`<b>${escapeHTML(match.item.title)}</b>${escapeHTML(match.item.result)}`:'未找到已确认事实'}</div></td><td><div class="next-action">${escapeHTML(buildSuggestion(match,req))}${match.level==='missing'?'<button data-view="evidence">＋ 补充真实经历</button>':''}</div></td></tr>`).join('')}</tbody></table></div><div class="suggestion-board">${matches.filter(x=>x.match.item).slice(0,2).map(({req,match},index)=>`<article class="suggestion-card"><h3>建议 ${index+1} · ${escapeHTML(req.label)}</h3><p class="before">负责相关工作并推动项目落地。</p><p class="after">${escapeHTML(match.item.action)}${escapeHTML(match.item.result)}</p><footer><small>来源：事实 #${match.item.id}</small><button data-accept-suggestion>采纳建议</button></footer></article>`).join('')}<article class="suggestion-card"><h3>严格事实检查</h3><p>本次分析未新增候选人事实。${counts.missing?`有 ${counts.missing} 项缺口需要你确认，不会自动写入简历。`:'所有表达均可回溯到已确认经历。'}</p><footer><small>事实一致性保护已开启</small><button data-view="resumes">进入简历库</button></footer></article></div>`;
+  $$('[data-view]',result).forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));
+  $$('[data-accept-suggestion]',result).forEach(button=>button.addEventListener('click',()=>{button.textContent='✓ 已采纳';button.classList.add('accepted');showToast('建议已加入当前优化清单');}));
+  return {score,counts,requirements:matches.map(({req,match})=>({requirement:req.label,importance:req.importance,coverage:match.label,evidence:match.item?.title||null}))};
+}
+function analyzeCurrentJD(){
+  const text=$('#jdInput').value.trim();
+  if(text.length<20){showToast('请先粘贴完整的职位描述');return null;}
+  const requirements=extractRequirements(text);
+  if(!requirements.length){showToast('未识别到明确能力要求，请补充岗位职责与任职要求');return null;}
+  const result=$('#analysisResult');result.innerHTML='<div class="analysis-empty"><div class="spark">✦</div><h2>正在建立证据对应关系…</h2><p>只检索已确认事实，不补写未知经历</p></div>';
+  setTimeout(()=>renderMatrix(requirements),520);
+  return {requirements:requirements.map(x=>x.label)};
+}
+$('#runAnalysis')?.addEventListener('click',analyzeCurrentJD);
 
 $('#companyForm')?.addEventListener('submit',event=>{
   event.preventDefault();const name=$('#companyInput').value.trim();if(!name){showToast('请输入公司名称');return;}
@@ -128,9 +214,11 @@ function registerWebMCP(){
   const tools=[
     {name:'list_applications',title:'查看投递记录',description:'读取当前秋招投递看板中的所有记录。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:()=>({count:applications.length,applications})},
     {name:'create_application',title:'新增投递记录',description:'向秋招投递看板新增一条公司岗位记录。',inputSchema:{type:'object',properties:{company:{type:'string'},role:{type:'string'},location:{type:'string'},stage:{type:'string',enum:['待投递','已投递','笔试中','面试中','OFFER']}},required:['company','role'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:input=>{if(!input.company?.trim()||!input.role?.trim())throw new Error('公司和岗位不能为空');const item={id:Date.now(),company:input.company.trim(),role:input.role.trim(),location:input.location||'待确认',stage:input.stage||'待投递',deadline:'待确认',priority:'普通',match:80};applications.unshift(item);saveApplications();renderKanban();return {created:true,id:item.id,stage:item.stage};}},
-    {name:'start_job_analysis',title:'开始岗位分析',description:'打开岗位分析页面并填入要分析的职位描述。',inputSchema:{type:'object',properties:{jobDescription:{type:'string'}},required:['jobDescription'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:input=>{if(input.jobDescription.trim().length<20)throw new Error('职位描述至少需要20个字符');showView('analysis');$('#jdInput').value=input.jobDescription;updateCount();return {ready:true,characters:input.jobDescription.length};}}
+    {name:'list_evidence',title:'查看候选人事实',description:'读取候选人事实库中已确认和待补充的经历证据。',inputSchema:{type:'object',properties:{confirmedOnly:{type:'boolean'}},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:input=>{const items=input.confirmedOnly?evidenceItems.filter(x=>x.status==='已确认'):evidenceItems;return {count:items.length,evidence:items};}},
+    {name:'create_evidence',title:'添加经历证据',description:'把用户明确提供的真实经历加入候选人事实库。',inputSchema:{type:'object',properties:{title:{type:'string'},context:{type:'string'},action:{type:'string'},result:{type:'string'},skills:{type:'array',items:{type:'string'}}},required:['title','context','action','result','skills'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:input=>{if(!input.title?.trim()||!input.action?.trim())throw new Error('标题和行动不能为空');const item={id:Date.now(),title:input.title.trim(),source:'工具添加',context:input.context.trim(),action:input.action.trim(),result:input.result.trim(),skills:input.skills.map(x=>String(x).trim()).filter(Boolean),status:'已确认'};evidenceItems.unshift(item);saveEvidence();renderEvidence();return {created:true,id:item.id};}},
+    {name:'analyze_job_evidence',title:'生成岗位证据矩阵',description:'用已确认的候选人事实分析职位描述，返回可解释的要求覆盖结果。',inputSchema:{type:'object',properties:{jobDescription:{type:'string'}},required:['jobDescription'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:input=>{if(input.jobDescription.trim().length<20)throw new Error('职位描述至少需要20个字符');showView('analysis');$('#jdInput').value=input.jobDescription;updateCount();const requirements=extractRequirements(input.jobDescription);if(!requirements.length)throw new Error('未识别到明确能力要求');const output=renderMatrix(requirements);return {score:output.score,counts:output.counts,requirements:output.requirements};}}
   ];tools.forEach(tool=>Promise.resolve(context.registerTool(tool)).catch(()=>{}));
 }
 
-renderKanban();renderWeights();renderOffers();renderCalendar();registerWebMCP();
+renderKanban();renderEvidence();renderWeights();renderOffers();renderCalendar();registerWebMCP();
 const initial=location.hash.slice(1);if(initial&&$('#'+initial))showView(initial);
