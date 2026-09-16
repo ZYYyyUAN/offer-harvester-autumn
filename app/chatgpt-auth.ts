@@ -20,9 +20,9 @@ const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
-  const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!userId || !email) return null;
+  if (!email) return null;
+  const userId = requestHeaders.get(USER_ID_HEADER) ?? await hashedEmailUserId(email);
 
   const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
   const fullName =
@@ -37,6 +37,13 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     email,
     fullName,
   };
+}
+
+async function hashedEmailUserId(email: string): Promise<string> {
+  const bytes = new TextEncoder().encode(email.trim().toLowerCase());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `email_${hex}`;
 }
 
 export async function requireChatGPTUser(

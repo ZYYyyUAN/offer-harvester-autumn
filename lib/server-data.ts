@@ -28,10 +28,17 @@ export type StoredFile = {
 
 export async function requireApiUser() {
   const h = await headers();
-  const userId = h.get("oai-authenticated-user-id");
   const email = h.get("oai-authenticated-user-email");
-  if (!userId || !email) throw new ApiError(401, "请先登录后继续");
+  if (!email) throw new ApiError(401, "请先登录后继续");
+  const userId = h.get("oai-authenticated-user-id") ?? await hashedEmailUserId(email);
   return { userId, email };
+}
+
+async function hashedEmailUserId(email: string) {
+  const bytes = new TextEncoder().encode(email.trim().toLowerCase());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `email_${hex}`;
 }
 
 export function getBindings() {
