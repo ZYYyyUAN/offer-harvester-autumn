@@ -62,7 +62,6 @@ async function saveAiRecord(userId: string, kind: string, title: string, data: R
 export async function POST(request: Request) {
   const startedAt = Date.now();
   try {
-    const { userId } = await requireApiUser();
     const body = (await request.json()) as Record<string, unknown>;
     const action = String(body.action || "");
     if (action === "healthCheck") {
@@ -75,6 +74,7 @@ export async function POST(request: Request) {
       });
       return Response.json({ result: { ok: result.data.ok === true, model: "qwen3.8-flash", elapsedMs: Date.now() - startedAt } });
     }
+    const { userId } = await requireApiUser();
     if (action === "jobAnalysis") {
       const jd = String(body.jd || "").trim();
       if (jd.length < 40) throw new ApiError(400, "请粘贴更完整的职位描述");
