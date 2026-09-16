@@ -105,6 +105,7 @@ export function mapFile(row: Record<string, unknown>): StoredFile {
 export function recordTitle(kind: string, data: Record<string, unknown>) {
   const options: Record<string, unknown> = {
     applications: `${data.company ?? ""} ${data.role ?? ""}`.trim(),
+    saved_jobs: `${data.company ?? ""} ${data.role ?? ""}`.trim() || data.sourceUrl,
     evidence: data.title,
     interviews: `${data.company ?? ""} ${data.role ?? ""}`.trim(),
     offers: `${data.company ?? ""} ${data.role ?? ""}`.trim(),
@@ -117,6 +118,7 @@ export function recordTitle(kind: string, data: Record<string, unknown>) {
 
 export const allowedKinds = new Set([
   "applications",
+  "saved_jobs",
   "evidence",
   "interviews",
   "offers",

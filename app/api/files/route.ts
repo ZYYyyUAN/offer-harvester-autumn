@@ -1,9 +1,10 @@
 import { ApiError, apiError, getBindings, mapFile, requireApiUser } from "@/lib/server-data";
 
-const limits: Record<string, number> = { resume: 20 * 1024 * 1024, avatar: 5 * 1024 * 1024, audio: 2 * 1024 * 1024 * 1024 };
+const limits: Record<string, number> = { resume: 20 * 1024 * 1024, avatar: 5 * 1024 * 1024, audio: 2 * 1024 * 1024 * 1024, job_screenshot: 10 * 1024 * 1024 };
 const allowed: Record<string, string[]> = {
   resume: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"],
   avatar: ["image/jpeg", "image/png", "image/webp"],
+  job_screenshot: ["image/jpeg", "image/png", "image/webp"],
   audio: ["audio/webm", "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav", "audio/ogg", "audio/flac", "video/webm", "video/mp4"],
 };
 
@@ -11,7 +12,10 @@ function validMagic(bytes: Uint8Array, mime: string) {
   if (mime === "application/pdf") return String.fromCharCode(...bytes.slice(0, 4)) === "%PDF";
   if (mime.includes("wordprocessingml")) return bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (mime === "application/msword") return bytes[0] === 0xd0 && bytes[1] === 0xcf;
-  if (mime.startsWith("image/") || mime.startsWith("audio/") || mime.startsWith("video/")) return true;
+  if (mime === "image/png") return bytes[0] === 0x89 && String.fromCharCode(...bytes.slice(1, 4)) === "PNG";
+  if (mime === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === "image/webp") return String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  if (mime.startsWith("audio/") || mime.startsWith("video/")) return true;
   return false;
 }
 
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
     if (!limits[purpose] || !allowed[purpose]?.includes(mime)) throw new ApiError(415, "不支持的文件类型");
     if (!size || size > limits[purpose]) throw new ApiError(413, "文件大小超出限制");
     const body = await request.arrayBuffer();
-    const bytes = new Uint8Array(body.slice(0, 8));
+    const bytes = new Uint8Array(body.slice(0, 12));
     if (!validMagic(bytes, mime)) throw new ApiError(415, "文件内容与类型不匹配");
     const id = crypto.randomUUID();
     const objectKey = `${userId}/${purpose}/${id}`;
