@@ -65,14 +65,15 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Record<string, unknown>;
     const action = String(body.action || "");
     if (action === "healthCheck") {
+      const healthModel = body.model === "qwen3.8-max" ? "qwen3.8-max" : "qwen3.8-flash";
       const result = await structuredChat({
-        model: "qwen3.8-flash",
+        model: healthModel,
         system: "你是服务健康检查程序，只返回指定 JSON。",
         prompt: "返回可用状态。",
         schemaName: "ai_health",
         schema: { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean", const: true } } },
       });
-      return Response.json({ result: { ok: result.data.ok === true, model: "qwen3.8-flash", elapsedMs: Date.now() - startedAt } });
+      return Response.json({ result: { ok: result.data.ok === true, model: healthModel, elapsedMs: Date.now() - startedAt } });
     }
     const { userId } = await requireApiUser();
     if (action === "jobAnalysis") {
