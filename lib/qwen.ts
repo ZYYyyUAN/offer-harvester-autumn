@@ -74,6 +74,7 @@ export async function structuredChat(options: {
     },
     temperature: 0.15,
     max_tokens: options.maxTokens || 2600,
+    enable_thinking: Boolean(options.search),
   };
   if (options.search) {
     payload.enable_search = true;
