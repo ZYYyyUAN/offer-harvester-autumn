@@ -53,7 +53,7 @@ export function getDatabase() {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code = "APP_ERROR", public retryable = false) {
     super(message);
   }
 }
@@ -112,6 +112,7 @@ export function recordTitle(kind: string, data: Record<string, unknown>) {
     reminders: data.title,
     analyses: data.jobTitle ?? data.company,
     research: data.company,
+    ai_evaluations: data.title,
   };
   return String(options[kind] ?? data.title ?? "未命名记录").slice(0, 180);
 }
@@ -126,6 +127,7 @@ export const allowedKinds = new Set([
   "analyses",
   "research",
   "application_events",
+  "ai_evaluations",
 ]);
 
 export function normalizeKind(value: string | null) {

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { ApiError } from "@/lib/server-data";
+import type { ZodType } from "zod";
 
 type JsonSchema = Record<string, unknown>;
 
@@ -13,10 +14,15 @@ function config() {
 
 async function qwenFetch(path: string, init: RequestInit) {
   const { apiKey, baseUrl } = config();
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${apiKey}`, ...(init.headers || {}) },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${apiKey}`, ...(init.headers || {}) },
+    });
+  } catch {
+    throw new ApiError(502, "无法连接 AI 服务，请稍后重试", "NETWORK_ERROR", true);
+  }
   const text = await response.text();
   if (!response.ok) {
     let message = `AI 服务请求失败（${response.status}）`;
@@ -24,7 +30,8 @@ async function qwenFetch(path: string, init: RequestInit) {
       const parsed = JSON.parse(text) as { error?: { message?: string }; message?: string };
       message = parsed.error?.message || parsed.message || message;
     } catch {}
-    throw new ApiError(response.status === 429 ? 429 : 502, message);
+    const retryable = response.status === 429 || response.status >= 500;
+    throw new ApiError(response.status === 429 ? 429 : 502, message, `QWEN_${response.status}`, retryable);
   }
   try {
     return JSON.parse(text) as Record<string, unknown>;
@@ -52,6 +59,7 @@ export async function structuredChat(options: {
   schema: JsonSchema;
   model?: string;
   search?: boolean;
+  validator?: ZodType;
 }) {
   const payload: Record<string, unknown> = {
     model: options.model || "qwen3.8-max",
@@ -90,10 +98,17 @@ export async function structuredChat(options: {
   }
   const choices = response.choices as Array<{ message?: { content?: unknown } }> | undefined;
   if (!choices?.[0]?.message) throw new ApiError(502, "AI 服务没有返回有效结果");
-  return { data: parseJsonContent(choices[0].message.content), raw: response };
+  const parsed = parseJsonContent(choices[0].message.content);
+  let data: Record<string, unknown>;
+  try {
+    data = options.validator ? options.validator.parse(parsed) as Record<string, unknown> : parsed;
+  } catch {
+    throw new ApiError(502, "AI 结果未通过结构校验，请重试", "SCHEMA_INVALID", false);
+  }
+  return { data, raw: response, usage: (response.usage || {}) as Record<string, unknown> };
 }
 
-export async function analyzeResumeFile(file: { bytes: ArrayBuffer; filename: string }, prompt: string, schema: JsonSchema) {
+export async function analyzeResumeFile(file: { bytes: ArrayBuffer; filename: string }, prompt: string, schema: JsonSchema, validator?: ZodType) {
   const form = new FormData();
   form.set("purpose", "file-extract");
   form.set("file", new File([file.bytes], file.filename));
@@ -101,14 +116,14 @@ export async function analyzeResumeFile(file: { bytes: ArrayBuffer; filename: st
   const fileId = String(uploaded.id || "");
   if (!fileId) throw new ApiError(502, "简历文档上传到分析服务失败");
   try {
-    let status = "processing";
-    for (let attempt = 0; attempt < 12 && status === "processing"; attempt++) {
+    let status = "checking";
+    for (let attempt = 0; attempt < 18 && ["checking", "processing", "pending", "uploaded"].includes(status); attempt++) {
       if (attempt) await new Promise((resolve) => setTimeout(resolve, 500));
       const detail = await qwenFetch(`/files/${encodeURIComponent(fileId)}`, { method: "GET" });
-      status = String(detail.status || "processed");
+      status = String(detail.status || "available").toLowerCase();
       if (["error", "failed"].includes(status)) throw new ApiError(502, "简历文档解析失败");
     }
-    if (status === "processing") throw new ApiError(504, "简历解析超时，请稍后重试");
+    if (["checking", "processing", "pending", "uploaded"].includes(status)) throw new ApiError(504, "简历解析超时，请稍后重试", "DOCUMENT_TIMEOUT", true);
     const response = await qwenFetch("/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -123,10 +138,48 @@ export async function analyzeResumeFile(file: { bytes: ArrayBuffer; filename: st
       }),
     });
     const choices = response.choices as Array<{ message?: { content?: unknown } }> | undefined;
-    return parseJsonContent(choices?.[0]?.message?.content);
+    const parsed = parseJsonContent(choices?.[0]?.message?.content);
+    try {
+      return validator ? validator.parse(parsed) as Record<string, unknown> : parsed;
+    } catch {
+      throw new ApiError(502, "简历分析结果未通过结构校验，请重试", "SCHEMA_INVALID", false);
+    }
   } finally {
     await qwenFetch(`/files/${encodeURIComponent(fileId)}`, { method: "DELETE" }).catch(() => undefined);
   }
+}
+
+export type SearchSource = { title: string; url: string; publishedAt: string | null; crawledAt: string };
+
+export function extractSearchSources(raw: Record<string, unknown>): SearchSource[] {
+  const found: SearchSource[] = [];
+  const seen = new Set<string>();
+  const visit = (value: unknown, insideSearchInfo = false) => {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) { value.forEach((item) => visit(item, insideSearchInfo)); return; }
+    const object = value as Record<string, unknown>;
+    const isSearch = insideSearchInfo || "search_info" in object;
+    if (isSearch) {
+      const urlValue = object.url ?? object.link;
+      if (typeof urlValue === "string") {
+        try {
+          const url = new URL(urlValue);
+          if ((url.protocol === "https:" || url.protocol === "http:") && !seen.has(url.href)) {
+            seen.add(url.href);
+            found.push({ title: String(object.title ?? object.name ?? url.hostname), url: url.href, publishedAt: object.publish_time ? String(object.publish_time) : object.published_at ? String(object.published_at) : null, crawledAt: new Date().toISOString() });
+          }
+        } catch {}
+      }
+    }
+    Object.entries(object).forEach(([key, child]) => visit(child, insideSearchInfo || key === "search_info"));
+  };
+  visit(raw, false);
+  return found;
+}
+
+export function aiErrorDetails(error: unknown) {
+  if (error instanceof ApiError) return { code: error.code, message: error.message, retryable: error.retryable };
+  return { code: "UNKNOWN_ERROR", message: error instanceof Error ? error.message : "未知错误", retryable: false };
 }
 
 export async function transcribeAudio(file: { bytes: ArrayBuffer; filename: string; mimeType: string }) {

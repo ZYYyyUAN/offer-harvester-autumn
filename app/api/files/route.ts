@@ -54,6 +54,9 @@ export async function POST(request: Request) {
       note: url.searchParams.get("note") || "",
       tags: (url.searchParams.get("tags") || "").split(/[,，]/).map((value) => value.trim()).filter(Boolean),
       sourceModifiedAt: url.searchParams.get("sourceModifiedAt") || null,
+      interviewId: url.searchParams.get("interviewId") || null,
+      sequence: Number(url.searchParams.get("sequence") || 0),
+      duration: Number(url.searchParams.get("duration") || 0),
     };
     const { db, bucket } = getBindings();
     await bucket.put(objectKey, body, { httpMetadata: { contentType: mime } });

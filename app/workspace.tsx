@@ -33,6 +33,7 @@ import {
   Sparkles,
   Square,
   Timer,
+  ListChecks,
   Trash2,
   Upload,
   UserRound,
@@ -52,11 +53,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources";
+type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "aiCenter";
 type Kind = "applications" | "saved_jobs" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
 type RecordItem = { id: string; kind: Kind; title: string; data: Record<string, any>; version: number; createdAt: string; updatedAt: string; deletedAt: string | null };
 type StoredFile = { id: string; filename: string; mimeType: string; size: number; metadata: Record<string, any>; version: number; createdAt: string };
 type Dashboard = { totalApplications: number; interviewCount: number; offerCount: number; invitationRate: number; stageCounts: Record<string, number>; upcoming: Array<{ data: Record<string, any> }>; recentApplications: Array<{ data: Record<string, any>; updatedAt: string }> };
+type AIJob = { id: string; batchId?: string | null; type: string; status: string; inputSnapshot: Record<string, any>; sourceRefs: any[]; model: string; promptVersion: string; result: Record<string, any> | null; resultRecordId?: string | null; confidence?: string | null; elapsedMs?: number | null; errorCode?: string | null; errorMessage?: string | null; createdAt: string; startedAt?: string | null; finishedAt?: string | null };
 
 const emptyDashboard: Dashboard = { totalApplications: 0, interviewCount: 0, offerCount: 0, invitationRate: 0, stageCounts: {}, upcoming: [], recentApplications: [] };
 const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"];
@@ -69,6 +71,7 @@ const nav = [
   { id: "applications" as View, label: "投递看板", icon: BriefcaseBusiness },
   { id: "evidence" as View, label: "事实库", icon: Database },
   { id: "analysis" as View, label: "岗位分析", icon: Sparkles },
+  { id: "aiCenter" as View, label: "AI 任务中心", icon: ListChecks },
   { id: "company" as View, label: "公司背调", icon: Building2 },
   { id: "interviews" as View, label: "面试复盘", icon: MessagesSquare },
   { id: "offers" as View, label: "OFFER 决策", icon: Scale },
@@ -133,6 +136,16 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [weights, setWeights] = useState({ salary: 30, growth: 25, platform: 18, balance: 15, outlook: 12 });
   const [migrationItems, setMigrationItems] = useState<{ applications: any[]; evidence: any[] } | null>(null);
+  const [aiJobs, setAiJobs] = useState<AIJob[]>([]);
+  const [legacyAI, setLegacyAI] = useState<any[]>([]);
+  const [activeAIJobId, setActiveAIJobId] = useState<string | null>(null);
+  const [aiAttempts, setAiAttempts] = useState<any[]>([]);
+  const [evaluation, setEvaluation] = useState<Record<string, any> | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordingWanted = useRef(false);
+  const segmentIndex = useRef(0);
+  const segmentStartedAt = useRef(0);
+  const recordedSegments = useRef<Array<Record<string, any>>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -152,6 +165,9 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       setAudioFiles(audioResult.files);
       setJobScreenshots(screenshotResult.files);
       setRecords(Object.fromEntries(kinds.map((kind, index) => [kind, recordResults[index].records])) as Record<Kind, RecordItem[]>);
+      const aiResult = await api<{ jobs: AIJob[]; legacy: any[] }>("/api/ai/jobs?pageSize=20");
+      setAiJobs(aiResult.jobs); setLegacyAI(aiResult.legacy || []);
+      setActiveAIJobId((current) => current || aiResult.jobs.find((item) => ["queued", "running"].includes(item.status))?.id || null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "数据加载失败");
     } finally {
@@ -160,6 +176,59 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const refreshAIJobs = useCallback(async () => {
+    try {
+      const result = await api<{ jobs: AIJob[]; legacy: any[] }>("/api/ai/jobs?pageSize=50");
+      setAiJobs(result.jobs); setLegacyAI(result.legacy || []);
+    } catch (error) { toast.error((error as Error).message); }
+  }, []);
+
+  useEffect(() => { if (view === "aiCenter") refreshAIJobs(); }, [view, refreshAIJobs]);
+
+  async function createAndRunAI(type: string, input: Record<string, any>) {
+    const created = await api<{ job: AIJob }>("/api/ai/jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type, input }) });
+    setActiveAIJobId(created.job.id);
+    setAiJobs((items) => [created.job, ...items.filter((item) => item.id !== created.job.id)]);
+    const completed = await api<{ job: AIJob; attempts: any[] }>(`/api/ai/jobs/${created.job.id}/run`, { method: "POST" });
+    setAiAttempts(completed.attempts);
+    setAiJobs((items) => [completed.job, ...items.filter((item) => item.id !== completed.job.id)]);
+    return completed.job;
+  }
+
+  async function openAIJob(id: string) {
+    setActiveAIJobId(id);
+    try { const detail = await api<{ job: AIJob; attempts: any[] }>(`/api/ai/jobs/${id}`); setAiAttempts(detail.attempts); }
+    catch (error) { toast.error((error as Error).message); }
+  }
+
+  async function retryAIJob(id: string) {
+    const toastId = toast.loading("正在重试 AI 任务…");
+    try { const result = await api<{ job: AIJob; attempts: any[] }>(`/api/ai/jobs/${id}/retry`, { method: "POST" }); setAiAttempts(result.attempts); await refreshAIJobs(); toast.success("任务重试成功", { id: toastId }); }
+    catch (error) { toast.error((error as Error).message, { id: toastId }); await refreshAIJobs(); }
+  }
+
+  async function cancelAIJob(id: string) {
+    try { await api(`/api/ai/jobs/${id}/cancel`, { method: "POST" }); await refreshAIJobs(); toast.success("任务已取消"); }
+    catch (error) { toast.error((error as Error).message); }
+  }
+
+  async function runEvaluation() {
+    const toastId = toast.loading("已创建 20 组合成回归，正在逐组真实调用千问…");
+    try {
+      const created = await api<{ evaluation: Record<string, any>; jobs: AIJob[] }>("/api/ai/evaluations", { method: "POST" });
+      setEvaluation({ ...created.evaluation, completed: 0, total: created.jobs.length }); setAiJobs((items) => [...created.jobs, ...items]);
+      for (let index = 0; index < created.jobs.length; index++) {
+        try { await api(`/api/ai/jobs/${created.jobs[index].id}/run`, { method: "POST" }); } catch {}
+        const progress = await api<{ evaluation: Record<string, any> }>(`/api/ai/evaluations/${created.evaluation.id}`);
+        setEvaluation(progress.evaluation);
+        toast.loading(`合成回归 ${index + 1}/${created.jobs.length}：F1 ${Math.round((progress.evaluation.f1 || 0) * 100)}%`, { id: toastId });
+      }
+      const report = await api<{ evaluation: Record<string, any> }>(`/api/ai/evaluations/${created.evaluation.id}`);
+      setEvaluation(report.evaluation); await refreshAIJobs();
+      if (report.evaluation.passed) toast.success("20 组合成回归达到发布门槛", { id: toastId }); else toast.error("回归未达到门槛，结果已保留供排查", { id: toastId });
+    } catch (error) { toast.error((error as Error).message, { id: toastId }); }
+  }
 
   useEffect(() => {
     try {
@@ -320,8 +389,8 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   async function runAnalysis() {
     setAnalysisBusy(true);
     try {
-      const response = await api<{ result: Record<string, any> }>("/api/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "jobAnalysis", jobTitle: analysisInput.title, jd: analysisInput.jd }) });
-      setAnalysisResult(response.result);
+      const job = await createAndRunAI("job_analysis", { jobTitle: analysisInput.title, jd: analysisInput.jd });
+      setAnalysisResult(job.result);
       refresh("analyses");
       toast.success("证据矩阵已生成");
     } catch (error) { toast.error((error as Error).message); }
@@ -332,8 +401,8 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     const jd = window.prompt("可粘贴目标岗位 JD；留空则做通用事实检查", analysisInput.jd) ?? "";
     const toastId = toast.loading("正在读取并分析简历，完成后会删除供应商临时文件…");
     try {
-      const response = await api<{ result: Record<string, any> }>("/api/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "resumeSuggestions", fileId: file.id, jd }) });
-      setAnalysisResult({ ...response.result, sourceResume: file.metadata.displayName || file.filename });
+      const job = await createAndRunAI("resume_suggestions", { fileId: file.id, jd });
+      setAnalysisResult({ ...(job.result || {}), sourceResume: file.metadata.displayName || file.filename });
       setView("analysis");
       toast.success("简历建议已生成", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
@@ -343,7 +412,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     if (!company.trim()) return;
     setResearchBusy(true);
     try {
-      await api("/api/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "companyResearch", company }) });
+      await createAndRunAI("company_research", { company });
       await refresh("research");
       toast.success("背调报告已生成并保存");
     } catch (error) { toast.error((error as Error).message); }
@@ -361,13 +430,24 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message); }
   }
 
-  async function uploadInterviewAudio(file: File) {
+  async function getAudioDuration(file: File) {
+    return await new Promise<number>((resolve) => { const audio = document.createElement("audio"); const url = URL.createObjectURL(file); audio.preload = "metadata"; audio.onloadedmetadata = () => { const duration = Number.isFinite(audio.duration) ? audio.duration : 0; URL.revokeObjectURL(url); resolve(duration); }; audio.onerror = () => { URL.revokeObjectURL(url); resolve(0); }; audio.src = url; });
+  }
+
+  async function uploadInterviewAudio(file: File, segment?: { sequence: number; duration: number }) {
     if (!activeInterview) return;
+    if (file.size > 10 * 1024 * 1024) return toast.error("单个音频文件不能超过 10 MB，请先分割后上传");
+    const duration = segment?.duration || await getAudioDuration(file);
+    if (!segment && duration > 300) return toast.error("单个上传音频不能超过 5 分钟，请先分割后上传");
     const toastId = toast.loading("正在保存录音…");
     try {
-      const saved = await uploadFile(file, "audio", { displayName: `${activeInterview.data.company || "面试"}录音` });
+      const sequence = segment?.sequence ?? 0;
+      const saved = await uploadFile(file, "audio", { displayName: `${activeInterview.data.company || "面试"}录音${sequence ? ` · 第${sequence}段` : ""}`, interviewId: activeInterview.id, sequence: String(sequence), duration: String(Math.round(duration)) });
       setAudioFiles((items) => [saved, ...items]);
-      await updateInterview({ audioFileId: saved.id });
+      if (segment) {
+        recordedSegments.current = [...recordedSegments.current.filter((item) => item.sequence !== sequence), { fileId: saved.id, sequence, duration: Math.round(duration), size: file.size, status: "saved", text: "" }].sort((a, b) => a.sequence - b.sequence);
+        await updateInterview({ audioSegments: recordedSegments.current, audioFileId: saved.id });
+      } else await updateInterview({ audioSegments: [{ fileId: saved.id, sequence: 1, duration: Math.round(duration), size: file.size, status: "saved", text: "" }], audioFileId: saved.id });
       toast.success("录音已保存", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
@@ -376,34 +456,46 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     if (!activeInterview) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : undefined });
-      chunks.current = [];
-      mediaRecorder.ondataavailable = (event) => { if (event.data.size) chunks.current.push(event.data); };
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        const blob = new Blob(chunks.current, { type: "audio/webm" });
-        const file = new File([blob], `interview-${Date.now()}.webm`, { type: "audio/webm" });
-        await uploadInterviewAudio(file);
+      streamRef.current = stream; recordingWanted.current = true; segmentIndex.current = 0; recordedSegments.current = activeInterview.data.audioSegments || [];
+      const beginSegment = () => {
+        segmentIndex.current += 1; segmentStartedAt.current = Date.now(); chunks.current = [];
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : undefined, audioBitsPerSecond: 64000 });
+        mediaRecorder.ondataavailable = (event) => { if (event.data.size) chunks.current.push(event.data); };
+        mediaRecorder.onstop = async () => {
+          const duration = (Date.now() - segmentStartedAt.current) / 1000;
+          const blob = new Blob(chunks.current, { type: "audio/webm" });
+          if (blob.size) await uploadInterviewAudio(new File([blob], `interview-${activeInterview.id}-${segmentIndex.current}.webm`, { type: "audio/webm" }), { sequence: segmentIndex.current, duration });
+          if (recordingWanted.current) beginSegment(); else { stream.getTracks().forEach((track) => track.stop()); streamRef.current = null; }
+        };
+        mediaRecorder.start(1000); recorder.current = mediaRecorder;
+        recordingTimer.current = setTimeout(() => { if (mediaRecorder.state === "recording") mediaRecorder.stop(); }, 4 * 60 * 1000);
       };
-      mediaRecorder.start(1000);
-      recorder.current = mediaRecorder;
+      beginSegment();
       setRecording(true);
-      recordingTimer.current = setTimeout(() => stopRecording(), 4 * 60 * 1000);
     } catch { toast.error("无法使用麦克风，请检查浏览器权限"); }
   }
 
   function stopRecording() {
+    recordingWanted.current = false;
     if (recorder.current?.state === "recording") recorder.current.stop();
     if (recordingTimer.current) clearTimeout(recordingTimer.current);
     setRecording(false);
   }
 
   async function transcribeInterview() {
-    if (!activeInterview?.data.audioFileId) return toast.error("请先录音或上传音频");
+    if (!activeInterview?.data.audioFileId && !activeInterview?.data.audioSegments?.length) return toast.error("请先录音或上传音频");
     const toastId = toast.loading("正在转写录音…");
     try {
-      const response = await api<{ result: { text: string } }>("/api/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "transcribeAudio", fileId: activeInterview.data.audioFileId }) });
-      await updateInterview({ transcript: response.result.text });
+      const segments = (activeInterview.data.audioSegments?.length ? activeInterview.data.audioSegments : [{ fileId: activeInterview.data.audioFileId, sequence: 1, text: "" }]).sort((a: any, b: any) => a.sequence - b.sequence);
+      for (const segment of segments) {
+        if (segment.status === "succeeded" && segment.text) continue;
+        try { const job = await createAndRunAI("transcription", { fileId: segment.fileId, segmentIndex: segment.sequence, interviewId: activeInterview.id }); segment.text = job.result?.text || ""; segment.status = "succeeded"; segment.jobId = job.id; }
+        catch (error) { segment.status = "failed"; segment.error = (error as Error).message; }
+        await updateInterview({ audioSegments: segments });
+      }
+      const transcript = segments.filter((item: any) => item.status === "succeeded").map((item: any) => item.text).join("\n");
+      await updateInterview({ transcript, audioSegments: segments });
+      if (segments.some((item: any) => item.status === "failed")) throw new Error("部分录音分段转写失败，可再次点击仅重试失败分段");
       toast.success("录音已转写", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
@@ -413,8 +505,8 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     const toastId = toast.loading("正在生成面试复盘…");
     try {
       const transcript = transcriptOverride ?? activeInterview.data.transcript ?? "";
-      const response = await api<{ result: Record<string, any> }>("/api/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "interviewReview", role: activeInterview.data.role, jd: activeInterview.data.jd, transcript }) });
-      await updateInterview({ transcript, review: response.result });
+      const job = await createAndRunAI("interview_review", { role: activeInterview.data.role, jd: activeInterview.data.jd, transcript, interviewId: activeInterview.id });
+      await updateInterview({ transcript, review: job.result });
       toast.success("复盘报告已生成", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
@@ -451,6 +543,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
 
       <main className="workspace">
         {migrationItems && <div className="migration-banner"><div><b>发现旧版保存在本机的记录</b><p>{migrationItems.applications.length} 条投递、{migrationItems.evidence.length} 条事实可迁移到云端。</p></div><div><Button variant="outline" onClick={() => setMigrationItems(null)}>忽略</Button><Button onClick={importOldData}>迁移记录</Button></div></div>}
+        {activeAIJobId && view !== "aiCenter" && aiJobs.find((item) => item.id === activeAIJobId) && <button className="ai-task-strip" onClick={() => setView("aiCenter")}><ListChecks /><span><b>最近 AI 任务</b>{aiJobs.find((item) => item.id === activeAIJobId)?.status === "succeeded" ? "已完成，可查看完整追溯记录" : aiJobs.find((item) => item.id === activeAIJobId)?.status === "failed" ? "执行失败，输入已保留，可重试" : "正在处理或等待执行"}</span><ExternalLink /></button>}
         {view === "dashboard" && <DashboardView dashboard={dashboard} profile={profile} records={records} onNavigate={setView} onAdd={() => setEditor({ kind: "applications" })} />}
         {view === "profile" && <ProfileView profile={profile} saveState={saveState} onChange={updateProfile} onSave={() => saveProfile(profile)} onAvatar={async (file) => { const saved = await uploadFile(file, "avatar"); updateProfile("avatarFileId", saved.id); }} />}
         {view === "resumes" && <ResumeView resumes={resumes} applications={records.applications} onUpload={uploadResume} onPreview={setPreview} onDelete={deleteFile} onAnalyze={analyzeResume} />}
@@ -458,6 +551,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         {view === "applications" && <ApplicationsView items={records.applications} resumes={resumes} onAdd={() => setEditor({ kind: "applications" })} onEdit={(item) => setEditor({ kind: "applications", item })} onDelete={(id) => deleteRecord("applications", id)} onMove={moveApplication} />}
         {view === "evidence" && <EvidenceView items={records.evidence} onAdd={() => setEditor({ kind: "evidence" })} onEdit={(item) => setEditor({ kind: "evidence", item })} onDelete={(id) => deleteRecord("evidence", id)} />}
         {view === "analysis" && <AnalysisView input={analysisInput} setInput={setAnalysisInput} busy={analysisBusy} result={analysisResult || records.analyses[0]?.data || null} onRun={runAnalysis} onEvidence={() => setView("evidence")} />}
+        {view === "aiCenter" && <AICenterView jobs={aiJobs} legacy={legacyAI} activeId={activeAIJobId} attempts={aiAttempts} evaluation={evaluation} onSelect={openAIJob} onRetry={retryAIJob} onCancel={cancelAIJob} onRefresh={refreshAIJobs} onRunEvaluation={runEvaluation} onNavigate={setView} />}
         {view === "company" && <ResearchView company={company} setCompany={setCompany} busy={researchBusy} reports={records.research} onRun={runResearch} onDelete={(id) => deleteRecord("research", id)} />}
         {view === "interviews" && <InterviewView items={records.interviews} active={activeInterview} audioFiles={audioFiles} recording={recording} onSelect={setSelectedInterview} onAdd={() => setEditor({ kind: "interviews" })} onEdit={(item) => setEditor({ kind: "interviews", item })} onDelete={(id) => deleteRecord("interviews", id)} onSave={updateInterview} onRecord={recording ? stopRecording : startRecording} onAudio={uploadInterviewAudio} onTranscribe={transcribeInterview} onReview={reviewInterview} />}
         {view === "offers" && <OffersView items={records.offers} weights={weights} setWeights={setWeights} onAdd={() => setEditor({ kind: "offers" })} onEdit={(item) => setEditor({ kind: "offers", item })} onDelete={(id) => deleteRecord("offers", id)} />}
@@ -599,6 +693,22 @@ function AnalysisView({ input, setInput, busy, result, onRun, onEvidence }: { in
   return <><PageHead eyebrow="岗位证据矩阵" title="每一个匹配结论都有依据" description="模型负责提取与映射，最终分数按公开权重公式计算。" />
     <div className="analysis-layout"><section className="panel form-panel"><Field label="岗位名称"><Input value={input.title} onChange={(e) => setInput({ ...input, title: e.target.value })} placeholder="例如：字节跳动商业化产品经理" /></Field><Field label="完整职位描述"><Textarea className="jd-input" value={input.jd} onChange={(e) => setInput({ ...input, jd: e.target.value })} placeholder="粘贴岗位职责、任职要求和加分项…" /></Field><div className="privacy-note"><CheckCircle2 /><span><b>严格事实模式</b>仅匹配事实库中状态为“已确认”的内容。</span></div><Button size="lg" disabled={busy || input.jd.length < 40} onClick={onRun}>{busy ? <RefreshCw className="spin" /> : <Sparkles />}{busy ? "正在建立证据矩阵…" : "生成证据矩阵"}</Button></section><section className="panel analysis-summary">{result ? <><div className="score-ring" style={{ "--score": `${result.score || 0}%` } as React.CSSProperties}><strong>{result.score ?? "—"}</strong><span>证据覆盖</span></div><h2>{result.summary || "分析已完成"}</h2><p>必备项权重 3、重要项权重 2、加分项权重 1；强匹配计 100%，部分匹配计 55%。</p></> : <EmptyState icon={Sparkles} title="等待分析" text="输入 JD 后，系统会把要求、事实依据、缺口和下一步动作放在同一张表里。" />}</section></div>
     {result && <section className="panel matrix-panel"><div className="panel-title"><div><h2>要求与证据</h2><p>无引用的内容不会被标记为匹配</p></div><Button variant="outline" onClick={onEvidence}>管理事实库</Button></div>{Array.isArray(result.requirements) ? <div className="matrix-table"><div className="matrix-row head"><span>岗位要求</span><span>重要度</span><span>覆盖</span><span>依据与理由</span></div>{result.requirements.map((item: any, index: number) => <div className="matrix-row" key={index}><span><b>{item.label}</b></span><span>{item.importance === "must" ? "必备" : item.importance === "important" ? "重要" : "加分"}</span><span><StatusPill tone={item.coverage === "strong" ? "green" : item.coverage === "partial" ? "orange" : "red"}>{item.coverage === "strong" ? "强匹配" : item.coverage === "partial" ? "部分匹配" : "缺少证据"}</StatusPill></span><span><p>{item.reason}</p><small>{(item.evidenceIds || []).map((id: string) => `#${id.slice(0, 8)}`).join("、") || "没有可引用事实"}</small></span></div>)}</div> : null}{Array.isArray(result.suggestions) && <div className="suggestion-grid">{result.suggestions.map((item: any, index: number) => <article key={index}><span>建议 {index + 1}</span><h3>{item.issue}</h3><p>{item.suggestion}</p><small>风险：{item.risk || "无"}</small></article>)}</div>}</section>}
+  </>;
+}
+
+const aiTypeLabels: Record<string, string> = { job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", transcription: "录音转写", evaluation_case: "合成评测" };
+const aiStatusLabels: Record<string, string> = { queued: "排队中", running: "运行中", succeeded: "成功", failed: "失败", cancelled: "已取消" };
+
+function AICenterView({ jobs, legacy, activeId, attempts, evaluation, onSelect, onRetry, onCancel, onRefresh, onRunEvaluation, onNavigate }: { jobs: AIJob[]; legacy: any[]; activeId: string | null; attempts: any[]; evaluation: Record<string, any> | null; onSelect: (id: string) => void; onRetry: (id: string) => void; onCancel: (id: string) => void; onRefresh: () => void; onRunEvaluation: () => void; onNavigate: (view: View) => void }) {
+  const [type, setType] = useState(""); const [status, setStatus] = useState(""); const [date, setDate] = useState("");
+  const filtered = jobs.filter((job) => (!type || job.type === type) && (!status || job.status === status) && (!date || job.createdAt.slice(0, 10) === date));
+  const active = jobs.find((job) => job.id === activeId) || filtered[0];
+  const navigateTarget = active?.type === "company_research" ? "company" : active?.type === "interview_review" || active?.type === "transcription" ? "interviews" : "analysis";
+  return <><PageHead eyebrow="AI 任务中心" title="每次分析都能复核、重试和追溯" description="记录输入快照、来源、模型、提示版本、耗时和每次尝试；取消后的迟到结果不会写入正式记录。" action={<div className="head-actions"><Button variant="outline" onClick={onRefresh}><RefreshCw />刷新</Button><Button onClick={onRunEvaluation}><Sparkles />运行 20 组合成回归</Button></div>} />
+    {evaluation && <section className={`evaluation-banner ${evaluation.passed ? "passed" : ""}`}><div><b>合成回归：{evaluation.completed || 0}/{evaluation.total || 20}</b><span>只使用内置合成简历事实与 JD，不读取你的真实资料。</span></div><div><strong>F1 {Math.round((evaluation.f1 || 0) * 100)}%</strong><span>无效引用 {evaluation.invalidReferenceCount || 0} · 编造事实 {evaluation.unsupportedFactCount || 0} · Schema {Math.round((evaluation.schemaPassRate || 0) * 100)}%</span></div></section>}
+    <section className="ai-filters panel"><label>任务类型<select value={type} onChange={(event) => setType(event.target.value)}><option value="">全部</option>{Object.entries(aiTypeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>状态<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">全部</option>{Object.entries(aiStatusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>日期<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></section>
+    <div className="ai-center-layout"><section className="panel ai-job-list">{filtered.length ? filtered.map((job) => <button key={job.id} className={active?.id === job.id ? "active" : ""} onClick={() => onSelect(job.id)}><span className={`ai-status ${job.status}`}>{aiStatusLabels[job.status] || job.status}</span><b>{aiTypeLabels[job.type] || job.type}</b><small>{formatDate(job.createdAt, true)} · {job.model}</small>{job.errorMessage && <em>{job.errorMessage}</em>}</button>) : <EmptyState icon={ListChecks} title="没有符合条件的任务" text="执行岗位分析、简历建议、背调或面试复盘后，记录会出现在这里。" />}{legacy.length > 0 && <div className="legacy-jobs"><b>旧版记录</b><p>以下记录在审计管线建立前生成，缺少完整追溯字段，不会补造。</p>{legacy.map((item) => <span key={item.id}>{item.title}<small>{formatDate(item.createdAt, true)}</small></span>)}</div>}</section>
+      <section className="panel ai-job-detail">{active ? <><header><div><span className={`ai-status ${active.status}`}>{aiStatusLabels[active.status]}</span><h2>{aiTypeLabels[active.type]}</h2><p>{active.id}</p></div><div>{["queued", "running"].includes(active.status) && <Button variant="outline" onClick={() => onCancel(active.id)}>取消</Button>}{["failed", "cancelled"].includes(active.status) && <Button onClick={() => onRetry(active.id)}><RefreshCw />重试</Button>}{active.status === "succeeded" && active.type !== "evaluation_case" && <Button variant="outline" onClick={() => onNavigate(navigateTarget)}><ExternalLink />查看业务结果</Button>}</div></header><dl className="ai-audit-grid"><div><dt>模型</dt><dd>{active.model}</dd></div><div><dt>提示版本</dt><dd>{active.promptVersion}</dd></div><div><dt>耗时</dt><dd>{active.elapsedMs == null ? "—" : `${(active.elapsedMs / 1000).toFixed(1)} 秒`}</dd></div><div><dt>置信度</dt><dd>{active.confidence || "—"}</dd></div></dl>{active.errorMessage && <div className="ai-error"><AlertTriangle /><span><b>{active.errorCode}</b>{active.errorMessage}</span></div>}<section><h3>输入快照</h3><pre>{JSON.stringify(active.inputSnapshot, null, 2)}</pre></section><section><h3>来源引用</h3><pre>{JSON.stringify(active.sourceRefs, null, 2)}</pre></section>{active.result && <section><h3>结果摘要</h3><pre>{JSON.stringify(active.result, null, 2)}</pre></section>}<section><h3>尝试历史</h3>{attempts.length ? <div className="attempt-list">{attempts.map((attempt) => <div key={attempt.id}><b>第 {attempt.attemptNumber} 次 · {aiStatusLabels[attempt.status] || attempt.status}</b><span>{formatDate(attempt.startedAt, true)} · {attempt.model}</span>{attempt.errorMessage && <small>{attempt.errorCode}：{attempt.errorMessage}</small>}</div>)}</div> : <p className="muted">选择任务后查看完整尝试记录。</p>}</section></> : <EmptyState icon={ListChecks} title="还没有 AI 任务" text="先从岗位分析、简历库、公司背调或面试复盘发起一次真实任务。" />}</section></div>
   </>;
 }
 
