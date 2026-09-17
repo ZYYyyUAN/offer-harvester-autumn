@@ -185,6 +185,39 @@ export function aiErrorDetails(error: unknown) {
   return { code: "UNKNOWN_ERROR", message: error instanceof Error ? error.message : "未知错误", retryable: false };
 }
 
+export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType }) {
+  const response = await qwenFetch("/responses", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "qwen3.8-max",
+      input: `${options.system}\n\n${options.prompt}\n只返回符合指定结构的 JSON。`,
+      tools: [{ type: "web_search" }, { type: "web_extractor" }],
+      enable_thinking: true,
+      text: { format: { type: "json_schema", name: options.schemaName, strict: true, schema: options.schema } },
+    }),
+  });
+  const output = Array.isArray(response.output) ? response.output as Array<Record<string, unknown>> : [];
+  const content = output.flatMap((item) => Array.isArray(item.content) ? item.content as Array<Record<string, unknown>> : []).map((item) => item.text).filter((item): item is string => typeof item === "string").join("");
+  const parsed = parseJsonContent(content || response.output_text);
+  let data: Record<string, unknown>;
+  try { data = options.validator ? options.validator.parse(parsed) as Record<string, unknown> : parsed; }
+  catch { throw new ApiError(502, "联网背调结果未通过结构校验，请重试", "SCHEMA_INVALID", false); }
+  const sources: SearchSource[] = [];
+  const seen = new Set<string>();
+  for (const item of output.filter((entry) => entry.type === "web_search_call")) {
+    const action = item.action && typeof item.action === "object" ? item.action as Record<string, unknown> : {};
+    for (const source of Array.isArray(action.sources) ? action.sources : []) {
+      const rawUrl = typeof source === "string" ? source : source && typeof source === "object" ? String((source as Record<string, unknown>).url || "") : "";
+      try {
+        const url = new URL(rawUrl);
+        if (!seen.has(url.href)) { seen.add(url.href); const object = typeof source === "object" && source ? source as Record<string, unknown> : {}; sources.push({ title: String(object.title || url.hostname), url: url.href, publishedAt: object.published_at ? String(object.published_at) : null, crawledAt: new Date().toISOString() }); }
+      } catch {}
+    }
+  }
+  return { data, sources, raw: response, usage: (response.usage || {}) as Record<string, unknown> };
+}
+
 export async function transcribeAudio(file: { bytes: ArrayBuffer; filename: string; mimeType: string }) {
   if (file.bytes.byteLength > 10 * 1024 * 1024) throw new ApiError(413, "单段音频需小于 10 MB；长录音请在录音时使用自动分段");
   const form = new FormData();

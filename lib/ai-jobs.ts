@@ -1,5 +1,5 @@
 import { ApiError, getBindings, getDatabase, safeJson } from "@/lib/server-data";
-import { aiErrorDetails, analyzeResumeFile, extractSearchSources, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { aiErrorDetails, analyzeResumeFile, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
 import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
 import { getEvaluationCase } from "@/lib/ai-evaluation-cases";
 
@@ -108,8 +108,8 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
   if (type === "company_research") {
     const company = String(input.company || "").trim();
     if (!company) throw new ApiError(400, "请输入公司名称");
-    const response = await structuredChat({ model: "qwen3.8-max", system: "你是谨慎的公司背调研究员。区分事实与推断；来源由系统单独提取，你不得在正文中编造链接或伪精确评分。", prompt: `调查公司：${company}。关注业务、经营、团队文化、岗位风险和面试待确认问题。`, schemaName: "company_research_v2", schema: companyJsonSchema, validator: CompanyResearchSchema, search: true });
-    const sources = extractSearchSources(response.raw);
+    const response = await responsesSearch({ system: "你是谨慎的公司背调研究员。区分事实与推断；来源由系统单独提取，你不得在正文中编造链接或伪精确评分。", prompt: `调查公司：${company}。关注业务、经营、团队文化、岗位风险和面试待确认问题。`, schemaName: "company_research_v3", schema: companyJsonSchema, validator: CompanyResearchSchema });
+    const sources = response.sources;
     const risks = [...(response.data.risks as string[])];
     if (sources.length < 2) risks.unshift("可核验来源少于两个，本报告仅作为线索，不应据此作出关键决策。");
     return { result: { ...response.data, risks, sources, company, generatedAt: new Date().toISOString(), confidence: sources.length < 2 ? "low" : response.data.confidence }, usage: response.usage, confidence: sources.length < 2 ? "low" : String(response.data.confidence), record: { kind: "research", title: company } };

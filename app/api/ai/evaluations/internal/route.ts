@@ -2,7 +2,7 @@ import { evaluationCases } from "@/lib/ai-evaluation-cases";
 import { createAIJob, mapAIJob, runAIJob } from "@/lib/ai-jobs";
 import { percentile } from "@/lib/ai-contracts";
 import { apiError, getDatabase, safeJson } from "@/lib/server-data";
-import { analyzeResumeFile, extractSearchSources, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { analyzeResumeFile, responsesSearch, transcribeAudio } from "@/lib/qwen";
 import { ResumeSuggestionSchema, resumeJsonSchema } from "@/lib/ai-contracts";
 
 const syntheticOwner = "system_synthetic_evaluation";
@@ -16,8 +16,8 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, factCount: Array.isArray(result.facts) ? result.facts.length : 0 });
     }
     if (body.action === "searchSmoke") {
-      const result = await structuredChat({ model: "qwen3.8-max", system: "仅总结可检索到的公开资料。", prompt: "检索阿里云官方网站，简述其大模型服务平台百炼。", schemaName: "search_smoke", schema: { type: "object", additionalProperties: false, required: ["answer"], properties: { answer: { type: "string" } } }, search: true, maxTokens: 600 });
-      const sources = extractSearchSources(result.raw);
+      const result = await responsesSearch({ system: "仅总结可检索到的公开资料。", prompt: "检索阿里云官方网站，简述其大模型服务平台百炼。", schemaName: "search_smoke", schema: { type: "object", additionalProperties: false, required: ["answer"], properties: { answer: { type: "string" } } } });
+      const sources = result.sources;
       return Response.json({ ok: sources.length > 0, sourceCount: sources.length, sources: sources.slice(0, 3) });
     }
     if (body.action === "asrSmoke" && body.audioBase64) {
