@@ -2,12 +2,29 @@ import { evaluationCases } from "@/lib/ai-evaluation-cases";
 import { createAIJob, mapAIJob, runAIJob } from "@/lib/ai-jobs";
 import { percentile } from "@/lib/ai-contracts";
 import { apiError, getDatabase, safeJson } from "@/lib/server-data";
+import { analyzeResumeFile, extractSearchSources, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { ResumeSuggestionSchema, resumeJsonSchema } from "@/lib/ai-contracts";
 
 const syntheticOwner = "system_synthetic_evaluation";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as { action?: string; jobId?: string };
+    const body = await request.json() as { action?: string; jobId?: string; audioBase64?: string };
+    if (body.action === "documentSmoke") {
+      const bytes = new TextEncoder().encode("张晓，数据分析实习生。使用 SQL 分析课程平台留存，完成三张业务表清洗；使用 Python 构建课程预测回归模型。以上为合成测试资料。").buffer;
+      const result = await analyzeResumeFile({ bytes, filename: "synthetic-resume.txt" }, "提取可验证事实并给出一条保守建议。", resumeJsonSchema, ResumeSuggestionSchema);
+      return Response.json({ ok: true, factCount: Array.isArray(result.facts) ? result.facts.length : 0 });
+    }
+    if (body.action === "searchSmoke") {
+      const result = await structuredChat({ model: "qwen3.8-max", system: "仅总结可检索到的公开资料。", prompt: "检索阿里云官方网站，简述其大模型服务平台百炼。", schemaName: "search_smoke", schema: { type: "object", additionalProperties: false, required: ["answer"], properties: { answer: { type: "string" } } }, search: true, maxTokens: 600 });
+      const sources = extractSearchSources(result.raw);
+      return Response.json({ ok: sources.length > 0, sourceCount: sources.length, sources: sources.slice(0, 3) });
+    }
+    if (body.action === "asrSmoke" && body.audioBase64) {
+      const bytes = Uint8Array.from(atob(body.audioBase64), (value) => value.charCodeAt(0)).buffer;
+      const result = await transcribeAudio({ bytes, filename: "synthetic-speech.wav", mimeType: "audio/wav" });
+      return Response.json({ ok: true, text: result.text });
+    }
     if (body.action === "create") {
       const batchId = crypto.randomUUID();
       const jobs = [];
