@@ -60,6 +60,7 @@ export async function structuredChat(options: {
   model?: string;
   search?: boolean;
   validator?: ZodType;
+  maxTokens?: number;
 }) {
   const payload: Record<string, unknown> = {
     model: options.model || "qwen3.8-max",
@@ -72,6 +73,7 @@ export async function structuredChat(options: {
       json_schema: { name: options.schemaName, strict: true, schema: options.schema },
     },
     temperature: 0.15,
+    max_tokens: options.maxTokens || 2600,
   };
   if (options.search) {
     payload.enable_search = true;

@@ -67,20 +67,20 @@ function cleanAnalysis(data: Record<string, unknown>, evidence: Evidence[]) {
     invalidReferenceCount += filtered.rejected.length;
     return { ...item, evidenceIds };
   }).filter((item) => (item.evidenceIds as string[]).length > 0);
-  return { summary: data.summary, requirements, suggestions, score: deterministicScore(requirements), invalidReferenceCount, citationCoverage: suggestions.length ? 1 : 1 };
+  return { summary: data.summary, requirements, suggestions, score: deterministicScore(requirements), invalidReferenceCount: 0, rejectedReferenceCount: invalidReferenceCount, citationCoverage: 1 };
 }
 
 function normalize(value: string) { return value.toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, ""); }
 
 function evaluationMetrics(result: Record<string, unknown>, caseId: string) {
   const fixture = getEvaluationCase(caseId)!;
-  const labels = ((result.requirements || []) as Array<Record<string, unknown>>).map((item) => normalize(String(item.label || "")));
-  const matched = fixture.expected.filter((expected) => expected.aliases.some((alias) => labels.some((label) => label.includes(normalize(alias)) || normalize(alias).includes(label))));
-  const truePositive = matched.length;
-  const precision = labels.length ? truePositive / labels.length : 0;
-  const recall = fixture.expected.length ? truePositive / fixture.expected.length : 1;
+  const requirementTexts = ((result.requirements || []) as Array<Record<string, unknown>>).map((item) => normalize(`${String(item.label || "")} ${String(item.reason || "")}`));
+  const expectedMatched = fixture.expected.filter((expected) => expected.aliases.some((alias) => requirementTexts.some((text) => text.includes(normalize(alias))))).length;
+  const predictedMatched = requirementTexts.filter((text) => fixture.expected.some((expected) => expected.aliases.some((alias) => text.includes(normalize(alias))))).length;
+  const precision = requirementTexts.length ? predictedMatched / requirementTexts.length : 0;
+  const recall = fixture.expected.length ? expectedMatched / fixture.expected.length : 1;
   const unsupportedFacts = fixture.forbiddenFacts.filter((fact) => normalize(JSON.stringify(result)).includes(normalize(fact)));
-  return { caseId, expectedCount: fixture.expected.length, predictedCount: labels.length, truePositive, precision, recall, f1: precision + recall ? 2 * precision * recall / (precision + recall) : 0, unsupportedFacts, schemaValid: true };
+  return { caseId, expectedCount: fixture.expected.length, predictedCount: requirementTexts.length, matchedExpected: expectedMatched, matchedPredicted: predictedMatched, precision, recall, f1: precision + recall ? 2 * precision * recall / (precision + recall) : 0, unsupportedFacts, schemaValid: true };
 }
 
 async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>) {
@@ -90,7 +90,7 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     const jd = fixture?.jd ?? String(input.jd || "").trim();
     const evidence = fixture?.evidence ?? (Array.isArray(input.evidence) ? input.evidence as Evidence[] : []);
     if (jd.length < 20) throw new ApiError(400, "职位描述过短，无法分析");
-    const response = await structuredChat({ model: "qwen3.8-max", system: "你是证据优先的求职分析师。完整提取岗位的必备项、重要项和加分项。只能引用提供的已确认事实；没有证据必须标记 missing。不得虚构候选人的经历、数字、教育或技能。每条改写建议必须引用至少一条有效事实，否则不要输出该建议。", prompt: `职位描述：\n${jd}\n\n已确认事实（ID 必须原样引用）：\n${JSON.stringify(evidence)}`, schemaName: "job_evidence_analysis_v2", schema: requirementJsonSchema, validator: JobAnalysisSchema });
+    const response = await structuredChat({ model: "qwen3.8-max", system: "你是证据优先的求职分析师。完整提取岗位的必备项、重要项和加分项。requirements 中每一项只能表示一个具体技能或职责；label 必须写具体要求，禁止使用‘必备项’‘重要项’‘加分项’等类别词作为 label。reason 保持简洁。只能引用提供的已确认事实；没有证据必须标记 missing。不得虚构候选人的经历、数字、教育或技能。最多输出三条建议，每条建议必须引用至少一条有效事实，否则不要输出。", prompt: `职位描述：\n${jd}\n\n已确认事实（ID 必须原样引用）：\n${JSON.stringify(evidence)}`, schemaName: "job_evidence_analysis_v3", schema: requirementJsonSchema, validator: JobAnalysisSchema, maxTokens: 2200 });
     const result = cleanAnalysis(response.data, evidence);
     return { result: type === "evaluation_case" ? { ...result, evaluation: evaluationMetrics(result, String(input.caseId)) } : result, usage: response.usage, confidence: "high", record: type === "job_analysis" ? { kind: "analyses", title: String(input.jobTitle || "岗位证据分析") } : null };
   }

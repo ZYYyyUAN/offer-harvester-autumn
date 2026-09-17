@@ -25,10 +25,11 @@ export async function GET(request: Request) {
     const rows = await getDatabase().prepare("SELECT * FROM ai_jobs WHERE owner_id = ? AND batch_id = ? ORDER BY created_at ASC").bind(syntheticOwner, batchId).all<Record<string, unknown>>();
     const jobs = rows.results.map(mapAIJob);
     const metrics = jobs.filter((job) => job.status === "succeeded").map((job) => ((job.result || {}) as Record<string, unknown>).evaluation as Record<string, unknown>).filter(Boolean);
-    const tp = metrics.reduce((sum, item) => sum + Number(item.truePositive || 0), 0);
+    const matchedExpected = metrics.reduce((sum, item) => sum + Number(item.matchedExpected || 0), 0);
+    const matchedPredicted = metrics.reduce((sum, item) => sum + Number(item.matchedPredicted || 0), 0);
     const expected = metrics.reduce((sum, item) => sum + Number(item.expectedCount || 0), 0);
     const predicted = metrics.reduce((sum, item) => sum + Number(item.predictedCount || 0), 0);
-    const precision = predicted ? tp / predicted : 0; const recall = expected ? tp / expected : 0;
+    const precision = predicted ? matchedPredicted / predicted : 0; const recall = expected ? matchedExpected / expected : 0;
     const attempts = await getDatabase().prepare("SELECT token_usage, status FROM ai_job_attempts WHERE owner_id = ? AND job_id IN (SELECT id FROM ai_jobs WHERE batch_id = ? AND owner_id = ?)").bind(syntheticOwner, batchId, syntheticOwner).all<Record<string, unknown>>();
     const totalTokens = attempts.results.reduce((sum, row) => sum + Number(safeJson<Record<string, unknown>>(String(row.token_usage || "{}"), {}).total_tokens || 0), 0);
     const elapsed = jobs.flatMap((job) => job.elapsedMs == null ? [] : [job.elapsedMs]);
