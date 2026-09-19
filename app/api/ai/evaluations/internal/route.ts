@@ -2,14 +2,24 @@ import { evaluationCases } from "@/lib/ai-evaluation-cases";
 import { createAIJob, mapAIJob, runAIJob } from "@/lib/ai-jobs";
 import { percentile } from "@/lib/ai-contracts";
 import { apiError, getDatabase, safeJson } from "@/lib/server-data";
-import { analyzeResumeFile, responsesSearch, transcribeAudio } from "@/lib/qwen";
+import { analyzeResumeFile, ocrImage, responsesSearch, transcribeAudio } from "@/lib/qwen";
 import { ResumeSuggestionSchema, resumeJsonSchema } from "@/lib/ai-contracts";
 
 const syntheticOwner = "system_synthetic_evaluation";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as { action?: string; jobId?: string; audioBase64?: string };
+    const body = await request.json() as { action?: string; jobId?: string; audioBase64?: string; imageBase64?: string; sourceUrl?: string };
+    if (body.action === "jobCaptureUrlSmoke" && body.sourceUrl) {
+      const created = await createAIJob(syntheticOwner, "job_capture_url", { sourceUrl: body.sourceUrl }, { sourceRefs: [{ type: "public_url", id: body.sourceUrl }] });
+      const job = await runAIJob(syntheticOwner, created.job.id);
+      return Response.json({ ok: job.job.status === "succeeded", job: job.job, attempts: job.attempts });
+    }
+    if (body.action === "ocrSmoke" && body.imageBase64) {
+      const bytes = Uint8Array.from(atob(body.imageBase64), (value) => value.charCodeAt(0)).buffer;
+      const result = await ocrImage({ bytes, mimeType: "image/png" });
+      return Response.json({ ok: result.text.length > 0, text: result.text });
+    }
     if (body.action === "documentSmoke") {
       const bytes = new TextEncoder().encode("张晓，数据分析实习生。使用 SQL 分析课程平台留存，完成三张业务表清洗；使用 Python 构建课程预测回归模型。以上为合成测试资料。").buffer;
       const result = await analyzeResumeFile({ bytes, filename: "synthetic-resume.txt" }, "提取可验证事实并给出一条保守建议。", resumeJsonSchema, ResumeSuggestionSchema);
