@@ -4,6 +4,7 @@ import { percentile } from "@/lib/ai-contracts";
 import { apiError, getDatabase, safeJson } from "@/lib/server-data";
 import { analyzeResumeFile, ocrImage, responsesSearch, transcribeAudio } from "@/lib/qwen";
 import { ResumeSuggestionSchema, resumeJsonSchema } from "@/lib/ai-contracts";
+import { jobCaptureJsonSchema } from "@/lib/workflow-contracts";
 
 const syntheticOwner = "system_synthetic_evaluation";
 
@@ -14,6 +15,10 @@ export async function POST(request: Request) {
       const created = await createAIJob(syntheticOwner, "job_capture_url", { sourceUrl: body.sourceUrl }, { sourceRefs: [{ type: "public_url", id: body.sourceUrl }] });
       const job = await runAIJob(syntheticOwner, created.job.id);
       return Response.json({ ok: job.job.status === "succeeded", job: job.job, attempts: job.attempts });
+    }
+    if (body.action === "jobCaptureUrlRaw" && body.sourceUrl) {
+      const result = await responsesSearch({ system: "只提取页面明确写出的岗位信息，不推断。", prompt: `读取岗位页面 ${body.sourceUrl}，提取公司、岗位、地点、薪资、截止日期、JD、来源链接、字段原文证据与警告。`, schemaName: "job_capture_debug", schema: jobCaptureJsonSchema });
+      return Response.json({ ok: true, data: result.data, sourceCount: result.sources.length });
     }
     if (body.action === "ocrSmoke" && body.imageBase64) {
       const bytes = Uint8Array.from(atob(body.imageBase64), (value) => value.charCodeAt(0)).buffer;
