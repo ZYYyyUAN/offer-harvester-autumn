@@ -53,14 +53,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "aiCenter";
-type Kind = "applications" | "saved_jobs" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
+type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "aiCenter";
+type Kind = "applications" | "saved_jobs" | "tasks" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
 type RecordItem = { id: string; kind: Kind; title: string; data: Record<string, any>; version: number; createdAt: string; updatedAt: string; deletedAt: string | null };
 type StoredFile = { id: string; filename: string; mimeType: string; size: number; metadata: Record<string, any>; version: number; createdAt: string };
-type Dashboard = { totalApplications: number; interviewCount: number; offerCount: number; invitationRate: number; stageCounts: Record<string, number>; upcoming: Array<{ data: Record<string, any> }>; recentApplications: Array<{ data: Record<string, any>; updatedAt: string }> };
+type Dashboard = { totalApplications: number; savedCount: number; interviewCount: number; offerCount: number; invitationRate: number; stageCounts: Record<string, number>; funnel: Record<string, number>; upcoming: Array<{ data: Record<string, any> }>; risks: Array<{ item: Record<string, any>; risk: { level: string; reason: string } }>; openTasks: Array<Record<string, any>>; pendingEvidence: number; recentApplications: Array<{ data: Record<string, any>; updatedAt: string }>; segments: Record<string, any[]>; settings: Record<string, any> };
 type AIJob = { id: string; batchId?: string | null; type: string; status: string; inputSnapshot: Record<string, any>; sourceRefs: any[]; model: string; promptVersion: string; result: Record<string, any> | null; resultRecordId?: string | null; confidence?: string | null; elapsedMs?: number | null; errorCode?: string | null; errorMessage?: string | null; createdAt: string; startedAt?: string | null; finishedAt?: string | null };
 
-const emptyDashboard: Dashboard = { totalApplications: 0, interviewCount: 0, offerCount: 0, invitationRate: 0, stageCounts: {}, upcoming: [], recentApplications: [] };
+const emptyDashboard: Dashboard = { totalApplications: 0, savedCount: 0, interviewCount: 0, offerCount: 0, invitationRate: 0, stageCounts: {}, funnel: {}, upcoming: [], risks: [], openTasks: [], pendingEvidence: 0, recentApplications: [], segments: {}, settings: {} };
 const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"];
 
 const nav = [
@@ -69,6 +69,7 @@ const nav = [
   { id: "resumes" as View, label: "简历库", icon: FileText },
   { id: "savedJobs" as View, label: "收藏岗位", icon: Bookmark },
   { id: "applications" as View, label: "投递看板", icon: BriefcaseBusiness },
+  { id: "tasks" as View, label: "行动清单", icon: ListChecks },
   { id: "evidence" as View, label: "事实库", icon: Database },
   { id: "analysis" as View, label: "岗位分析", icon: Sparkles },
   { id: "aiCenter" as View, label: "AI 任务中心", icon: ListChecks },
@@ -118,7 +119,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   const [saveState, setSaveState] = useState("已保存");
   const profileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard>(emptyDashboard);
-  const [records, setRecords] = useState<Record<Kind, RecordItem[]>>({ applications: [], saved_jobs: [], evidence: [], interviews: [], offers: [], reminders: [], analyses: [], research: [] });
+  const [records, setRecords] = useState<Record<Kind, RecordItem[]>>({ applications: [], saved_jobs: [], tasks: [], evidence: [], interviews: [], offers: [], reminders: [], analyses: [], research: [] });
   const [resumes, setResumes] = useState<StoredFile[]>([]);
   const [audioFiles, setAudioFiles] = useState<StoredFile[]>([]);
   const [jobScreenshots, setJobScreenshots] = useState<StoredFile[]>([]);
@@ -150,7 +151,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const kinds: Kind[] = ["applications", "saved_jobs", "evidence", "interviews", "offers", "reminders", "analyses", "research"];
+      const kinds: Kind[] = ["applications", "saved_jobs", "tasks", "evidence", "interviews", "offers", "reminders", "analyses", "research"];
       const [profileResult, dashboardResult, resumeResult, audioResult, screenshotResult, ...recordResults] = await Promise.all([
         api<{ profile: Record<string, any> }>("/api/profile"),
         api<{ dashboard: Dashboard }>("/api/dashboard"),
@@ -321,6 +322,11 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message); }
   }
 
+  async function toggleChecklist(item: RecordItem, key: string, done: boolean) {
+    try { await api("/api/applications/checklist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, key, done }) }); await Promise.all([refresh("applications"), refresh("tasks")]); }
+    catch (error) { toast.error((error as Error).message); }
+  }
+
   async function uploadFile(file: File, purpose: "resume" | "avatar" | "audio" | "job_screenshot", metadata: Record<string, string> = {}) {
     const params = new URLSearchParams({ purpose, sourceModifiedAt: file.lastModified ? new Date(file.lastModified).toISOString() : "", ...metadata });
     const response = await api<{ file: StoredFile }>(`/api/files?${params}`, { method: "POST", headers: { "content-type": file.type, "content-length": String(file.size), "x-file-name": encodeURIComponent(file.name) }, body: file });
@@ -357,10 +363,22 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message, { id: toastId }); throw error; }
   }
 
+  async function extractJob(sourceUrl?: string, screenshot?: File) {
+    let screenshotFileId = "";
+    if (screenshot) { const saved = await uploadFile(screenshot, "job_screenshot", { displayName: "待识别 JD 截图" }); screenshotFileId = saved.id; setJobScreenshots((items) => [saved, ...items]); }
+    const result = await api<{ job: AIJob }>("/api/job-captures", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(screenshotFileId ? { screenshotFileId } : { sourceUrl }) });
+    await refreshAIJobs(); return { job: result.job, screenshotFileId };
+  }
+
+  async function confirmCapturedJob(jobId: string, data: Record<string, any>, allowDuplicate = false) {
+    const result = await api<{ record?: RecordItem; duplicate?: RecordItem; requiresConfirmation?: boolean }>(`/api/job-captures/${jobId}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...data, allowDuplicate }) });
+    await refresh("saved_jobs"); return result;
+  }
+
   async function convertSavedJob(item: RecordItem) {
     const toastId = toast.loading("正在建立投递记录…");
     try {
-      const response = await api<{ record: RecordItem }>("/api/records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "applications", data: { company: item.data.company, role: item.data.role, sourceUrl: item.data.sourceUrl, jd: item.data.jd, location: item.data.location, deadline: item.data.deadline, priority: item.data.priority || "普通", stage: "待投递", notes: item.data.notes || "", savedJobId: item.id } }) });
+      const response = await api<{ record: RecordItem }>("/api/records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "applications", data: { company: item.data.company, role: item.data.role, sourceUrl: item.data.sourceUrl, jd: item.data.jd, location: item.data.location, salary: item.data.salary, deadline: item.data.deadline, priority: item.data.priority || "普通", stage: "待投递", notes: item.data.notes || "", savedJobId: item.id, checklist: {} } }) });
       await api("/api/records", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, version: item.version, data: { convertedApplicationId: response.record.id, convertedAt: new Date().toISOString() } }) });
       await Promise.all([refresh("saved_jobs"), refresh("applications")]);
       setView("applications");
@@ -390,7 +408,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     setAnalysisBusy(true);
     try {
       const job = await createAndRunAI("job_analysis", { jobTitle: analysisInput.title, jd: analysisInput.jd });
-      setAnalysisResult(job.result);
+      setAnalysisResult({ ...(job.result || {}), aiJobId: job.id });
       refresh("analyses");
       toast.success("证据矩阵已生成");
     } catch (error) { toast.error((error as Error).message); }
@@ -402,7 +420,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     const toastId = toast.loading("正在读取并分析简历，完成后会删除供应商临时文件…");
     try {
       const job = await createAndRunAI("resume_suggestions", { fileId: file.id, jd });
-      setAnalysisResult({ ...(job.result || {}), sourceResume: file.metadata.displayName || file.filename });
+      setAnalysisResult({ ...(job.result || {}), aiJobId: job.id, sourceResume: file.metadata.displayName || file.filename });
       setView("analysis");
       toast.success("简历建议已生成", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
@@ -419,6 +437,11 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     finally { setResearchBusy(false); }
   }
 
+  async function createAIAction(task: Record<string, any>) {
+    try { await api("/api/tasks/from-ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(task) }); await refresh("tasks"); toast.success("已加入行动清单"); }
+    catch (error) { toast.error((error as Error).message); }
+  }
+
   const activeInterview = records.interviews.find((item) => item.id === selectedInterview) || records.interviews[0];
 
   async function updateInterview(data: Record<string, any>) {
@@ -428,6 +451,12 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       await refresh("interviews");
       toast.success("面试记录已保存");
     } catch (error) { toast.error((error as Error).message); }
+  }
+
+  async function syncInterviewState(data: Record<string, any>) {
+    if (!activeInterview) return;
+    await api("/api/records", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: activeInterview.id, data }) });
+    await refresh("interviews");
   }
 
   async function getAudioDuration(file: File) {
@@ -446,8 +475,8 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       setAudioFiles((items) => [saved, ...items]);
       if (segment) {
         recordedSegments.current = [...recordedSegments.current.filter((item) => item.sequence !== sequence), { fileId: saved.id, sequence, duration: Math.round(duration), size: file.size, status: "saved", text: "" }].sort((a, b) => a.sequence - b.sequence);
-        await updateInterview({ audioSegments: recordedSegments.current, audioFileId: saved.id });
-      } else await updateInterview({ audioSegments: [{ fileId: saved.id, sequence: 1, duration: Math.round(duration), size: file.size, status: "saved", text: "" }], audioFileId: saved.id });
+        await syncInterviewState({ audioSegments: recordedSegments.current, audioFileId: saved.id });
+      } else await syncInterviewState({ audioSegments: [{ fileId: saved.id, sequence: 1, duration: Math.round(duration), size: file.size, status: "saved", text: "" }], audioFileId: saved.id });
       toast.success("录音已保存", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
@@ -491,10 +520,10 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         if (segment.status === "succeeded" && segment.text) continue;
         try { const job = await createAndRunAI("transcription", { fileId: segment.fileId, segmentIndex: segment.sequence, interviewId: activeInterview.id }); segment.text = job.result?.text || ""; segment.status = "succeeded"; segment.jobId = job.id; }
         catch (error) { segment.status = "failed"; segment.error = (error as Error).message; }
-        await updateInterview({ audioSegments: segments });
+        await syncInterviewState({ audioSegments: segments });
       }
       const transcript = segments.filter((item: any) => item.status === "succeeded").map((item: any) => item.text).join("\n");
-      await updateInterview({ transcript, audioSegments: segments });
+      await syncInterviewState({ transcript, audioSegments: segments });
       if (segments.some((item: any) => item.status === "failed")) throw new Error("部分录音分段转写失败，可再次点击仅重试失败分段");
       toast.success("录音已转写", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
@@ -506,14 +535,21 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     try {
       const transcript = transcriptOverride ?? activeInterview.data.transcript ?? "";
       const job = await createAndRunAI("interview_review", { role: activeInterview.data.role, jd: activeInterview.data.jd, transcript, interviewId: activeInterview.id });
-      await updateInterview({ transcript, review: job.result });
+      await syncInterviewState({ transcript, review: job.result });
       toast.success("复盘报告已生成", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
 
   function exportIcs() {
-    const events = records.reminders.map((item) => {
-      const date = new Date(item.data.dueAt || item.data.date);
+    const sourceEvents = [
+      ...records.reminders.map((item) => ({ id: item.id, data: item.data })),
+      ...records.applications.filter((item) => item.data.deadline).map((item) => ({ id: `application-${item.id}`, data: { dueAt: item.data.deadline, title: `${item.data.company} · ${item.data.role}`, notes: "投递截止" } })),
+      ...records.interviews.filter((item) => item.data.scheduledAt).map((item) => ({ id: `interview-${item.id}`, data: { dueAt: item.data.scheduledAt, title: `${item.data.company} · ${item.data.round || "面试"}`, notes: "面试" } })),
+      ...records.offers.filter((item) => item.data.deadline).map((item) => ({ id: `offer-${item.id}`, data: { dueAt: item.data.deadline, title: `${item.data.company} · OFFER 截止`, notes: "OFFER 截止" } })),
+      ...records.tasks.filter((item) => item.data.dueAt && !["done", "dismissed"].includes(item.data.status)).map((item) => ({ id: `task-${item.id}`, data: { dueAt: item.data.dueAt, title: item.data.title, notes: item.data.notes || "行动任务" } })),
+    ];
+    const events = sourceEvents.map((item) => {
+      const date = new Date(item.data.dueAt || (item.data as Record<string, any>).date);
       if (!Number.isFinite(date.getTime())) return "";
       const stamp = date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
       return `BEGIN:VEVENT\r\nUID:${item.id}@offer-harvester\r\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}\r\nDTSTART:${stamp}\r\nSUMMARY:${String(item.data.title || "求职提醒").replace(/[,;]/g, " ")}\r\nDESCRIPTION:${String(item.data.notes || "").replace(/\n/g, "\\n")}\r\nEND:VEVENT`;
@@ -547,15 +583,16 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         {view === "dashboard" && <DashboardView dashboard={dashboard} profile={profile} records={records} onNavigate={setView} onAdd={() => setEditor({ kind: "applications" })} />}
         {view === "profile" && <ProfileView profile={profile} saveState={saveState} onChange={updateProfile} onSave={() => saveProfile(profile)} onAvatar={async (file) => { const saved = await uploadFile(file, "avatar"); updateProfile("avatarFileId", saved.id); }} />}
         {view === "resumes" && <ResumeView resumes={resumes} applications={records.applications} onUpload={uploadResume} onPreview={setPreview} onDelete={deleteFile} onAnalyze={analyzeResume} />}
-        {view === "savedJobs" && <SavedJobsView items={records.saved_jobs} screenshots={jobScreenshots} onSave={saveJob} onConvert={convertSavedJob} onDelete={(id) => deleteRecord("saved_jobs", id)} />}
-        {view === "applications" && <ApplicationsView items={records.applications} resumes={resumes} onAdd={() => setEditor({ kind: "applications" })} onEdit={(item) => setEditor({ kind: "applications", item })} onDelete={(id) => deleteRecord("applications", id)} onMove={moveApplication} />}
+        {view === "savedJobs" && <SavedJobsView items={records.saved_jobs} screenshots={jobScreenshots} onSave={saveJob} onExtract={extractJob} onConfirm={confirmCapturedJob} onConvert={convertSavedJob} onDelete={(id) => deleteRecord("saved_jobs", id)} />}
+        {view === "applications" && <ApplicationsView items={records.applications} resumes={resumes} onAdd={() => setEditor({ kind: "applications" })} onEdit={(item) => setEditor({ kind: "applications", item })} onDelete={(id) => deleteRecord("applications", id)} onMove={moveApplication} onChecklist={toggleChecklist} />}
+        {view === "tasks" && <TasksView items={records.tasks} applications={records.applications} onChanged={() => refresh("tasks")} />}
         {view === "evidence" && <EvidenceView items={records.evidence} onAdd={() => setEditor({ kind: "evidence" })} onEdit={(item) => setEditor({ kind: "evidence", item })} onDelete={(id) => deleteRecord("evidence", id)} />}
-        {view === "analysis" && <AnalysisView input={analysisInput} setInput={setAnalysisInput} busy={analysisBusy} result={analysisResult || records.analyses[0]?.data || null} onRun={runAnalysis} onEvidence={() => setView("evidence")} />}
+        {view === "analysis" && <AnalysisView input={analysisInput} setInput={setAnalysisInput} busy={analysisBusy} result={analysisResult || records.analyses[0]?.data || null} onRun={runAnalysis} onEvidence={() => setView("evidence")} onCreateTask={createAIAction} />}
         {view === "aiCenter" && <AICenterView jobs={aiJobs} legacy={legacyAI} activeId={activeAIJobId} attempts={aiAttempts} evaluation={evaluation} onSelect={openAIJob} onRetry={retryAIJob} onCancel={cancelAIJob} onRefresh={refreshAIJobs} onRunEvaluation={runEvaluation} onNavigate={setView} />}
         {view === "company" && <ResearchView company={company} setCompany={setCompany} busy={researchBusy} reports={records.research} onRun={runResearch} onDelete={(id) => deleteRecord("research", id)} />}
         {view === "interviews" && <InterviewView items={records.interviews} active={activeInterview} audioFiles={audioFiles} recording={recording} onSelect={setSelectedInterview} onAdd={() => setEditor({ kind: "interviews" })} onEdit={(item) => setEditor({ kind: "interviews", item })} onDelete={(id) => deleteRecord("interviews", id)} onSave={updateInterview} onRecord={recording ? stopRecording : startRecording} onAudio={uploadInterviewAudio} onTranscribe={transcribeInterview} onReview={reviewInterview} />}
         {view === "offers" && <OffersView items={records.offers} weights={weights} setWeights={setWeights} onAdd={() => setEditor({ kind: "offers" })} onEdit={(item) => setEditor({ kind: "offers", item })} onDelete={(id) => deleteRecord("offers", id)} />}
-        {view === "calendar" && <CalendarView items={records.reminders} applications={records.applications} interviews={records.interviews} offers={records.offers} onAdd={() => setEditor({ kind: "reminders" })} onEdit={(item) => setEditor({ kind: "reminders", item })} onDelete={(id) => deleteRecord("reminders", id)} onExport={exportIcs} />}
+        {view === "calendar" && <CalendarView items={records.reminders} applications={records.applications} interviews={records.interviews} offers={records.offers} tasks={records.tasks} onAdd={() => setEditor({ kind: "reminders" })} onEdit={(item) => setEditor({ kind: "reminders", item })} onDelete={(id) => deleteRecord("reminders", id)} onExport={exportIcs} />}
         {view === "resources" && <JobResourcesView />}
       </main>
 
@@ -573,19 +610,19 @@ function DashboardView({ dashboard, profile, records, onNavigate, onAdd }: { das
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const applications = records.applications;
-  const saved = records.saved_jobs.length;
+  const saved = dashboard.savedCount || records.saved_jobs.length;
   const discovered = saved + applications.filter((item) => !item.data.savedJobId).length;
   const reached = (stage: string) => applications.filter((item) => stageOrder.indexOf(item.data.stage || "待投递") >= stageOrder.indexOf(stage) && item.data.stage !== "已结束").length;
   const funnel = [
-    { label: "准备简历", count: discovered },
-    { label: "已投简历", count: reached("已投递") },
-    { label: "笔试阶段", count: reached("笔试中") },
-    { label: "面试阶段", count: reached("面试中") },
-    { label: "拿到 OFFER", count: reached("OFFER") },
+    { label: "收藏岗位", count: dashboard.funnel.saved ?? discovered },
+    { label: "已投简历", count: dashboard.funnel.applied ?? reached("已投递") },
+    { label: "笔试阶段", count: dashboard.funnel.written ?? reached("笔试中") },
+    { label: "面试阶段", count: dashboard.funnel.interview ?? reached("面试中") },
+    { label: "拿到 OFFER", count: dashboard.funnel.offer ?? reached("OFFER") },
   ];
-  const deadlineText = profile.seasonDeadline || "2026-12-31";
-  const deadline = new Date(`${deadlineText}T23:59:59`);
-  const remaining = Math.max(0, deadline.getTime() - now);
+  const deadlineText = dashboard.settings.cycleConfirmed ? dashboard.settings.cycleEndDate : "";
+  const deadline = deadlineText ? new Date(`${deadlineText}T23:59:59`) : new Date(now);
+  const remaining = deadlineText ? Math.max(0, deadline.getTime() - now) : 0;
   const countdown = { days: Math.floor(remaining / 86400000), hours: Math.floor(remaining / 3600000) % 24, minutes: Math.floor(remaining / 60000) % 60, seconds: Math.floor(remaining / 1000) % 60 };
   const hasData = discovered > 0;
   const metrics = [
@@ -603,17 +640,27 @@ function DashboardView({ dashboard, profile, records, onNavigate, onAdd }: { das
     <div className="dashboard-grid dashboard-grid-main">
       <section className="panel funnel-panel"><div className="panel-title"><div><h2>岗位转化漏斗</h2><p>从发现机会到 OFFER 的真实转化</p></div><button onClick={() => onNavigate("applications")}>查看明细</button></div><div className="funnel">{funnel.map((item, index) => { const previous = index ? funnel[index - 1].count : item.count; const rate = index && previous ? Math.min(100, Math.round(item.count / previous * 100)) : null; const width = Math.max(34, 100 - index * 12); return <div key={item.label}><small>{rate == null ? "起点" : `${rate}%`}</small><button style={{ width: `${width}%` }} onClick={() => onNavigate(index === 0 ? "savedJobs" : "applications")}><span>{item.label}</span><strong>{item.count}</strong></button>{index < funnel.length - 1 && <ArrowDown />}</div>; })}</div></section>
       <div className="dashboard-side">
-        <section className="panel countdown-card"><div className="countdown-title"><Timer /><div><span>距离{profile.seasonName || "秋招冲刺节点"}还有</span><small>{formatDate(deadlineText)} · 可在个人资料中修改</small></div></div><div className="countdown-values">{Object.entries(countdown).map(([key, value]) => <div key={key}><b>{String(value).padStart(2, "0")}</b><span>{{ days: "天", hours: "时", minutes: "分", seconds: "秒" }[key]}</span></div>)}</div></section>
+        {deadlineText ? <section className="panel countdown-card"><div className="countdown-title"><Timer /><div><span>距离{profile.seasonName || "秋招周期结束"}还有</span><small>{formatDate(deadlineText)} · 可在个人资料中修改</small></div></div><div className="countdown-values">{Object.entries(countdown).map(([key, value]) => <div key={key}><b>{String(value).padStart(2, "0")}</b><span>{{ days: "天", hours: "时", minutes: "分", seconds: "秒" }[key]}</span></div>)}</div></section> : <section className="panel setup-countdown"><Timer /><div><b>尚未确认求职周期</b><p>确认后才显示倒计时，不使用虚假默认日期。</p></div><Button variant="outline" onClick={() => onNavigate("profile")}>设置周期</Button></section>}
         <section className="panel"><div className="panel-title"><div><h2>七日内日程</h2><p>关键节点别错过</p></div><button onClick={() => onNavigate("calendar")}>查看全部</button></div><div className="agenda-list">{dashboard.upcoming.length ? dashboard.upcoming.map((item, index) => <article key={index}><time>{formatDate(item.data.dueAt, true)}</time><div><b>{item.data.title}</b><p>{item.data.type || "提醒"}</p></div></article>) : <p className="muted">未来七天没有安排</p>}</div></section>
+        <section className="panel risk-panel"><div className="panel-title"><div><h2>需要处理</h2><p>截止风险与停滞机会</p></div><button onClick={() => onNavigate("tasks")}>行动清单</button></div>{dashboard.risks.length ? dashboard.risks.slice(0, 5).map((entry, index) => <article key={index}><AlertTriangle /><span><b>{entry.item.data.company || entry.item.data.title || "求职事项"}</b><small>{entry.risk.reason}</small></span></article>) : <p className="muted">当前没有风险提醒</p>}</section>
       </div>
     </div>
   </>;
 }
 
 function ProfileView({ profile, saveState, onChange, onSave, onAvatar }: { profile: Record<string, any>; saveState: string; onChange: (key: string, value: any) => void; onSave: () => void; onAvatar: (file: File) => void }) {
+  const settings = { cycleEndDate: "2027-01-31", cycleConfirmed: false, savedStaleDays: 7, pendingStaleDays: 3, appliedStaleDays: 7, processStaleDays: 5, deadlineRiskDays: 3, minimumSample: 5, ...(profile.jobSearchSettings || {}) };
+  const updateSetting = (key: string, value: any) => onChange("jobSearchSettings", { ...settings, [key]: value });
   return <><PageHead eyebrow="个人中心" title="你的求职底稿" description="所有字段都可以修改，更新会自动保存并用于后续分析。" action={<div className="save-state"><CheckCircle2 />{saveState}<Button variant="outline" onClick={onSave}><Save />立即保存</Button></div>} />
     <div className="profile-layout"><section className="panel profile-card"><div className="profile-avatar">{profile.avatarFileId ? <img src={`/api/files/content?id=${profile.avatarFileId}`} alt="个人头像" /> : <span>{(profile.name || "我").slice(0, 1)}</span>}<label><Upload />更换头像<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => event.target.files?.[0] && onAvatar(event.target.files[0])} /></label></div><h2>{profile.name || "尚未填写姓名"}</h2><p>{profile.targetRoles || "填写目标岗位后，AI 会更懂你的方向"}</p><StatusPill tone={profile.jobStatus ? "green" : "orange"}>{profile.jobStatus || "资料待完善"}</StatusPill></section>
-      <section className="panel form-panel"><h2>基本信息</h2><div className="form-grid"><Field label="姓名"><Input value={profile.name || ""} onChange={(e) => onChange("name", e.target.value)} /></Field><Field label="手机"><Input value={profile.phone || ""} onChange={(e) => onChange("phone", e.target.value)} /></Field><Field label="邮箱"><Input type="email" value={profile.email || ""} onChange={(e) => onChange("email", e.target.value)} /></Field><Field label="当前城市"><Input value={profile.city || ""} onChange={(e) => onChange("city", e.target.value)} /></Field><Field label="求职状态"><select value={profile.jobStatus || ""} onChange={(e) => onChange("jobStatus", e.target.value)}><option value="">请选择</option><option>准备中</option><option>积极投递</option><option>面试中</option><option>已有 OFFER</option><option>暂缓求职</option></select></Field><Field label="到岗时间"><Input type="date" value={profile.availableDate || ""} onChange={(e) => onChange("availableDate", e.target.value)} /></Field></div><h2>目标与偏好</h2><div className="form-grid"><Field label="目标岗位"><Input value={profile.targetRoles || ""} placeholder="产品经理、策略产品" onChange={(e) => onChange("targetRoles", e.target.value)} /></Field><Field label="目标行业"><Input value={profile.targetIndustries || ""} onChange={(e) => onChange("targetIndustries", e.target.value)} /></Field><Field label="目标城市"><Input value={profile.targetCities || ""} onChange={(e) => onChange("targetCities", e.target.value)} /></Field><Field label="期望薪资"><Input value={profile.expectedSalary || ""} placeholder="例如 25K–35K × 15" onChange={(e) => onChange("expectedSalary", e.target.value)} /></Field><Field label="冲刺节点名称"><Input value={profile.seasonName || "秋招冲刺节点"} placeholder="例如：2026 秋招冲刺节点" onChange={(e) => onChange("seasonName", e.target.value)} /></Field><Field label="冲刺节点日期"><Input type="date" value={profile.seasonDeadline || "2026-12-31"} onChange={(e) => onChange("seasonDeadline", e.target.value)} /></Field></div><h2>经历与能力</h2><div className="form-stack"><Field label="教育经历"><Textarea value={profile.education || ""} placeholder="每行一段，写明学校、专业、时间" onChange={(e) => onChange("education", e.target.value)} /></Field><Field label="实习 / 工作经历"><Textarea value={profile.experience || ""} onChange={(e) => onChange("experience", e.target.value)} /></Field><Field label="项目经历"><Textarea value={profile.projects || ""} onChange={(e) => onChange("projects", e.target.value)} /></Field><Field label="技能标签"><Input value={profile.skills || ""} placeholder="SQL，用户研究，A/B 测试" onChange={(e) => onChange("skills", e.target.value)} /></Field><Field label="个人简介"><Textarea value={profile.bio || ""} onChange={(e) => onChange("bio", e.target.value)} /></Field></div></section></div></>;
+      <section className="panel form-panel"><h2>基本信息</h2><div className="form-grid"><Field label="姓名"><Input value={profile.name || ""} onChange={(e) => onChange("name", e.target.value)} /></Field><Field label="手机"><Input value={profile.phone || ""} onChange={(e) => onChange("phone", e.target.value)} /></Field><Field label="邮箱"><Input type="email" value={profile.email || ""} onChange={(e) => onChange("email", e.target.value)} /></Field><Field label="当前城市"><Input value={profile.city || ""} onChange={(e) => onChange("city", e.target.value)} /></Field><Field label="求职状态"><select value={profile.jobStatus || ""} onChange={(e) => onChange("jobStatus", e.target.value)}><option value="">请选择</option><option>准备中</option><option>积极投递</option><option>面试中</option><option>已有 OFFER</option><option>暂缓求职</option></select></Field><Field label="到岗时间"><Input type="date" value={profile.availableDate || ""} onChange={(e) => onChange("availableDate", e.target.value)} /></Field></div><h2>目标与偏好</h2><div className="form-grid"><Field label="目标岗位"><Input value={profile.targetRoles || ""} placeholder="产品经理、策略产品" onChange={(e) => onChange("targetRoles", e.target.value)} /></Field><Field label="目标行业"><Input value={profile.targetIndustries || ""} onChange={(e) => onChange("targetIndustries", e.target.value)} /></Field><Field label="目标城市"><Input value={profile.targetCities || ""} onChange={(e) => onChange("targetCities", e.target.value)} /></Field><Field label="期望薪资"><Input value={profile.expectedSalary || ""} placeholder="例如 25K–35K × 15" onChange={(e) => onChange("expectedSalary", e.target.value)} /></Field><Field label="冲刺节点名称"><Input value={profile.seasonName || "秋招冲刺节点"} onChange={(e) => onChange("seasonName", e.target.value)} /></Field><Field label="求职周期结束日期"><Input type="date" value={settings.cycleEndDate} onChange={(e) => updateSetting("cycleEndDate", e.target.value)} /></Field><Field label="倒计时状态"><select value={settings.cycleConfirmed ? "confirmed" : "draft"} onChange={(e) => updateSetting("cycleConfirmed", e.target.value === "confirmed")}><option value="draft">暂不显示</option><option value="confirmed">确认并显示倒计时</option></select></Field><Field label="截止风险提前天数"><Input type="number" min={1} max={30} value={settings.deadlineRiskDays} onChange={(e) => updateSetting("deadlineRiskDays", Number(e.target.value))} /></Field><Field label="收藏停滞天数"><Input type="number" min={1} max={90} value={settings.savedStaleDays} onChange={(e) => updateSetting("savedStaleDays", Number(e.target.value))} /></Field><Field label="待投递停滞天数"><Input type="number" min={1} max={90} value={settings.pendingStaleDays} onChange={(e) => updateSetting("pendingStaleDays", Number(e.target.value))} /></Field><Field label="已投递停滞天数"><Input type="number" min={1} max={90} value={settings.appliedStaleDays} onChange={(e) => updateSetting("appliedStaleDays", Number(e.target.value))} /></Field><Field label="笔面试停滞天数"><Input type="number" min={1} max={90} value={settings.processStaleDays} onChange={(e) => updateSetting("processStaleDays", Number(e.target.value))} /></Field></div><h2>经历与能力</h2><div className="form-stack"><Field label="教育经历"><Textarea value={profile.education || ""} placeholder="每行一段，写明学校、专业、时间" onChange={(e) => onChange("education", e.target.value)} /></Field><Field label="实习 / 工作经历"><Textarea value={profile.experience || ""} onChange={(e) => onChange("experience", e.target.value)} /></Field><Field label="项目经历"><Textarea value={profile.projects || ""} onChange={(e) => onChange("projects", e.target.value)} /></Field><Field label="技能标签"><Input value={profile.skills || ""} placeholder="SQL，用户研究，A/B 测试" onChange={(e) => onChange("skills", e.target.value)} /></Field><Field label="个人简介"><Textarea value={profile.bio || ""} onChange={(e) => onChange("bio", e.target.value)} /></Field></div><DataManagement /></section></div></>;
+}
+
+function DataManagement() {
+  const [preview, setPreview] = useState<any>(null); const [decisions, setDecisions] = useState<Record<string, "current" | "backup">>({}); const [busy, setBusy] = useState(false);
+  async function choose(file?: File) { if (!file) return; setBusy(true); try { const content = await file.text(); const result = await api<any>("/api/data/imports", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ filename: file.name, format: file.name.toLowerCase().endsWith(".csv") ? "csv" : "json", content }) }); setPreview(result); setDecisions(Object.fromEntries((result.preview.conflicts || []).map((item: any) => [item.id, "current"]))); } catch (error) { toast.error((error as Error).message); } finally { setBusy(false); } }
+  async function commit() { if (!preview) return; setBusy(true); try { await api(`/api/data/imports/${preview.importId}/commit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decisions, useProfile: false }) }); toast.success("备份已按预览结果合并，请刷新页面查看"); setPreview(null); } catch (error) { toast.error((error as Error).message); } finally { setBusy(false); } }
+  return <section className="data-management"><h2>数据备份与恢复</h2><p>JSON 是完整结构化备份；CSV 便于表格查看。导入前只生成预览，冲突默认保留当前版本。</p><div className="card-actions"><Button variant="outline" asChild><a href="/api/data/export?format=json"><Download />导出 JSON</a></Button><Button variant="outline" asChild><a href="/api/data/export?format=csv"><Download />导出 CSV</a></Button><label className="upload-button secondary"><Upload />{busy ? "处理中…" : "导入备份"}<input type="file" accept=".json,.csv,application/json,text/csv" disabled={busy} onChange={(e) => choose(e.target.files?.[0])} /></label></div>{preview && <div className="import-preview"><b>导入预览</b><p>新增 {preview.preview.summary.additions} 条，相同 {preview.preview.summary.unchanged} 条，冲突 {preview.preview.summary.conflicts} 条。</p>{preview.preview.conflicts.map((item: any) => <label key={item.id}><span>{item.kind} · {item.title || item.id.slice(0, 8)}</span><select value={decisions[item.id] || "current"} onChange={(e) => setDecisions({ ...decisions, [item.id]: e.target.value as any })}><option value="current">保留当前</option><option value="backup">使用备份</option></select></label>)}<div className="card-actions"><Button variant="outline" onClick={() => setPreview(null)}>取消</Button><Button onClick={commit} disabled={busy}>确认合并</Button></div></div>}</section>;
 }
 
 function ResumeView({ resumes, applications, onUpload, onPreview, onDelete, onAnalyze }: { resumes: StoredFile[]; applications: RecordItem[]; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onPreview: (file: StoredFile) => void; onDelete: (id: string) => void; onAnalyze: (file: StoredFile) => void }) {
@@ -622,24 +669,27 @@ function ResumeView({ resumes, applications, onUpload, onPreview, onDelete, onAn
   </>;
 }
 
-function SavedJobsView({ items, screenshots, onSave, onConvert, onDelete }: { items: RecordItem[]; screenshots: StoredFile[]; onSave: (data: Record<string, any>, screenshot?: File) => Promise<void>; onConvert: (item: RecordItem) => Promise<void>; onDelete: (id: string) => void }) {
+function SavedJobsView({ items, screenshots, onSave, onExtract, onConfirm, onConvert, onDelete }: { items: RecordItem[]; screenshots: StoredFile[]; onSave: (data: Record<string, any>, screenshot?: File) => Promise<void>; onExtract: (url?: string, screenshot?: File) => Promise<{ job: AIJob; screenshotFileId: string }>; onConfirm: (jobId: string, data: Record<string, any>, allowDuplicate?: boolean) => Promise<any>; onConvert: (item: RecordItem) => Promise<void>; onDelete: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [file, setFile] = useState<File>();
+  const [jobId, setJobId] = useState(""); const [screenshotFileId, setScreenshotFileId] = useState(""); const [extracting, setExtracting] = useState(false); const [warnings, setWarnings] = useState<string[]>([]); const [conflicts, setConflicts] = useState<Array<{ key: string; current: string; incoming: string }>>([]);
+  const empty = { sourceUrl: "", company: "", role: "", location: "", salary: "", deadline: "", priority: "普通", jd: "" }; const [draft, setDraft] = useState<Record<string, any>>(empty);
+  const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+  async function extract(mode: "url" | "image") { if (mode === "url" && !/^https?:\/\//i.test(draft.sourceUrl)) return toast.error("请先输入公开岗位链接"); if (mode === "image" && !file) return toast.error("请先选择岗位截图"); setExtracting(true); const toastId = toast.loading(mode === "url" ? "正在读取岗位页面…" : "正在识别岗位截图…"); try { const output = await onExtract(mode === "url" ? draft.sourceUrl : undefined, mode === "image" ? file : undefined); const result = output.job.result || {}; const next = { ...draft }; const found: Array<{ key: string; current: string; incoming: string }> = []; ["sourceUrl","company","role","location","salary","deadline","jd"].forEach((key) => { const incoming = String(result[key] || ""); if (!incoming) return; if (String(next[key] || "").trim() && String(next[key]).trim() !== incoming.trim()) found.push({ key, current: String(next[key]), incoming }); else next[key] = incoming; }); setDraft(next); setConflicts(found); setWarnings(result.warnings || []); setJobId(output.job.id); if (output.screenshotFileId) setScreenshotFileId(output.screenshotFileId); toast.success("提取完成，请核对后保存", { id: toastId }); } catch (error) { toast.error((error as Error).message + "。你仍可手动填写或改用截图。", { id: toastId }); } finally { setExtracting(false); } }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const sourceUrl = String(form.get("sourceUrl") || "").trim();
-    if (!/^https?:\/\//i.test(sourceUrl)) { toast.error("请输入以 http:// 或 https:// 开头的岗位链接"); return; }
+    if (!draft.sourceUrl && !file && !draft.company && !draft.role) return toast.error("请填写岗位链接、上传截图或补充岗位信息");
     setSaving(true);
     try {
-      await onSave(Object.fromEntries(form.entries()), file);
-      setFile(undefined); setOpen(false);
+      if (jobId) { const result = await onConfirm(jobId, { ...draft, screenshotFileId }); if (result.requiresConfirmation && result.duplicate) { if (!window.confirm(`已存在「${result.duplicate.title}」，仍要保存副本吗？`)) return; await onConfirm(jobId, { ...draft, screenshotFileId }, true); } }
+      else await onSave(draft, file);
+      setFile(undefined); setDraft(empty); setJobId(""); setWarnings([]); setConflicts([]); setOpen(false); toast.success("岗位已保存");
     } finally { setSaving(false); }
   }
   return <><PageHead eyebrow="机会收集箱" title="先收藏岗位，再决定是否投递" description="保存岗位链接、JD 截图和关键信息；确认后可一键转入投递看板。" action={<Button onClick={() => setOpen(true)}><Plus />收藏岗位</Button>} />
     {items.length ? <div className="saved-job-grid">{items.map((item) => { const image = screenshots.find((entry) => entry.id === item.data.screenshotFileId); return <article className="saved-job-card" key={item.id}>{image ? <img src={`/api/files/content?id=${image.id}`} alt={`${item.data.company || "岗位"} JD 截图`} /> : <div className="saved-job-placeholder"><ImageIcon /><span>未上传 JD 截图</span></div>}<div className="saved-job-body"><div><span className="resource-badge">{item.data.priority || "待评估"}</span><h2>{item.data.company || "公司待补充"}</h2><p>{item.data.role || "岗位名称待补充"}</p></div><dl><div><dt>地点</dt><dd>{item.data.location || "—"}</dd></div><div><dt>截止</dt><dd>{formatDate(item.data.deadline)}</dd></div></dl>{item.data.jd && <p className="saved-job-jd">{item.data.jd}</p>}<div className="card-actions"><Button variant="outline" asChild><a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />查看原岗位</a></Button><Button disabled={Boolean(item.data.convertedApplicationId)} onClick={() => onConvert(item)}>{item.data.convertedApplicationId ? <CheckCircle2 /> : <BriefcaseBusiness />}{item.data.convertedApplicationId ? "已转投递" : "转入投递"}</Button><Button variant="ghost" size="icon" aria-label="删除收藏岗位" onClick={() => onDelete(item.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={Bookmark} title="还没有收藏岗位" text="遇到感兴趣的岗位时，先保存链接和 JD，避免信息散落在浏览器标签页和聊天记录中。" action={<Button onClick={() => setOpen(true)}><Plus />收藏第一个岗位</Button>} />}
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>收藏岗位</DialogTitle><DialogDescription>岗位链接为必填项；JD 截图会作为私有附件保存。</DialogDescription></DialogHeader><form onSubmit={submit}><div className="editor-grid"><Field label="岗位链接"><Input name="sourceUrl" type="url" required placeholder="https://..." /></Field><Field label="公司"><Input name="company" /></Field><Field label="岗位"><Input name="role" /></Field><Field label="工作地点"><Input name="location" /></Field><Field label="截止日期"><Input name="deadline" type="date" /></Field><Field label="优先级"><select name="priority" defaultValue="普通"><option>高</option><option>普通</option><option>低</option></select></Field><Field label="JD 摘要 / 备注"><Textarea name="jd" placeholder="粘贴职责、任职要求或自己的判断…" /></Field><Field label="JD 截图"><label className="upload-zone"><ImageIcon /><span>{file ? file.name : "点击选择 PNG、JPG 或 WebP，最大 10 MB"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} /></label></Field></div><DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit" disabled={saving}>{saving ? <RefreshCw className="spin" /> : <Bookmark />}{saving ? "正在保存…" : "保存收藏"}</Button></DialogFooter></form></DialogContent></Dialog>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog capture-dialog"><DialogHeader><DialogTitle>收藏岗位</DialogTitle><DialogDescription>AI 只在你点击时提取，结果不会直接写入正式记录。</DialogDescription></DialogHeader><form onSubmit={submit}><div className="capture-source"><Field label="岗位链接"><Input type="url" value={draft.sourceUrl} placeholder="https://..." onChange={(e) => update("sourceUrl", e.target.value)} /></Field><Button type="button" variant="outline" disabled={extracting || !draft.sourceUrl} onClick={() => extract("url")}><Sparkles />提取链接</Button></div><div className="editor-grid"><Field label="公司"><Input value={draft.company} onChange={(e) => update("company", e.target.value)} /></Field><Field label="岗位"><Input value={draft.role} onChange={(e) => update("role", e.target.value)} /></Field><Field label="工作地点"><Input value={draft.location} onChange={(e) => update("location", e.target.value)} /></Field><Field label="薪资范围"><Input value={draft.salary} onChange={(e) => update("salary", e.target.value)} /></Field><Field label="截止日期"><Input type="date" value={draft.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field><Field label="优先级"><select value={draft.priority} onChange={(e) => update("priority", e.target.value)}><option>高</option><option>普通</option><option>低</option></select></Field><Field label="完整 JD"><Textarea value={draft.jd} placeholder="提取结果或手动粘贴岗位职责与任职要求…" onChange={(e) => update("jd", e.target.value)} /></Field><Field label="JD 截图"><label className="upload-zone"><ImageIcon /><span>{file ? file.name : "选择 PNG、JPG 或 WebP，最大 10 MB"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} /></label><Button className="ocr-button" type="button" variant="outline" disabled={extracting || !file} onClick={() => extract("image")}><ImageIcon />识别截图</Button></Field></div>{warnings.length > 0 && <div className="capture-warnings"><AlertTriangle />{warnings.map((item) => <p key={item}>{item}</p>)}</div>}{conflicts.length > 0 && <div className="capture-conflicts"><b>发现字段冲突，当前保留你的填写</b>{conflicts.map((item) => <div key={item.key}><span><small>当前</small>{item.current}</span><span><small>AI 提取</small>{item.incoming}</span><Button type="button" variant="outline" onClick={() => { update(item.key, item.incoming); setConflicts((items) => items.filter((entry) => entry.key !== item.key)); }}>采用提取值</Button></div>)}</div>}<DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit" disabled={saving || extracting}>{saving ? <RefreshCw className="spin" /> : <Bookmark />}{saving ? "正在保存…" : "核对并保存"}</Button></DialogFooter></form></DialogContent></Dialog>
   </>;
 }
 
@@ -652,6 +702,10 @@ const jobResources = [
   { name: "前程无忧校招", tag: "校园招聘", url: "https://xy.51job.com/", description: "校园招聘与企业专场" },
   { name: "智联招聘", tag: "综合招聘", url: "https://jobs.zhaopin.com/", description: "全职、校招与城市岗位" },
   { name: "应届生求职网", tag: "应届生", url: "https://www.yingjiesheng.com/", description: "校招信息、宣讲会与网申" },
+  { name: "国聘校园", tag: "国企 / 校招", url: "https://job.iguopin.com/jobList?channel=campus", description: "央企、国企与重点行业校园岗位" },
+  { name: "国家大学生就业服务平台", tag: "国家平台", url: "https://gcu.ncss.cn/", description: "教育部就业服务、专场招聘与实习岗位" },
+  { name: "中央企业应届生招聘", tag: "央企", url: "https://job.mohrss.gov.cn/qyzp/index.jhtml", description: "中央企业招聘应届高校毕业生信息" },
+  { name: "国资委招聘", tag: "国资央企", url: "https://www.sasac.gov.cn/n2588035/n2588325/n2588350/index.html", description: "国务院国资委招聘公告汇总" },
 ];
 
 function JobResourcesView() {
@@ -661,23 +715,40 @@ function JobResourcesView() {
   </>;
 }
 
-function ApplicationsView({ items, resumes, onAdd, onEdit, onDelete, onMove }: { items: RecordItem[]; resumes: StoredFile[]; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void; onMove: (item: RecordItem, stage: string) => void }) {
+function ApplicationsView({ items, resumes, onAdd, onEdit, onDelete, onMove, onChecklist }: { items: RecordItem[]; resumes: StoredFile[]; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void; onMove: (item: RecordItem, stage: string) => void; onChecklist: (item: RecordItem, key: string, done: boolean) => void }) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
   const [sort, setSort] = useState("updated");
   const [mode, setMode] = useState<"board" | "list">("board");
+  const [selected, setSelected] = useState<RecordItem | null>(null);
   const tabStages: Record<string, string[]> = { all: stageOrder, prepare: ["待投递", "已投递"], written: ["笔试中"], interview: ["面试中", "OFFER"] };
   const filtered = items.filter((item) => `${item.data.company} ${item.data.role} ${item.data.location}`.toLowerCase().includes(query.toLowerCase()) && tabStages[tab].includes(item.data.stage || "待投递")).sort((a, b) => {
     if (sort === "company") return String(a.data.company).localeCompare(String(b.data.company), "zh-CN");
     if (sort === "deadline") return new Date(a.data.deadline || "2999-12-31").getTime() - new Date(b.data.deadline || "2999-12-31").getTime();
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
-  const card = (item: RecordItem) => { const resume = resumes.find((file) => file.id === item.data.resumeId); return <article draggable key={item.id} onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}><div className="job-card-head"><span>{String(item.data.company || "?").slice(0, 1)}</span><div><h3>{item.data.company}</h3><p>{item.data.role}</p></div></div><div className="job-meta"><span>{item.data.location || "地点待定"}</span><span>{item.data.priority || "普通"}</span></div>{resume && <small>简历：{resume.metadata.displayName || resume.filename}</small>}{item.data.deadline && <small>截止：{formatDate(item.data.deadline)}</small>}<footer>{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />原岗位</a>}<button onClick={() => onEdit(item)}><Pencil />编辑</button><button onClick={() => onDelete(item.id)}><Trash2 />删除</button></footer></article>; };
+  const card = (item: RecordItem) => { const resume = resumes.find((file) => file.id === item.data.resumeId); const completed = Object.values(item.data.checklist || {}).filter((entry: any) => entry?.done).length; return <article draggable key={item.id} onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}><div className="job-card-head"><span>{String(item.data.company || "?").slice(0, 1)}</span><div><h3>{item.data.company}</h3><p>{item.data.role}</p></div></div><div className="job-meta"><span>{item.data.location || "地点待定"}</span><span>{item.data.priority || "普通"}</span></div>{resume && <small>简历：{resume.metadata.displayName || resume.filename}</small>}<small>执行清单：{completed}/7</small>{item.data.deadline && <small>截止：{formatDate(item.data.deadline)}</small>}<footer>{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />原岗位</a>}<button onClick={() => setSelected(item)}><Eye />详情</button><button onClick={() => onEdit(item)}><Pencil />编辑</button><button onClick={() => onDelete(item.id)}><Trash2 />删除</button></footer></article>; };
   return <><PageHead eyebrow="投递管理" title="每个机会都有下一步" description="看板拖动会记录阶段变化；列表视图便于筛选、排序与集中核对。" action={<Button onClick={onAdd}><Plus />新增投递</Button>} />
     <div className="pipeline-tabs">{[["all","全部"],["prepare","准备简历"],["written","笔试邀约"],["interview","面试邀约"]].map(([value,label]) => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{label}<span>{items.filter((item) => tabStages[value].includes(item.data.stage || "待投递")).length}</span></button>)}</div>
     <div className="toolbar application-toolbar"><div className="searchbox"><Search /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索公司、岗位或城市" /></div><div className="toolbar-controls"><label>排序<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="updated">最近更新</option><option value="deadline">截止日期</option><option value="company">公司名称</option></select></label><div className="view-toggle"><Button variant={mode === "board" ? "default" : "outline"} size="icon" aria-label="看板视图" onClick={() => setMode("board")}><Columns3 /></Button><Button variant={mode === "list" ? "default" : "outline"} size="icon" aria-label="列表视图" onClick={() => setMode("list")}><List /></Button></div></div></div>
-    {items.length ? mode === "board" ? <div className="kanban">{stageOrder.filter((stage) => tabStages[tab].includes(stage)).map((stage) => <section key={stage} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { const item = items.find((candidate) => candidate.id === e.dataTransfer.getData("text/plain")); if (item) onMove(item, stage); }}><header><b>{stage}</b><span>{filtered.filter((item) => (item.data.stage || "待投递") === stage).length}</span></header><div>{filtered.filter((item) => (item.data.stage || "待投递") === stage).map(card)}</div></section>)}</div> : <div className="application-table"><div className="application-row head"><span>公司与岗位</span><span>阶段</span><span>截止日期</span><span>关联简历</span><span>操作</span></div>{filtered.map((item) => { const resume = resumes.find((file) => file.id === item.data.resumeId); return <div className="application-row" key={item.id}><span><b>{item.data.company}</b><small>{item.data.role} · {item.data.location || "地点待定"}</small></span><span><StatusPill>{item.data.stage || "待投递"}</StatusPill></span><span>{formatDate(item.data.deadline)}</span><span>{resume?.metadata.displayName || resume?.filename || "未关联"}</span><span className="row-actions">{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer" aria-label="查看原岗位"><ExternalLink /></a>}<button onClick={() => onEdit(item)} aria-label="编辑"><Pencil /></button><button onClick={() => onDelete(item.id)} aria-label="删除"><Trash2 /></button></span></div>; })}</div> : <EmptyState icon={BriefcaseBusiness} title="还没有投递记录" text="添加一个目标岗位，从 JD、简历到面试都可以围绕它持续积累。" action={<Button onClick={onAdd}><Plus />新增第一条投递</Button>} />}
+    {items.length ? mode === "board" ? <div className="kanban">{stageOrder.filter((stage) => tabStages[tab].includes(stage)).map((stage) => <section key={stage} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { const item = items.find((candidate) => candidate.id === e.dataTransfer.getData("text/plain")); if (item) onMove(item, stage); }}><header><b>{stage}</b><span>{filtered.filter((item) => (item.data.stage || "待投递") === stage).length}</span></header><div>{filtered.filter((item) => (item.data.stage || "待投递") === stage).map(card)}</div></section>)}</div> : <div className="application-table"><div className="application-row head"><span>公司与岗位</span><span>阶段</span><span>截止日期</span><span>关联简历</span><span>操作</span></div>{filtered.map((item) => { const resume = resumes.find((file) => file.id === item.data.resumeId); return <div className="application-row" key={item.id}><span><b>{item.data.company}</b><small>{item.data.role} · {item.data.location || "地点待定"}</small></span><span><StatusPill>{item.data.stage || "待投递"}</StatusPill></span><span>{formatDate(item.data.deadline)}</span><span>{resume?.metadata.displayName || resume?.filename || "未关联"}</span><span className="row-actions">{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer" aria-label="查看原岗位"><ExternalLink /></a>}<button onClick={() => setSelected(item)} aria-label="查看详情"><Eye /></button><button onClick={() => onEdit(item)} aria-label="编辑"><Pencil /></button><button onClick={() => onDelete(item.id)} aria-label="删除"><Trash2 /></button></span></div>; })}</div> : <EmptyState icon={BriefcaseBusiness} title="还没有投递记录" text="添加一个目标岗位，从 JD、简历到面试都可以围绕它持续积累。" action={<Button onClick={onAdd}><Plus />新增第一条投递</Button>} />}
+    {selected && <ApplicationDetail item={items.find((item) => item.id === selected.id) || selected} resume={resumes.find((file) => file.id === selected.data.resumeId)} onClose={() => setSelected(null)} onEdit={() => onEdit(selected)} onChecklist={(key, done) => onChecklist(selected, key, done)} />}
   </>;
+}
+
+const checklistLabels: Record<string, string> = { research: "完成公司背调", analysis: "完成岗位分析", resumeSelected: "选择投递简历", resumeOptimized: "核对简历优化", submitted: "完成正式投递", followedUp: "完成一次跟进", interviewScheduled: "安排面试日程" };
+function ApplicationDetail({ item, resume, onClose, onEdit, onChecklist }: { item: RecordItem; resume?: StoredFile; onClose: () => void; onEdit: () => void; onChecklist: (key: string, done: boolean) => void }) {
+  return <Dialog open onOpenChange={(open) => !open && onClose()}><DialogContent className="application-detail-dialog"><DialogHeader><DialogTitle>{item.data.company} · {item.data.role}</DialogTitle><DialogDescription>{item.data.stage || "待投递"} · 最近更新 {formatDate(item.updatedAt, true)}</DialogDescription></DialogHeader><div className="application-detail-grid"><section><h3>投递执行清单</h3><div className="checklist">{Object.entries(checklistLabels).map(([key, label]) => { const done = Boolean(item.data.checklist?.[key]?.done); return <label key={key}><input type="checkbox" checked={done} onChange={(e) => onChecklist(key, e.target.checked)} /><span>{label}</span>{done && <small>{formatDate(item.data.checklist[key].at, true)}</small>}</label>; })}</div></section><section><h3>联系与投递信息</h3><dl className="detail-list"><div><dt>渠道</dt><dd>{item.data.channel || "未填写"}</dd></div><div><dt>联系人 / 内推人</dt><dd>{item.data.contactName || item.data.contact || "未填写"}</dd></div><div><dt>联系方式</dt><dd>{item.data.contactValue || "未填写"}</dd></div><div><dt>下次跟进</dt><dd>{formatDate(item.data.nextFollowUpAt, true)}</dd></div><div><dt>关联简历</dt><dd>{resume?.metadata.displayName || resume?.filename || "未关联"}</dd></div></dl><Button variant="outline" onClick={onEdit}><Pencil />编辑完整信息</Button></section></div><ActivityTimeline entityId={item.id} /></DialogContent></Dialog>;
+}
+
+function ActivityTimeline({ entityId }: { entityId: string }) { const [events, setEvents] = useState<RecordItem[]>([]); useEffect(() => { api<{ events: RecordItem[] }>(`/api/activity?entityType=applications&entityId=${encodeURIComponent(entityId)}`).then((result) => setEvents(result.events)).catch(() => setEvents([])); }, [entityId]); return <section className="activity-timeline"><h3>操作时间线</h3>{events.length ? events.map((event) => <article key={event.id}><time>{formatDate(event.createdAt, true)}</time><div><b>{event.title}</b><small>{event.data.action || "记录更新"}</small></div></article>) : <p className="muted">还没有操作历史</p>}</section>; }
+
+function TasksView({ items, applications, onChanged }: { items: RecordItem[]; applications: RecordItem[]; onChanged: () => void }) {
+  const [open, setOpen] = useState(false); const [status, setStatus] = useState("active"); const visible = items.filter((item) => status === "all" ? true : status === "active" ? !["done", "dismissed"].includes(item.data.status) : item.data.status === status);
+  async function create(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await api("/api/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: form.get("title"), category: form.get("category"), priority: form.get("priority"), dueAt: form.get("dueAt"), notes: form.get("notes"), applicationId: form.get("applicationId"), entityType: form.get("applicationId") ? "applications" : "", entityId: form.get("applicationId") || "", status: "todo", createdBy: "user", aiJobId: "", checklistKey: "", sourceRefs: [] }) }); setOpen(false); onChanged(); toast.success("行动任务已创建"); } catch (error) { toast.error((error as Error).message); } }
+  async function update(item: RecordItem, data: Record<string, any>) { try { await api("/api/tasks", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, version: item.version, data }) }); onChanged(); } catch (error) { toast.error((error as Error).message); } }
+  async function remove(item: RecordItem) { if (!window.confirm("将这个任务移入回收站？")) return; await api(`/api/tasks?id=${item.id}`, { method: "DELETE" }); onChanged(); }
+  return <><PageHead eyebrow="行动清单" title="把分析结论变成下一步" description="手动任务与带来源的 AI 建议集中管理；有日期的任务会自动进入求职日历。" action={<Button onClick={() => setOpen(true)}><Plus />新增任务</Button>} /><div className="pipeline-tabs task-tabs">{[["active","待处理"],["todo","待办"],["doing","进行中"],["done","已完成"],["all","全部"]].map(([value,label]) => <button className={status === value ? "active" : ""} key={value} onClick={() => setStatus(value)}>{label}</button>)}</div>{visible.length ? <div className="task-list">{visible.map((item) => { const app = applications.find((entry) => entry.id === item.data.applicationId); return <article key={item.id} className={`task-card ${item.data.status}`}><button className="task-check" aria-label="标记完成" onClick={() => update(item, { status: item.data.status === "done" ? "todo" : "done" })}>{item.data.status === "done" ? <CheckCircle2 /> : <span />}</button><div><div className="tag-row"><span>{({ resume: "简历", evidence: "事实补充", application: "投递", follow_up: "跟进", interview: "面试", deadline: "截止事项", custom: "自定义" } as any)[item.data.category] || item.data.category}</span>{item.data.createdBy === "ai" && <span>AI · 有引用</span>}</div><h2>{item.data.title}</h2><p>{item.data.notes || (app ? `${app.data.company} · ${app.data.role}` : "")}</p><small>{item.data.dueAt ? `截止 ${formatDate(item.data.dueAt, true)}` : "未设置日期"}</small></div><div className="task-actions"><select value={item.data.status} onChange={(e) => update(item, { status: e.target.value })}><option value="todo">待办</option><option value="doing">进行中</option><option value="done">已完成</option><option value="dismissed">已忽略</option></select><button onClick={() => remove(item)} aria-label="删除任务"><Trash2 /></button></div></article>; })}</div> : <EmptyState icon={ListChecks} title="没有符合条件的任务" text="从岗位分析、简历建议、面试复盘中创建行动项，或手动添加下一步。" action={<Button onClick={() => setOpen(true)}><Plus />添加任务</Button>} />}<Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>新增行动任务</DialogTitle><DialogDescription>设置日期后会自动进入求职日历和 ICS 导出。</DialogDescription></DialogHeader><form onSubmit={create}><div className="editor-grid"><Field label="任务标题"><Input name="title" required /></Field><Field label="任务类型"><select name="category" defaultValue="custom"><option value="resume">简历</option><option value="evidence">事实补充</option><option value="application">投递</option><option value="follow_up">跟进</option><option value="interview">面试</option><option value="deadline">截止事项</option><option value="custom">自定义</option></select></Field><Field label="优先级"><select name="priority" defaultValue="normal"><option value="high">高</option><option value="normal">普通</option><option value="low">低</option></select></Field><Field label="截止时间"><Input name="dueAt" type="datetime-local" /></Field><Field label="关联投递"><select name="applicationId"><option value="">不关联</option>{applications.map((item) => <option value={item.id} key={item.id}>{item.data.company} · {item.data.role}</option>)}</select></Field><Field label="备注"><Textarea name="notes" /></Field></div><DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit">保存任务</Button></DialogFooter></form></DialogContent></Dialog></>;
 }
 
 function EvidenceView({ items, onAdd, onEdit, onDelete }: { items: RecordItem[]; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void }) {
@@ -689,14 +760,14 @@ function EvidenceView({ items, onAdd, onEdit, onDelete }: { items: RecordItem[];
   </>;
 }
 
-function AnalysisView({ input, setInput, busy, result, onRun, onEvidence }: { input: { title: string; jd: string }; setInput: (next: { title: string; jd: string }) => void; busy: boolean; result: Record<string, any> | null; onRun: () => void; onEvidence: () => void }) {
+function AnalysisView({ input, setInput, busy, result, onRun, onEvidence, onCreateTask }: { input: { title: string; jd: string }; setInput: (next: { title: string; jd: string }) => void; busy: boolean; result: Record<string, any> | null; onRun: () => void; onEvidence: () => void; onCreateTask: (task: Record<string, any>) => void }) {
   return <><PageHead eyebrow="岗位证据矩阵" title="每一个匹配结论都有依据" description="模型负责提取与映射，最终分数按公开权重公式计算。" />
     <div className="analysis-layout"><section className="panel form-panel"><Field label="岗位名称"><Input value={input.title} onChange={(e) => setInput({ ...input, title: e.target.value })} placeholder="例如：字节跳动商业化产品经理" /></Field><Field label="完整职位描述"><Textarea className="jd-input" value={input.jd} onChange={(e) => setInput({ ...input, jd: e.target.value })} placeholder="粘贴岗位职责、任职要求和加分项…" /></Field><div className="privacy-note"><CheckCircle2 /><span><b>严格事实模式</b>仅匹配事实库中状态为“已确认”的内容。</span></div><Button size="lg" disabled={busy || input.jd.length < 40} onClick={onRun}>{busy ? <RefreshCw className="spin" /> : <Sparkles />}{busy ? "正在建立证据矩阵…" : "生成证据矩阵"}</Button></section><section className="panel analysis-summary">{result ? <><div className="score-ring" style={{ "--score": `${result.score || 0}%` } as React.CSSProperties}><strong>{result.score ?? "—"}</strong><span>证据覆盖</span></div><h2>{result.summary || "分析已完成"}</h2><p>必备项权重 3、重要项权重 2、加分项权重 1；强匹配计 100%，部分匹配计 55%。</p></> : <EmptyState icon={Sparkles} title="等待分析" text="输入 JD 后，系统会把要求、事实依据、缺口和下一步动作放在同一张表里。" />}</section></div>
-    {result && <section className="panel matrix-panel"><div className="panel-title"><div><h2>要求与证据</h2><p>无引用的内容不会被标记为匹配</p></div><Button variant="outline" onClick={onEvidence}>管理事实库</Button></div>{Array.isArray(result.requirements) ? <div className="matrix-table"><div className="matrix-row head"><span>岗位要求</span><span>重要度</span><span>覆盖</span><span>依据与理由</span></div>{result.requirements.map((item: any, index: number) => <div className="matrix-row" key={index}><span><b>{item.label}</b></span><span>{item.importance === "must" ? "必备" : item.importance === "important" ? "重要" : "加分"}</span><span><StatusPill tone={item.coverage === "strong" ? "green" : item.coverage === "partial" ? "orange" : "red"}>{item.coverage === "strong" ? "强匹配" : item.coverage === "partial" ? "部分匹配" : "缺少证据"}</StatusPill></span><span><p>{item.reason}</p><small>{(item.evidenceIds || []).map((id: string) => `#${id.slice(0, 8)}`).join("、") || "没有可引用事实"}</small></span></div>)}</div> : null}{Array.isArray(result.suggestions) && <div className="suggestion-grid">{result.suggestions.map((item: any, index: number) => <article key={index}><span>建议 {index + 1}</span><h3>{item.issue}</h3><p>{item.suggestion}</p><small>风险：{item.risk || "无"}</small></article>)}</div>}</section>}
+    {result && <section className="panel matrix-panel"><div className="panel-title"><div><h2>要求与证据</h2><p>无引用的内容不会被标记为匹配</p></div><Button variant="outline" onClick={onEvidence}>管理事实库</Button></div>{Array.isArray(result.requirements) ? <div className="matrix-table"><div className="matrix-row head"><span>岗位要求</span><span>重要度</span><span>覆盖</span><span>依据与理由</span></div>{result.requirements.map((item: any, index: number) => <div className="matrix-row" key={index}><span><b>{item.label}</b></span><span>{item.importance === "must" ? "必备" : item.importance === "important" ? "重要" : "加分"}</span><span><StatusPill tone={item.coverage === "strong" ? "green" : item.coverage === "partial" ? "orange" : "red"}>{item.coverage === "strong" ? "强匹配" : item.coverage === "partial" ? "部分匹配" : "缺少证据"}</StatusPill></span><span><p>{item.reason}</p><small>{(item.evidenceIds || []).map((id: string) => `#${id.slice(0, 8)}`).join("、") || "没有可引用事实"}</small></span></div>)}</div> : null}{Array.isArray(result.suggestions) && <div className="suggestion-grid">{result.suggestions.map((item: any, index: number) => { const refs = (item.evidenceIds || []).map((id: string) => ({ type: "evidence", id })); const quoteRefs = (item.sourceQuotes || []).map((quote: string, quoteIndex: number) => ({ type: "resume_quote", id: `${index}-${quoteIndex}`, quote })); const sourceRefs = refs.length ? refs : quoteRefs; return <article key={index}><span>建议 {index + 1}</span><h3>{item.issue}</h3><p>{item.suggestion}</p><small>风险：{item.risk || "无"}</small>{result.aiJobId && sourceRefs.length > 0 && <Button variant="outline" onClick={() => onCreateTask({ title: item.issue, category: refs.length ? "evidence" : "resume", priority: "normal", dueAt: "", notes: item.suggestion, entityType: "analysis", entityId: result.aiJobId, applicationId: "", checklistKey: refs.length ? "analysis" : "resumeOptimized", aiJobId: result.aiJobId, sourceRefs })}><ListChecks />加入行动清单</Button>}</article>; })}</div>}</section>}
   </>;
 }
 
-const aiTypeLabels: Record<string, string> = { job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", transcription: "录音转写", evaluation_case: "合成评测" };
+const aiTypeLabels: Record<string, string> = { job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", transcription: "录音转写", evaluation_case: "合成评测", job_capture_url: "岗位链接提取", job_capture_image: "岗位截图识别" };
 const aiStatusLabels: Record<string, string> = { queued: "排队中", running: "运行中", succeeded: "成功", failed: "失败", cancelled: "已取消" };
 
 function AICenterView({ jobs, legacy, activeId, attempts, evaluation, onSelect, onRetry, onCancel, onRefresh, onRunEvaluation, onNavigate }: { jobs: AIJob[]; legacy: any[]; activeId: string | null; attempts: any[]; evaluation: Record<string, any> | null; onSelect: (id: string) => void; onRetry: (id: string) => void; onCancel: (id: string) => void; onRefresh: () => void; onRunEvaluation: () => void; onNavigate: (view: View) => void }) {
@@ -739,7 +810,7 @@ function OffersView({ items, weights, setWeights, onAdd, onEdit, onDelete }: { i
   </>;
 }
 
-function CalendarView({ items, applications, interviews, offers, onAdd, onEdit, onDelete, onExport }: { items: RecordItem[]; applications: RecordItem[]; interviews: RecordItem[]; offers: RecordItem[]; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void; onExport: () => void }) {
+function CalendarView({ items, applications, interviews, offers, tasks, onAdd, onEdit, onDelete, onExport }: { items: RecordItem[]; applications: RecordItem[]; interviews: RecordItem[]; offers: RecordItem[]; tasks: RecordItem[]; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void; onExport: () => void }) {
   const today = new Date();
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const events: Array<{ id: string; date: string; title: string; type: string; item?: RecordItem }> = [
@@ -747,13 +818,14 @@ function CalendarView({ items, applications, interviews, offers, onAdd, onEdit, 
     ...applications.filter((item) => item.data.deadline).map((item) => ({ id: `a-${item.id}`, date: item.data.deadline, title: `${item.data.company} · ${item.data.role}`, type: "投递截止" })),
     ...interviews.filter((item) => item.data.scheduledAt).map((item) => ({ id: `i-${item.id}`, date: item.data.scheduledAt, title: `${item.data.company} · ${item.data.round || "面试"}`, type: "面试" })),
     ...offers.filter((item) => item.data.deadline).map((item) => ({ id: `o-${item.id}`, date: item.data.deadline, title: `${item.data.company} · OFFER`, type: "OFFER 截止" })),
+    ...tasks.filter((item) => item.data.dueAt && !["done", "dismissed"].includes(item.data.status)).map((item) => ({ id: `t-${item.id}`, date: item.data.dueAt, title: item.data.title, type: "行动任务" })),
   ].filter((event) => event.date && Number.isFinite(new Date(event.date).getTime())).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const firstWeekday = (month.getDay() + 6) % 7;
   const gridStart = new Date(month.getFullYear(), month.getMonth(), 1 - firstWeekday);
   const days = Array.from({ length: 42 }, (_, index) => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index));
   const dateKey = (date: Date | string) => { const value = new Date(date); return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`; };
   const monthEvents = events.filter((event) => { const date = new Date(event.date); return date.getFullYear() === month.getFullYear() && date.getMonth() === month.getMonth(); });
-  return <><PageHead eyebrow="求职日历" title="截止、笔试和面试集中查看" description="手动提醒与投递截止、面试、OFFER 截止会自动汇入月历。" action={<div className="head-actions"><Button variant="outline" disabled={!items.length} onClick={onExport}><Download />导出手动日程</Button><Button onClick={onAdd}><Plus />添加日程</Button></div>} />
+  return <><PageHead eyebrow="求职日历" title="截止、笔试和面试集中查看" description="手动提醒、投递截止、面试、OFFER 与行动任务会自动汇入月历。" action={<div className="head-actions"><Button variant="outline" disabled={!events.length} onClick={onExport}><Download />导出全部 ICS</Button><Button onClick={onAdd}><Plus />添加日程</Button></div>} />
     <section className="panel month-calendar"><div className="calendar-toolbar"><Button variant="outline" onClick={() => setMonth(new Date(today.getFullYear(), today.getMonth(), 1))}>今天</Button><div><Button variant="ghost" size="icon" aria-label="上个月" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft /></Button><b>{month.getFullYear()} 年 {month.getMonth() + 1} 月</b><Button variant="ghost" size="icon" aria-label="下个月" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight /></Button></div><span>{monthEvents.length} 个节点</span></div><div className="calendar-weekdays">{["周一","周二","周三","周四","周五","周六","周日"].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const dayEvents = events.filter((event) => dateKey(event.date) === dateKey(day)); const outside = day.getMonth() !== month.getMonth(); const isToday = dateKey(day) === dateKey(today); return <div className={`calendar-day${outside ? " outside" : ""}${isToday ? " today" : ""}`} key={day.toISOString()}><b>{day.getDate()}</b><div>{dayEvents.slice(0, 3).map((event) => <span className={`event-chip ${event.type.includes("面试") ? "interview" : event.type.includes("OFFER") ? "offer" : ""}`} title={`${event.type} · ${event.title}`} key={event.id}>{event.title}</span>)}{dayEvents.length > 3 && <small>还有 {dayEvents.length - 3} 项</small>}</div></div>; })}</div></section>
     {events.length ? <section className="calendar-agenda"><h2>本月节点</h2><div className="timeline">{monthEvents.map((event) => <article key={event.id}><time><b>{new Date(event.date).getDate()}</b><span>{new Intl.DateTimeFormat("zh-CN", { month: "short" }).format(new Date(event.date))}</span></time><div><StatusPill>{event.type}</StatusPill><h2>{event.title}</h2><p>{formatDate(event.date, true)}{event.item?.data.notes ? ` · ${event.item.data.notes}` : ""}</p></div>{event.item && <footer><button onClick={() => onEdit(event.item!)} aria-label="编辑日程"><Pencil /></button><button onClick={() => onDelete(event.item!.id)} aria-label="删除日程"><Trash2 /></button></footer>}</article>)}</div></section> : <p className="calendar-empty">还没有求职节点。你可以添加日程，或在投递、面试和 OFFER 中填写日期。</p>}
   </>;
@@ -761,7 +833,7 @@ function CalendarView({ items, applications, interviews, offers, onAdd, onEdit, 
 
 const editorFields: Record<Kind, Array<{ key: string; label: string; type?: string; options?: string[]; required?: boolean }>> = {
   applications: [
-    { key: "company", label: "公司", required: true }, { key: "role", label: "岗位", required: true }, { key: "location", label: "工作地点" }, { key: "stage", label: "当前阶段", type: "select", options: stageOrder }, { key: "priority", label: "优先级", type: "select", options: ["高", "普通", "低"] }, { key: "deadline", label: "截止日期", type: "date" }, { key: "salary", label: "薪资范围" }, { key: "sourceUrl", label: "岗位链接", type: "url" }, { key: "contact", label: "联系人" }, { key: "resumeId", label: "关联简历", type: "resume" }, { key: "jd", label: "职位描述", type: "textarea" }, { key: "notes", label: "备注", type: "textarea" },
+    { key: "company", label: "公司", required: true }, { key: "role", label: "岗位", required: true }, { key: "direction", label: "岗位方向" }, { key: "location", label: "工作地点" }, { key: "stage", label: "当前阶段", type: "select", options: stageOrder }, { key: "priority", label: "优先级", type: "select", options: ["高", "普通", "低"] }, { key: "deadline", label: "截止日期", type: "date" }, { key: "salary", label: "薪资范围" }, { key: "sourceUrl", label: "岗位链接", type: "url" }, { key: "channel", label: "投递渠道" }, { key: "contactName", label: "联系人 / 内推人" }, { key: "contactRole", label: "联系人身份" }, { key: "contactValue", label: "联系方式" }, { key: "lastContactAt", label: "最后联系时间", type: "datetime-local" }, { key: "nextFollowUpAt", label: "下次跟进时间", type: "datetime-local" }, { key: "resumeId", label: "关联简历", type: "resume" }, { key: "jd", label: "职位描述", type: "textarea" }, { key: "notes", label: "备注", type: "textarea" },
   ],
   saved_jobs: [],
   evidence: [
@@ -776,19 +848,20 @@ const editorFields: Record<Kind, Array<{ key: string; label: string; type?: stri
   reminders: [
     { key: "title", label: "日程标题", required: true }, { key: "type", label: "类型", type: "select", options: ["网申截止", "笔试", "面试", "OFFER 截止", "跟进", "其他"] }, { key: "dueAt", label: "日期与时间", type: "datetime-local", required: true }, { key: "notes", label: "备注", type: "textarea" },
   ],
-  analyses: [], research: [],
+  tasks: [], analyses: [], research: [],
 };
 
 function RecordEditor({ editor, resumes, onClose, onSaved }: { editor: { kind: Kind; item?: RecordItem } | null; resumes: StoredFile[]; onClose: () => void; onSaved: (kind: Kind) => void }) {
   const [saving, setSaving] = useState(false);
   if (!editor) return null;
   const currentEditor = editor;
-  const labels: Record<Kind, string> = { applications: "投递", saved_jobs: "收藏岗位", evidence: "事实", interviews: "面试", offers: "OFFER", reminders: "日程", analyses: "分析", research: "背调" };
+  const labels: Record<Kind, string> = { applications: "投递", saved_jobs: "收藏岗位", tasks: "行动任务", evidence: "事实", interviews: "面试", offers: "OFFER", reminders: "日程", analyses: "分析", research: "背调" };
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true);
     const form = new FormData(event.currentTarget); const data: Record<string, any> = { ...(currentEditor.item?.data || {}) };
     for (const field of editorFields[currentEditor.kind]) { const value = form.get(field.key); data[field.key] = field.type === "number" ? Number(value || 0) : String(value || ""); }
     if (currentEditor.kind === "evidence") data.skills = String(data.skills || "").split(/[,，]/).map((item) => item.trim()).filter(Boolean);
+    if (currentEditor.kind === "applications") data.resumeName = resumes.find((file) => file.id === data.resumeId)?.metadata.displayName || resumes.find((file) => file.id === data.resumeId)?.filename || "";
     try {
       if (currentEditor.item) await api("/api/records", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: currentEditor.item.id, version: currentEditor.item.version, data }) });
       else await api("/api/records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: currentEditor.kind, data }) });

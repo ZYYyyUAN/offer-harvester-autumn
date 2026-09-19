@@ -1,0 +1,7 @@
+import { ActionTaskSchema } from "@/lib/workflow-contracts";
+import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
+
+export async function POST(request: Request) {
+  try { const { userId } = await requireApiUser(); const body = await request.json() as Record<string, unknown>; const jobId = String(body.aiJobId || ""); const row = await getDatabase().prepare("SELECT status, source_refs FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(jobId, userId).first<Record<string, unknown>>(); if (!row || row.status !== "succeeded") throw new ApiError(409, "AI 任务不存在或尚未成功"); const sourceRefs = Array.isArray(body.sourceRefs) && body.sourceRefs.length ? body.sourceRefs : safeJson(String(row.source_refs || "[]"), []); const data = ActionTaskSchema.parse({ ...body, aiJobId: jobId, createdBy: "ai", sourceRefs }); if (!data.sourceRefs.length) throw new ApiError(400, "AI 行动项缺少可追溯来源"); const id = crypto.randomUUID(); await getDatabase().prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'tasks', ?, ?)").bind(id, userId, data.title, JSON.stringify(data)).run(); const saved = await getDatabase().prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE id = ? AND owner_id = ?").bind(id, userId).first<Record<string, unknown>>(); return Response.json({ task: mapRecord(saved!) }, { status: 201 }); }
+  catch (error) { return apiError(error); }
+}

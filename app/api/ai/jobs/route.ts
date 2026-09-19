@@ -45,6 +45,8 @@ export async function POST(request: Request) {
     }
     if (parsed.data.type === "resume_suggestions") sourceRefs.push({ type: "resume", id: String(input.fileId || "") });
     if (parsed.data.type === "transcription") sourceRefs.push({ type: "audio", id: String(input.fileId || ""), segmentIndex: input.segmentIndex ?? 0 });
+    if (parsed.data.type === "job_capture_url") sourceRefs.push({ type: "job_url", id: String(input.sourceUrl || "") });
+    if (parsed.data.type === "job_capture_image") sourceRefs.push({ type: "job_screenshot", id: String(input.fileId || "") });
     const created = await createAIJob(userId, parsed.data.type, input, { sourceRefs });
     return Response.json(created, { status: 201 });
   } catch (error) { return apiError(error); }

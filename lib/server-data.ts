@@ -113,6 +113,9 @@ export function recordTitle(kind: string, data: Record<string, unknown>) {
     analyses: data.jobTitle ?? data.company,
     research: data.company,
     ai_evaluations: data.title,
+    tasks: data.title,
+    activity_events: data.title ?? data.action,
+    data_imports: data.filename ?? "数据导入预览",
   };
   return String(options[kind] ?? data.title ?? "未命名记录").slice(0, 180);
 }
@@ -128,6 +131,9 @@ export const allowedKinds = new Set([
   "research",
   "application_events",
   "ai_evaluations",
+  "tasks",
+  "activity_events",
+  "data_imports",
 ]);
 
 export function normalizeKind(value: string | null) {

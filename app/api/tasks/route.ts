@@ -1,0 +1,22 @@
+import { ActionTaskSchema } from "@/lib/workflow-contracts";
+import { ApiError, apiError, getDatabase, mapRecord, requireApiUser } from "@/lib/server-data";
+
+export async function GET(request: Request) {
+  try { const { userId } = await requireApiUser(); const status = new URL(request.url).searchParams.get("status"); const rows = await getDatabase().prepare(`SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE owner_id = ? AND kind = 'tasks' AND deleted_at IS NULL ORDER BY json_extract(data, '$.dueAt') = '', json_extract(data, '$.dueAt'), updated_at DESC`).bind(userId).all<Record<string, unknown>>(); const tasks = rows.results.map(mapRecord).filter((item) => !status || item.data.status === status); return Response.json({ tasks }); }
+  catch (error) { return apiError(error); }
+}
+
+export async function POST(request: Request) {
+  try { const { userId } = await requireApiUser(); const data = ActionTaskSchema.parse(await request.json()); if (data.createdBy === "ai" && (!data.aiJobId || !data.sourceRefs.length)) throw new ApiError(400, "AI 行动项必须包含任务和来源引用"); const id = crypto.randomUUID(); await getDatabase().prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'tasks', ?, ?)").bind(id, userId, data.title, JSON.stringify(data)).run(); const row = await getDatabase().prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE id = ? AND owner_id = ?").bind(id, userId).first<Record<string, unknown>>(); return Response.json({ task: mapRecord(row!) }, { status: 201 }); }
+  catch (error) { return apiError(error); }
+}
+
+export async function PATCH(request: Request) {
+  try { const { userId } = await requireApiUser(); const body = await request.json() as { id?: string; version?: number; data?: Record<string, unknown> }; if (!body.id) throw new ApiError(400, "缺少任务 ID"); const row = await getDatabase().prepare("SELECT * FROM records WHERE id = ? AND owner_id = ? AND kind = 'tasks' AND deleted_at IS NULL").bind(body.id, userId).first<Record<string, unknown>>(); if (!row) throw new ApiError(404, "任务不存在"); if (body.version && Number(row.version) !== body.version) throw new ApiError(409, "任务已在其他设备更新"); const current = JSON.parse(String(row.data)); const data = ActionTaskSchema.parse({ ...current, ...(body.data || {}) }); const statements = [getDatabase().prepare("UPDATE records SET title = ?, data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(data.title, JSON.stringify(data), body.id, userId), getDatabase().prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'activity_events', ?, ?)").bind(crypto.randomUUID(), userId, `任务${data.status === 'done' ? '完成' : '更新'}：${data.title}`, JSON.stringify({ entityType: "tasks", entityId: body.id, applicationId: data.applicationId, action: "task_updated", status: data.status }))]; if (data.status === "done" && data.applicationId && data.checklistKey) { const app = await getDatabase().prepare("SELECT data FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications'").bind(data.applicationId, userId).first<Record<string, unknown>>(); if (app) { const appData = JSON.parse(String(app.data)); appData.checklist = { ...(appData.checklist || {}), [data.checklistKey]: { done: true, at: new Date().toISOString() } }; statements.push(getDatabase().prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(JSON.stringify(appData), data.applicationId, userId)); } } await getDatabase().batch(statements); const saved = await getDatabase().prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE id = ? AND owner_id = ?").bind(body.id, userId).first<Record<string, unknown>>(); return Response.json({ task: mapRecord(saved!) }); }
+  catch (error) { return apiError(error); }
+}
+
+export async function DELETE(request: Request) {
+  try { const { userId } = await requireApiUser(); const id = new URL(request.url).searchParams.get("id"); if (!id) throw new ApiError(400, "缺少任务 ID"); await getDatabase().prepare("UPDATE records SET deleted_at = CURRENT_TIMESTAMP, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND kind = 'tasks'").bind(id, userId).run(); return Response.json({ ok: true }); }
+  catch (error) { return apiError(error); }
+}

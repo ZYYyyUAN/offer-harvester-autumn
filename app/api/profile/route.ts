@@ -62,6 +62,8 @@ export async function DELETE(request: Request) {
     const { bucket } = (await import("@/lib/server-data")).getBindings();
     for (const file of files.results) await bucket.delete(String(file.object_key));
     await db.batch([
+      db.prepare("DELETE FROM ai_job_attempts WHERE owner_id = ?").bind(userId),
+      db.prepare("DELETE FROM ai_jobs WHERE owner_id = ?").bind(userId),
       db.prepare("DELETE FROM stored_files WHERE owner_id = ?").bind(userId),
       db.prepare("DELETE FROM records WHERE owner_id = ?").bind(userId),
       db.prepare("DELETE FROM profiles WHERE owner_id = ?").bind(userId),

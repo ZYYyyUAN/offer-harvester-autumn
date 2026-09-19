@@ -1,7 +1,8 @@
 import { ApiError, getBindings, getDatabase, safeJson } from "@/lib/server-data";
-import { aiErrorDetails, analyzeResumeFile, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { aiErrorDetails, analyzeResumeFile, ocrImage, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
 import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
 import { getEvaluationCase } from "@/lib/ai-evaluation-cases";
+import { JobCaptureDraftSchema, jobCaptureJsonSchema } from "@/lib/workflow-contracts";
 
 type JobRow = Record<string, unknown>;
 type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: string; status?: string };
@@ -9,10 +10,12 @@ type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: str
 const modelFor: Record<AIJobType, string> = {
   job_analysis: "qwen3.8-max", resume_suggestions: "qwen-doc-turbo", company_research: "qwen3.8-max",
   interview_review: "qwen3.8-max", transcription: "qwen3-asr-flash", evaluation_case: "qwen3.8-max",
+  job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v2",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
+  job_capture_url: "job-capture-url-v1", job_capture_image: "job-capture-image-v1",
 };
 
 export function mapAIJob(row: JobRow) {
@@ -84,6 +87,25 @@ function evaluationMetrics(result: Record<string, unknown>, caseId: string) {
 }
 
 async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>) {
+  if (type === "job_capture_url") {
+    const sourceUrl = String(input.sourceUrl || "").trim();
+    try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { throw new ApiError(400, "请输入有效的公开岗位链接"); }
+    const response = await responsesSearch({
+      system: "你是严格的岗位信息提取器。只提取指定网页正文实际出现的信息；缺失字段返回空字符串。不得依据常识补全公司、薪资或截止日期。evidence 必须引用网页原文。",
+      prompt: `仅访问并抽取这个岗位页面：${sourceUrl}\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）、完整 JD。若网页要求登录、出现验证码或正文不可访问，在 warnings 中说明，不要改用其他职位。sourceUrl 原样返回。`,
+      schemaName: "job_capture_url_v1", schema: jobCaptureJsonSchema, validator: JobCaptureDraftSchema,
+    });
+    return { result: { ...response.data, sourceUrl, sources: response.sources }, usage: response.usage, confidence: response.sources.length ? "medium" : "low", record: null };
+  }
+  if (type === "job_capture_image") {
+    const fileId = String(input.fileId || ""); const { db, bucket } = getBindings();
+    const file = await db.prepare("SELECT object_key, mime_type FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'job_screenshot' AND deleted_at IS NULL").bind(fileId, ownerId).first<JobRow>();
+    if (!file) throw new ApiError(404, "岗位截图不存在");
+    const object = await bucket.get(String(file.object_key)); if (!object) throw new ApiError(404, "岗位截图内容不存在");
+    const ocr = await ocrImage({ bytes: await object.arrayBuffer(), mimeType: String(file.mime_type) });
+    const response = await structuredChat({ model: "qwen3.8-flash", system: "你是严格的岗位截图字段提取器。只能使用 OCR 原文；缺失字段返回空字符串，禁止推断。每个非空字段都要在 evidence 中提供 OCR 原文片段。", prompt: `截图 OCR 原文：\n${ocr.text}\n\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）和完整 JD。sourceUrl 返回空字符串。`, schemaName: "job_capture_image_v1", schema: jobCaptureJsonSchema, validator: JobCaptureDraftSchema, maxTokens: 4200 });
+    return { result: { ...response.data, ocrText: ocr.text, screenshotFileId: fileId }, usage: response.usage, confidence: "medium", record: null };
+  }
   if (type === "job_analysis" || type === "evaluation_case") {
     const fixture = type === "evaluation_case" ? getEvaluationCase(String(input.caseId || "")) : null;
     if (type === "evaluation_case" && !fixture) throw new ApiError(400, "评测样本不存在");

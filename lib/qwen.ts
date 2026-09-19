@@ -220,9 +220,49 @@ export async function responsesSearch(options: { system: string; prompt: string;
 
 export async function transcribeAudio(file: { bytes: ArrayBuffer; filename: string; mimeType: string }) {
   if (file.bytes.byteLength > 10 * 1024 * 1024) throw new ApiError(413, "单段音频需小于 10 MB；长录音请在录音时使用自动分段");
-  const form = new FormData();
-  form.set("model", "qwen3-asr-flash");
-  form.set("file", new File([file.bytes], file.filename, { type: file.mimeType }));
-  const result = await qwenFetch("/audio/transcriptions", { method: "POST", body: form });
-  return { text: String(result.text || ""), raw: result };
+  const bytes = new Uint8Array(file.bytes);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  const dataUrl = `data:${file.mimeType || "audio/webm"};base64,${btoa(binary)}`;
+  const result = await qwenFetch("/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "qwen3-asr-flash",
+      messages: [{ role: "user", content: [{ type: "input_audio", input_audio: { data: dataUrl } }] }],
+      stream: false,
+      asr_options: { enable_itn: true },
+    }),
+  });
+  const choices = result.choices as Array<{ message?: { content?: unknown } }> | undefined;
+  const text = String(choices?.[0]?.message?.content || "").trim();
+  if (!text) throw new ApiError(502, "语音识别服务没有返回转写文本");
+  return { text, raw: result };
+}
+
+function bufferDataUrl(bytes: ArrayBuffer, mimeType: string) {
+  const view = new Uint8Array(bytes); let binary = "";
+  for (let offset = 0; offset < view.length; offset += 0x8000) binary += String.fromCharCode(...view.subarray(offset, offset + 0x8000));
+  return `data:${mimeType};base64,${btoa(binary)}`;
+}
+
+export async function ocrImage(file: { bytes: ArrayBuffer; mimeType: string }) {
+  if (file.bytes.byteLength > 10 * 1024 * 1024) throw new ApiError(413, "岗位截图不能超过 10 MB");
+  const response = await qwenFetch("/chat/completions", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "qwen3.5-ocr",
+      messages: [{ role: "user", content: [
+        { type: "image_url", image_url: { url: bufferDataUrl(file.bytes, file.mimeType) } },
+        { type: "text", text: "逐字提取这张招聘岗位截图中的可见文字。不要补充图中不存在的内容。" },
+      ] }],
+      max_tokens: 6000,
+    }),
+  });
+  const choices = response.choices as Array<{ message?: { content?: unknown } }> | undefined;
+  const text = String(choices?.[0]?.message?.content || "").trim();
+  if (!text) throw new ApiError(422, "截图中没有识别到可用的岗位文字");
+  return { text, raw: response };
 }

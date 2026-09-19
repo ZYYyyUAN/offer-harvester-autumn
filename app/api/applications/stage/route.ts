@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
         .bind(JSON.stringify(data), id, userId),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'application_events', ?, ?)")
-        .bind(eventId, userId, `阶段变更：${from} → ${stage}`, JSON.stringify({ applicationId: id, from, to: stage })),
+        .bind(eventId, userId, `阶段变更：${from} → ${stage}`, JSON.stringify({ entityType: "applications", entityId: id, applicationId: id, action: "stage_changed", from, to: stage })),
     ]);
     return Response.json({ ok: true, stage });
   } catch (error) {

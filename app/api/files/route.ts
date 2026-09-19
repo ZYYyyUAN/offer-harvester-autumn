@@ -1,6 +1,6 @@
 import { ApiError, apiError, getBindings, mapFile, requireApiUser } from "@/lib/server-data";
 
-const limits: Record<string, number> = { resume: 20 * 1024 * 1024, avatar: 5 * 1024 * 1024, audio: 2 * 1024 * 1024 * 1024, job_screenshot: 10 * 1024 * 1024 };
+const limits: Record<string, number> = { resume: 20 * 1024 * 1024, avatar: 5 * 1024 * 1024, audio: 10 * 1024 * 1024, job_screenshot: 10 * 1024 * 1024 };
 const allowed: Record<string, string[]> = {
   resume: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"],
   avatar: ["image/jpeg", "image/png", "image/webp"],

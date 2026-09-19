@@ -1,44 +1,24 @@
 import { apiError, getDatabase, requireApiUser, safeJson } from "@/lib/server-data";
+import { defaultJobSearchSettings, JobSearchSettingsSchema, riskForRecord } from "@/lib/workflow-contracts";
 
 export async function GET() {
   try {
-    const { userId } = await requireApiUser();
-    const result = await getDatabase()
-      .prepare("SELECT kind, data, created_at, updated_at FROM records WHERE owner_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC")
-      .bind(userId)
-      .all<Record<string, unknown>>();
-    const records = result.results.map((row) => ({ kind: String(row.kind), data: safeJson<Record<string, unknown>>(String(row.data), {}), createdAt: row.created_at, updatedAt: row.updated_at }));
-    const applications = records.filter((item) => item.kind === "applications");
-    const reminders = records.filter((item) => item.kind === "reminders");
-    const interviews = records.filter((item) => item.kind === "interviews");
-    const offers = records.filter((item) => item.kind === "offers");
-    const stageCounts = Object.fromEntries(["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"].map((stage) => [stage, applications.filter((item) => item.data.stage === stage).length]));
-    const interviewCount = applications.filter((item) => item.data.stage === "面试中" || item.data.stage === "OFFER").length;
-    const offerCount = applications.filter((item) => item.data.stage === "OFFER").length;
-    const now = new Date();
-    const inSevenDays = new Date(now.getTime() + 7 * 86400000);
-    const calendarItems = [
-      ...reminders,
-      ...applications.filter((item) => item.data.deadline).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · ${item.data.role ?? ""}`, type: "投递截止", dueAt: item.data.deadline } })),
-      ...interviews.filter((item) => item.data.scheduledAt).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · ${item.data.round ?? "面试"}`, type: "面试", dueAt: item.data.scheduledAt } })),
-      ...offers.filter((item) => item.data.deadline).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · OFFER`, type: "OFFER 截止", dueAt: item.data.deadline } })),
-    ];
-    const upcoming = calendarItems.filter((item) => {
-      const due = new Date(String(item.data.dueAt || ""));
-      return Number.isFinite(due.getTime()) && due >= now && due <= inSevenDays;
-    }).sort((a, b) => new Date(String(a.data.dueAt)).getTime() - new Date(String(b.data.dueAt)).getTime()).slice(0, 8);
-    return Response.json({
-      dashboard: {
-        totalApplications: applications.length,
-        interviewCount,
-        offerCount,
-        invitationRate: applications.length ? Math.round((interviewCount / applications.length) * 100) : 0,
-        stageCounts,
-        upcoming,
-        recentApplications: applications.slice(0, 6),
-      },
-    });
-  } catch (error) {
-    return apiError(error);
-  }
+    const { userId } = await requireApiUser(); const db = getDatabase();
+    const [result, profileRow] = await Promise.all([
+      db.prepare("SELECT id, kind, data, created_at, updated_at FROM records WHERE owner_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC").bind(userId).all<Record<string, unknown>>(),
+      db.prepare("SELECT data FROM profiles WHERE owner_id = ?").bind(userId).first<Record<string, unknown>>(),
+    ]);
+    const records = result.results.map((row) => ({ id: String(row.id), kind: String(row.kind), data: safeJson<Record<string, unknown>>(String(row.data), {}), createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
+    const profile = profileRow ? safeJson<Record<string, unknown>>(String(profileRow.data), {}) : {}; const settings = JobSearchSettingsSchema.parse({ ...defaultJobSearchSettings, ...((profile.jobSearchSettings || {}) as object) });
+    const applications = records.filter((item) => item.kind === "applications"); const savedJobs = records.filter((item) => item.kind === "saved_jobs"); const reminders = records.filter((item) => item.kind === "reminders"); const interviews = records.filter((item) => item.kind === "interviews"); const offers = records.filter((item) => item.kind === "offers"); const tasks = records.filter((item) => item.kind === "tasks" && !["done", "dismissed"].includes(String(item.data.status))); const evidence = records.filter((item) => item.kind === "evidence"); const events = records.filter((item) => ["application_events", "activity_events"].includes(item.kind));
+    const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"]; const stageCounts = Object.fromEntries(stageOrder.map((stage) => [stage, applications.filter((item) => item.data.stage === stage).length]));
+    const reached = (application: typeof applications[number], stage: string) => { const current = stageOrder.indexOf(String(application.data.stage || "待投递")); const target = stageOrder.indexOf(stage); return (current >= target && current < stageOrder.indexOf("已结束")) || events.some((event) => event.data.applicationId === application.id && event.data.to === stage); };
+    const funnel = { saved: savedJobs.length, applied: applications.filter((item) => reached(item, "已投递")).length, written: applications.filter((item) => reached(item, "笔试中")).length, interview: applications.filter((item) => reached(item, "面试中")).length, offer: applications.filter((item) => reached(item, "OFFER")).length };
+    const now = new Date(); const inSevenDays = new Date(now.getTime() + 7 * 86400000); const calendarItems = [...reminders, ...applications.filter((item) => item.data.deadline).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · ${item.data.role ?? ""}`, type: "投递截止", dueAt: item.data.deadline } })), ...interviews.filter((item) => item.data.scheduledAt).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · ${item.data.round ?? "面试"}`, type: "面试", dueAt: item.data.scheduledAt } })), ...offers.filter((item) => item.data.deadline).map((item) => ({ ...item, data: { title: `${item.data.company ?? ""} · OFFER`, type: "OFFER 截止", dueAt: item.data.deadline } })), ...tasks.filter((item) => item.data.dueAt).map((item) => ({ ...item, data: { title: item.data.title, type: "行动任务", dueAt: item.data.dueAt } }))];
+    const upcoming = calendarItems.filter((item) => { const due = new Date(String(item.data.dueAt || "")); return Number.isFinite(due.getTime()) && due >= now && due <= inSevenDays; }).sort((a, b) => new Date(String(a.data.dueAt)).getTime() - new Date(String(b.data.dueAt)).getTime()).slice(0, 10);
+    const risks = [...savedJobs, ...applications, ...reminders, ...interviews, ...offers].map((item) => ({ item, risk: riskForRecord(item.kind, item.data, item.updatedAt, settings, now) })).filter((entry) => entry.risk).sort((a, b) => a.risk?.level === "high" ? -1 : b.risk?.level === "high" ? 1 : 0).slice(0, 12);
+    const groupBy = (key: string) => { const groups = new Map<string, typeof applications>(); for (const item of applications) { const value = String(item.data[key] || "未填写"); groups.set(value, [...(groups.get(value) || []), item]); } return [...groups.entries()].map(([label, items]) => ({ label, count: items.length, interviewCount: items.filter((item) => reached(item, "面试中")).length, offerCount: items.filter((item) => reached(item, "OFFER")).length, ratesVisible: items.length >= settings.minimumSample })); };
+    const interviewCount = applications.filter((item) => reached(item, "面试中")).length; const offerCount = applications.filter((item) => reached(item, "OFFER")).length;
+    return Response.json({ dashboard: { totalApplications: applications.length, savedCount: savedJobs.length, interviewCount, offerCount, invitationRate: applications.length ? Math.round(interviewCount / applications.length * 100) : 0, stageCounts, funnel, upcoming, risks, openTasks: tasks.slice(0, 8), pendingEvidence: evidence.filter((item) => item.data.status !== "confirmed").length, recentApplications: applications.slice(0, 6), segments: { channel: groupBy("channel"), resume: groupBy("resumeName"), direction: groupBy("direction") }, settings } });
+  } catch (error) { return apiError(error); }
 }
