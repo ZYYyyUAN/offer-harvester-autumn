@@ -52,6 +52,28 @@ export const JobSearchSettingsSchema = z.object({
 export const defaultJobSearchSettings = JobSearchSettingsSchema.parse({ cycleEndDate: "2027-01-31", cycleConfirmed: false });
 export const checklistKeys = ["research", "analysis", "resumeSelected", "resumeOptimized", "submitted", "followedUp", "interviewScheduled"] as const;
 
+export function normalizeJobCapture(value: unknown, fallbackUrl = "") {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const text = (...keys: string[]) => {
+    for (const key of keys) if (typeof raw[key] === "string") return String(raw[key]).trim();
+    return "";
+  };
+  const evidence: Array<{ field: string; quote: string }> = [];
+  if (Array.isArray(raw.evidence)) {
+    for (const item of raw.evidence) {
+      if (!item || typeof item !== "object") continue;
+      const field = String((item as Record<string, unknown>).field || "").trim();
+      const quote = String((item as Record<string, unknown>).quote || "").trim();
+      if (field && quote) evidence.push({ field, quote });
+    }
+  } else if (raw.evidence && typeof raw.evidence === "object") {
+    for (const [field, quote] of Object.entries(raw.evidence as Record<string, unknown>)) if (typeof quote === "string" && quote.trim()) evidence.push({ field, quote: quote.trim().slice(0, 1200) });
+  }
+  const warnings = Array.isArray(raw.warnings) ? raw.warnings.filter((item): item is string => typeof item === "string").map((item) => item.slice(0, 800)) : [];
+  if (raw.extraction_status && String(raw.extraction_status).startsWith("failed") && !warnings.length) warnings.push("页面正文不可访问，请改用岗位截图或手动输入。");
+  return JobCaptureDraftSchema.parse({ company: text("company", "company_name"), role: text("role", "position_title", "job_title", "title"), location: text("location", "city"), salary: text("salary", "salary_range"), deadline: text("deadline", "application_deadline"), jd: text("jd", "job_description", "description"), sourceUrl: text("sourceUrl", "source_url") || fallbackUrl, evidence, warnings });
+}
+
 export function normalizeJobUrl(value: string) {
   try { const url = new URL(value); url.hash = ""; ["utm_source", "utm_medium", "utm_campaign", "spm", "from"].forEach((key) => url.searchParams.delete(key)); return url.toString().replace(/\/$/, "").toLowerCase(); }
   catch { return value.trim().toLowerCase(); }
