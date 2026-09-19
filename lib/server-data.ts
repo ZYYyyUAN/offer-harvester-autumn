@@ -116,6 +116,7 @@ export function recordTitle(kind: string, data: Record<string, unknown>) {
     tasks: data.title,
     activity_events: data.title ?? data.action,
     data_imports: data.filename ?? "数据导入预览",
+    feishu_documents: data.title ?? "飞书文档快照",
   };
   return String(options[kind] ?? data.title ?? "未命名记录").slice(0, 180);
 }
@@ -134,6 +135,7 @@ export const allowedKinds = new Set([
   "tasks",
   "activity_events",
   "data_imports",
+  "feishu_documents",
 ]);
 
 export function normalizeKind(value: string | null) {

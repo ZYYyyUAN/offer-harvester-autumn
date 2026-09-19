@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const profiles = sqliteTable("profiles", {
   ownerId: text("owner_id").primaryKey(),
@@ -108,5 +108,92 @@ export const aiJobAttempts = sqliteTable(
   (table) => [
     index("idx_ai_attempts_job_number").on(table.jobId, table.attemptNumber),
     index("idx_ai_attempts_owner_started").on(table.ownerId, table.startedAt),
+  ],
+);
+
+export const integrations = sqliteTable(
+  "integrations",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    provider: text("provider").notNull(),
+    status: text("status").notNull().default("disconnected"),
+    externalUserId: text("external_user_id"),
+    externalUserName: text("external_user_name"),
+    accessTokenEncrypted: text("access_token_encrypted"),
+    refreshTokenEncrypted: text("refresh_token_encrypted"),
+    tokenExpiresAt: text("token_expires_at"),
+    scopes: text("scopes").notNull().default("[]"),
+    config: text("config").notNull().default("{}"),
+    lastError: text("last_error"),
+    version: integer("version").notNull().default(1),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    disconnectedAt: text("disconnected_at"),
+  },
+  (table) => [
+    uniqueIndex("uq_integrations_owner_provider").on(table.ownerId, table.provider),
+  ],
+);
+
+export const integrationOauthStates = sqliteTable(
+  "integration_oauth_states",
+  {
+    stateHash: text("state_hash").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    provider: text("provider").notNull(),
+    returnPath: text("return_path").notNull().default("/"),
+    expiresAt: text("expires_at").notNull(),
+    usedAt: text("used_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_oauth_states_owner_expiry").on(table.ownerId, table.expiresAt)],
+);
+
+export const integrationMappings = sqliteTable(
+  "integration_mappings",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    integrationId: text("integration_id").notNull(),
+    objectType: text("object_type").notNull(),
+    localId: text("local_id"),
+    remoteId: text("remote_id"),
+    localVersion: integer("local_version"),
+    localHash: text("local_hash"),
+    remoteHash: text("remote_hash"),
+    metadata: text("metadata").notNull().default("{}"),
+    lastSyncedAt: text("last_synced_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    deletedAt: text("deleted_at"),
+  },
+  (table) => [
+    index("idx_integration_mappings_local").on(table.ownerId, table.integrationId, table.objectType, table.localId),
+    index("idx_integration_mappings_remote").on(table.ownerId, table.integrationId, table.objectType, table.remoteId),
+  ],
+);
+
+export const integrationRuns = sqliteTable(
+  "integration_runs",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    integrationId: text("integration_id").notNull(),
+    runType: text("run_type").notNull(),
+    status: text("status").notNull().default("preview"),
+    preview: text("preview").notNull().default("{}"),
+    decisions: text("decisions").notNull().default("[]"),
+    result: text("result").notNull().default("{}"),
+    error: text("error"),
+    expiresAt: text("expires_at"),
+    version: integer("version").notNull().default(1),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    finishedAt: text("finished_at"),
+  },
+  (table) => [
+    index("idx_integration_runs_owner_created").on(table.ownerId, table.integrationId, table.createdAt),
+    index("idx_integration_runs_status").on(table.ownerId, table.status),
   ],
 );
