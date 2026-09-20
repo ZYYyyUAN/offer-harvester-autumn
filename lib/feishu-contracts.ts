@@ -4,6 +4,22 @@ export const FEISHU_PROVIDER = "feishu" as const;
 export const FEISHU_CALLBACK_URL = "https://offer-harvester-autumn.zyyuan0913.chatgpt.site/api/integrations/feishu/callback";
 export const FEISHU_API_ORIGIN = "https://open.feishu.cn/open-apis";
 
+// User OAuth must request the capabilities explicitly. Enabling permissions in
+// the Feishu console does not retroactively expand an already issued token.
+export const FEISHU_OAUTH_SCOPES = [
+  "auth:user.id:read",
+  "offline_access",
+  "drive:drive",
+  "drive:file:upload",
+  "drive:file:download",
+  "docx:document",
+  "bitable:app",
+] as const;
+
+export function feishuOAuthScopeValue() {
+  return FEISHU_OAUTH_SCOPES.join(" ");
+}
+
 export const checklistFieldMap = {
   researched: "背调",
   analyzed: "岗位分析",

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { ApiError, getDatabase, safeJson } from "@/lib/server-data";
-import { FEISHU_API_ORIGIN, FEISHU_CALLBACK_URL, FEISHU_PROVIDER, type FeishuWorkspaceConfig } from "@/lib/feishu-contracts";
+import { FEISHU_API_ORIGIN, FEISHU_CALLBACK_URL, FEISHU_PROVIDER, feishuOAuthScopeValue, type FeishuWorkspaceConfig } from "@/lib/feishu-contracts";
 
 type ConnectionRow = Record<string, unknown>;
 type TokenPayload = { accessToken: string; refreshToken: string; expiresAt: string; scope: string[]; userId?: string; name?: string };
@@ -108,7 +108,7 @@ export function authorizationUrl(state: string) {
   // The v2 token endpoint only returns a refresh token when offline access is
   // requested during authorization. The integration stores refresh tokens so
   // that an expired user token can be renewed without losing sync state.
-  const query = new URLSearchParams({ app_id: appId, redirect_uri: FEISHU_CALLBACK_URL, state, scope: "offline_access" });
+  const query = new URLSearchParams({ app_id: appId, redirect_uri: FEISHU_CALLBACK_URL, state, scope: feishuOAuthScopeValue() });
   return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?${query.toString()}`;
 }
 

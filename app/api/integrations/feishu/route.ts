@@ -1,5 +1,6 @@
 import { feishuConfigured, feishuMissingConfiguration, getFeishuConnection, publicConnection } from "@/lib/feishu";
 import { apiError, getDatabase, requireApiUser } from "@/lib/server-data";
+import { FEISHU_OAUTH_SCOPES } from "@/lib/feishu-contracts";
 
 export async function GET() {
   try {
@@ -9,6 +10,7 @@ export async function GET() {
     return Response.json({
       configured: feishuConfigured(), missing: feishuMissingConfiguration(), connection: publicConnection(connection), runCount: Number(counts?.count ?? 0),
       callbackUrl: "https://offer-harvester-autumn.zyyuan0913.chatgpt.site/api/integrations/feishu/callback",
+      requestedScopes: FEISHU_OAUTH_SCOPES,
       requiredCapabilities: ["用户身份", "云空间文件", "云文档及文档块", "多维表格", "妙记读取（可选）"],
     });
   } catch (error) { return apiError(error); }

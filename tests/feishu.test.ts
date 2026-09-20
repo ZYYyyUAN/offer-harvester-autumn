@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applicationToFeishuFields, feishuFieldsToApplication, isRemoteImportable } from "../lib/feishu-contracts.ts";
+import { applicationToFeishuFields, feishuFieldsToApplication, feishuOAuthScopeValue, isRemoteImportable } from "../lib/feishu-contracts.ts";
 import { buildSyncPreview } from "../lib/feishu-sync.ts";
 import { buildFeishuCapabilities, requiredCapabilitiesReady, validateResumeMagic } from "../lib/feishu-diagnostics.ts";
 
@@ -51,4 +51,10 @@ test("简历导入同时校验扩展名与文件头", () => {
   assert.equal(validateResumeMagic(new TextEncoder().encode("%PDF-1.4"), "pdf"), true);
   assert.equal(validateResumeMagic(new Uint8Array([0x50, 0x4b, 3, 4]), "docx"), true);
   assert.equal(validateResumeMagic(new TextEncoder().encode("not a pdf"), "pdf"), false);
+});
+
+test("OAuth 会明确请求飞书核心用户权限", () => {
+  const scopes = feishuOAuthScopeValue().split(" ");
+  for (const expected of ["offline_access", "drive:drive", "docx:document", "bitable:app"]) assert.ok(scopes.includes(expected));
+  assert.equal(new Set(scopes).size, scopes.length);
 });
