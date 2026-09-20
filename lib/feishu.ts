@@ -104,7 +104,10 @@ export async function consumeOAuthState(state: string, ownerId: string) {
 export function authorizationUrl(state: string) {
   const appId = envValues().FEISHU_APP_ID;
   if (!appId) throw new ApiError(503, "飞书 App ID 尚未配置", "FEISHU_NOT_CONFIGURED");
-  const query = new URLSearchParams({ app_id: appId, redirect_uri: FEISHU_CALLBACK_URL, state });
+  // The v2 token endpoint only returns a refresh token when offline access is
+  // requested during authorization. The integration stores refresh tokens so
+  // that an expired user token can be renewed without losing sync state.
+  const query = new URLSearchParams({ app_id: appId, redirect_uri: FEISHU_CALLBACK_URL, state, scope: "offline_access" });
   return `https://accounts.feishu.cn/open-apis/authen/v1/authorize?${query.toString()}`;
 }
 
@@ -126,7 +129,8 @@ async function exchange(body: Record<string, unknown>) {
 function parseToken(data: Record<string, unknown>): TokenPayload {
   const accessToken = String(data.access_token ?? data.user_access_token ?? "");
   const refreshToken = String(data.refresh_token ?? "");
-  if (!accessToken || !refreshToken) throw new ApiError(502, "飞书未返回完整令牌", "FEISHU_OAUTH_FAILED");
+  if (!accessToken) throw new ApiError(502, "飞书未返回访问令牌，请重新授权", "FEISHU_OAUTH_FAILED");
+  if (!refreshToken) throw new ApiError(502, "飞书未返回刷新令牌，请确认应用已允许 offline_access 后重新授权", "FEISHU_OAUTH_FAILED");
   const expiresIn = Math.max(60, Number(data.expires_in ?? data.expires ?? 7200));
   return { accessToken, refreshToken, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(), scope: String(data.scope ?? "").split(/[ ,]/).filter(Boolean) };
 }
