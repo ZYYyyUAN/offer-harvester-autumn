@@ -67,6 +67,7 @@ const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER",
 const nav = [
   { id: "dashboard" as View, label: "数据总览", icon: LayoutDashboard },
   { id: "profile" as View, label: "个人资料", icon: UserRound },
+  { id: "feishu" as View, label: "飞书同步", icon: RefreshCw },
   { id: "resumes" as View, label: "简历库", icon: FileText },
   { id: "savedJobs" as View, label: "收藏岗位", icon: Bookmark },
   { id: "applications" as View, label: "投递看板", icon: BriefcaseBusiness },
@@ -78,7 +79,6 @@ const nav = [
   { id: "interviews" as View, label: "面试复盘", icon: MessagesSquare },
   { id: "offers" as View, label: "OFFER 决策", icon: Scale },
   { id: "calendar" as View, label: "日程提醒", icon: CalendarDays },
-  { id: "feishu" as View, label: "飞书同步", icon: RefreshCw },
   { id: "resources" as View, label: "寻找岗位", icon: Search },
 ];
 
