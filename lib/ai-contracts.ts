@@ -44,11 +44,27 @@ export const ResumeSuggestionSchema = z.object({
   warnings: z.array(z.string()).max(20),
 }).strict();
 
+export const CompanyResearchFindingSchema = z.object({
+  category: z.enum(["basic", "business", "prospects", "employee", "latest", "compliance", "role", "recruitment", "offer"]),
+  title: z.string().min(1).max(160),
+  detail: z.string().min(1).max(1600),
+  nature: z.enum(["fact", "inference", "review_claim"]),
+  severity: z.enum(["none", "info", "watch", "high"]),
+  sourceIndexes: z.array(z.number().int().nonnegative()).max(12),
+  asOf: z.string().max(80),
+}).strict();
+
 export const CompanyResearchSchema = z.object({
   overview: z.string().max(2400),
-  facts: z.array(z.string()).max(30),
-  risks: z.array(z.string()).max(30),
-  questions: z.array(z.string()).max(30),
+  verdict: z.enum(["recommended", "proceed_with_caution", "insufficient_information", "avoid"]),
+  findings: z.array(CompanyResearchFindingSchema).max(60),
+  overallEvaluation: z.string().max(2400),
+  applicationAdvice: z.array(z.string().max(800)).max(20),
+  interviewAdvice: z.array(z.string().max(800)).max(20),
+  offerAdvice: z.array(z.string().max(800)).max(20),
+  risks: z.array(z.string().max(1000)).max(30),
+  questions: z.array(z.string().max(800)).max(30),
+  limitations: z.array(z.string().max(800)).max(20),
   confidence: z.enum(["high", "medium", "low"]),
 }).strict();
 
@@ -80,8 +96,20 @@ export const resumeJsonSchema = {
 };
 
 export const companyJsonSchema = {
-  type: "object", additionalProperties: false, required: ["overview", "facts", "risks", "questions", "confidence"],
-  properties: { overview: { type: "string" }, facts: { type: "array", items: { type: "string" } }, risks: { type: "array", items: { type: "string" } }, questions: { type: "array", items: { type: "string" } }, confidence: { type: "string", enum: ["high", "medium", "low"] } },
+  type: "object", additionalProperties: false,
+  required: ["overview", "verdict", "findings", "overallEvaluation", "applicationAdvice", "interviewAdvice", "offerAdvice", "risks", "questions", "limitations", "confidence"],
+  properties: {
+    overview: { type: "string" },
+    verdict: { type: "string", enum: ["recommended", "proceed_with_caution", "insufficient_information", "avoid"] },
+    findings: { type: "array", items: { type: "object", additionalProperties: false, required: ["category", "title", "detail", "nature", "severity", "sourceIndexes", "asOf"], properties: {
+      category: { type: "string", enum: ["basic", "business", "prospects", "employee", "latest", "compliance", "role", "recruitment", "offer"] },
+      title: { type: "string" }, detail: { type: "string" }, nature: { type: "string", enum: ["fact", "inference", "review_claim"] },
+      severity: { type: "string", enum: ["none", "info", "watch", "high"] }, sourceIndexes: { type: "array", items: { type: "integer", minimum: 0 } }, asOf: { type: "string" },
+    } } },
+    overallEvaluation: { type: "string" }, applicationAdvice: { type: "array", items: { type: "string" } }, interviewAdvice: { type: "array", items: { type: "string" } },
+    offerAdvice: { type: "array", items: { type: "string" } }, risks: { type: "array", items: { type: "string" } }, questions: { type: "array", items: { type: "string" } },
+    limitations: { type: "array", items: { type: "string" } }, confidence: { type: "string", enum: ["high", "medium", "low"] },
+  },
 };
 
 export const interviewJsonSchema = {

@@ -63,6 +63,7 @@ type StoredFile = { id: string; filename: string; mimeType: string; size: number
 type PhaseCountdown = { key: string; label: string; date: string; hint: string; daysRemaining: number | null; status: "unset" | "ended" | "today" | "active" };
 type Dashboard = { totalApplications: number; savedCount: number; interviewCount: number; offerCount: number; invitationRate: number; stageCounts: Record<string, number>; funnel: Record<string, number>; upcoming: Array<{ data: Record<string, any> }>; risks: Array<{ item: Record<string, any>; risk: { level: string; reason: string } }>; openTasks: Array<Record<string, any>>; pendingEvidence: number; recentApplications: Array<{ data: Record<string, any>; updatedAt: string }>; segments: Record<string, any[]>; settings: Record<string, any>; serverNow?: string; phaseCountdowns?: PhaseCountdown[] };
 type AIJob = { id: string; batchId?: string | null; type: string; status: string; inputSnapshot: Record<string, any>; sourceRefs: any[]; model: string; promptVersion: string; result: Record<string, any> | null; resultRecordId?: string | null; confidence?: string | null; elapsedMs?: number | null; errorCode?: string | null; errorMessage?: string | null; createdAt: string; startedAt?: string | null; finishedAt?: string | null };
+type ResearchDraft = { company: string; researchStage: string; companyType: string; targetRole: string; businessLine: string; personalFindings: string; offerDetails: string };
 
 const emptyDashboard: Dashboard = { totalApplications: 0, savedCount: 0, interviewCount: 0, offerCount: 0, invitationRate: 0, stageCounts: {}, funnel: {}, upcoming: [], risks: [], openTasks: [], pendingEvidence: 0, recentApplications: [], segments: {}, settings: {} };
 const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"];
@@ -134,7 +135,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   const [analysisInput, setAnalysisInput] = useState({ title: "", jd: "" });
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<Record<string, any> | null>(null);
-  const [company, setCompany] = useState("");
+  const [researchDraft, setResearchDraft] = useState({ company: "", researchStage: "screening", companyType: "unknown", targetRole: "", businessLine: "", personalFindings: "", offerDetails: "" });
   const [researchBusy, setResearchBusy] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
@@ -442,14 +443,22 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   }
 
   async function runResearch() {
-    if (!company.trim()) return;
+    if (!researchDraft.company.trim()) return;
     setResearchBusy(true);
     try {
-      await createAndRunAI("company_research", { company });
+      await createAndRunAI("company_research", researchDraft);
       await refresh("research");
       toast.success("背调报告已生成并保存");
     } catch (error) { toast.error((error as Error).message); }
     finally { setResearchBusy(false); }
+  }
+
+  async function updateResearchFindings(report: RecordItem, personalFindings: string) {
+    try {
+      await api("/api/records", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: report.id, version: report.version, data: { personalFindings } }) });
+      await refresh("research");
+      toast.success("个人发现已保存");
+    } catch (error) { toast.error((error as Error).message); }
   }
 
   async function createAIAction(task: Record<string, any>) {
@@ -604,7 +613,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         {view === "evidence" && <EvidenceView items={records.evidence} onAdd={() => setEditor({ kind: "evidence" })} onEdit={(item) => setEditor({ kind: "evidence", item })} onDelete={(id) => deleteRecord("evidence", id)} />}
         {view === "analysis" && <AnalysisView input={analysisInput} setInput={setAnalysisInput} busy={analysisBusy} result={analysisResult || records.analyses[0]?.data || null} onRun={runAnalysis} onEvidence={() => setView("evidence")} onCreateTask={createAIAction} />}
         {view === "aiCenter" && <AICenterView jobs={aiJobs} legacy={legacyAI} activeId={activeAIJobId} attempts={aiAttempts} evaluation={evaluation} onSelect={openAIJob} onRetry={retryAIJob} onCancel={cancelAIJob} onRefresh={refreshAIJobs} onRunEvaluation={runEvaluation} onNavigate={setView} />}
-        {view === "company" && <ResearchView company={company} setCompany={setCompany} busy={researchBusy} reports={records.research} onRun={runResearch} onDelete={(id) => deleteRecord("research", id)} />}
+        {view === "company" && <ResearchView draft={researchDraft} setDraft={setResearchDraft} busy={researchBusy} reports={records.research} onRun={runResearch} onSaveFindings={updateResearchFindings} onDelete={(id) => deleteRecord("research", id)} />}
         {view === "interviews" && <InterviewView items={records.interviews} active={activeInterview} audioFiles={audioFiles} recording={recording} onSelect={setSelectedInterview} onAdd={() => setEditor({ kind: "interviews" })} onEdit={(item) => setEditor({ kind: "interviews", item })} onDelete={(id) => deleteRecord("interviews", id)} onSave={updateInterview} onRecord={recording ? stopRecording : startRecording} onAudio={uploadInterviewAudio} onTranscribe={transcribeInterview} onReview={reviewInterview} onCreateTask={createAIAction} />}
         {view === "offers" && <OffersView items={records.offers} weights={weights} setWeights={setWeights} onAdd={() => setEditor({ kind: "offers" })} onEdit={(item) => setEditor({ kind: "offers", item })} onDelete={(id) => deleteRecord("offers", id)} />}
         {view === "calendar" && <CalendarView items={records.reminders} applications={records.applications} interviews={records.interviews} offers={records.offers} tasks={records.tasks} onAdd={() => setEditor({ kind: "reminders" })} onEdit={(item) => setEditor({ kind: "reminders", item })} onDelete={(id) => deleteRecord("reminders", id)} onExport={exportIcs} />}
@@ -946,10 +955,46 @@ function AICenterView({ jobs, legacy, activeId, attempts, evaluation, onSelect, 
   </>;
 }
 
-function ResearchView({ company, setCompany, busy, reports, onRun, onDelete }: { company: string; setCompany: (value: string) => void; busy: boolean; reports: RecordItem[]; onRun: () => void; onDelete: (id: string) => void }) {
-  return <><PageHead eyebrow="公司背调" title="来源不足，就不下结论" description="联网检索公开信息，保留来源、生成时间和置信度。" />
-    <section className="research-bar"><Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="输入完整公司名称" onKeyDown={(e) => e.key === "Enter" && onRun()} /><Button disabled={busy || !company.trim()} onClick={onRun}>{busy ? <RefreshCw className="spin" /> : <Building2 />}{busy ? "正在交叉检索…" : "生成背调报告"}</Button></section>
-    {reports.length ? <div className="report-list">{reports.map((report) => <article className="panel report" key={report.id}><header><div><h2>{report.data.company || report.title}</h2><p>{formatDate(report.data.generatedAt, true)} · 置信度 {report.data.confidence === "high" ? "高" : report.data.confidence === "medium" ? "中" : "低"}</p></div><button onClick={() => onDelete(report.id)}><Trash2 /></button></header><p className="report-overview">{report.data.overview}</p><div className="report-columns"><section><h3>已核实线索</h3><ul>{(report.data.facts || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h3>风险与不确定性</h3><ul>{(report.data.risks || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h3>面试建议确认</h3><ul>{(report.data.questions || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section></div><footer><h3>来源</h3><div className="source-list">{(report.data.sources || []).map((source: any, index: number) => <a key={index} href={source.url} target="_blank" rel="noreferrer">{source.title}<small>{source.publishedAt || "日期未知"}</small></a>)}</div></footer></article>)}</div> : <EmptyState icon={Building2} title="还没有背调报告" text="输入公司名称后才会联网检索；不会展示预设或虚构报告。" />}
+const researchStages = [
+  { key: "screening", title: "投递前初筛", time: "约 10 分钟", description: "核对主体合法性、经营状态、公司规模、业务基本盘和明显司法风险。" },
+  { key: "interview", title: "面试前深挖", time: "决定是否投入面试", description: "重点查员工待遇、真实工时、人员稳定、业务线地位、技术栈与招聘风评。" },
+  { key: "offer", title: "Offer 前终核", time: "签约前最后把关", description: "核对签约主体、薪资福利、社保公积金、试用期、部门地点和书面条款。" },
+];
+
+const researchCategories = [
+  ["basic", "公司基本信息"], ["business", "主营业务与产品"], ["prospects", "发展前景"], ["employee", "员工待遇与工作体验"], ["latest", "最新动态"],
+  ["compliance", "工商、司法与合规"], ["role", "岗位与业务线"], ["recruitment", "招聘风评"], ["offer", "Offer 条款核验"],
+] as const;
+
+const researchTools = [
+  { name: "国家企业信用信息公示系统", note: "工商登记、经营异常、严重违法失信", url: "https://www.gsxt.gov.cn/", official: true },
+  { name: "信用中国", note: "行政处罚、失信与信用信息", url: "https://www.creditchina.gov.cn/", official: true },
+  { name: "中国裁判文书网", note: "公开裁判文书；注意同名主体与样本缺失", url: "https://wenshu.court.gov.cn/", official: true },
+  { name: "中国执行信息公开网", note: "被执行人、失信被执行与限制消费", url: "https://zxgk.court.gov.cn/", official: true },
+  { name: "企查查", note: "商业聚合查询，关键信息回官方源复核", url: "https://www.qcc.com/", official: false },
+  { name: "天眼查", note: "商业聚合查询，关键信息回官方源复核", url: "https://www.tianyancha.com/", official: false },
+  { name: "看准网", note: "员工评价与薪资样本，注意偏差和时效", url: "https://www.kanzhun.com/", official: false },
+  { name: "牛客网", note: "校招进度、面经和招聘风评", url: "https://www.nowcoder.com/", official: false },
+  { name: "脉脉", note: "员工与业务线线索，匿名内容需交叉核验", url: "https://maimai.cn/", official: false },
+];
+
+function ResearchFindingEditor({ report, onSave }: { report: RecordItem; onSave: (report: RecordItem, value: string) => Promise<void> | void }) {
+  const [value, setValue] = useState(String(report.data.personalFindings || ""));
+  const [saving, setSaving] = useState(false);
+  return <section className="personal-findings"><div><h3>个人发现</h3><p>只作为你的未核验线索保存，不会自动变成报告事实或事实库证据。</p></div><Textarea value={value} onChange={(event) => setValue(event.target.value)} placeholder="例如：学长反馈该部门近期调整较多；HR 口头承诺 15 薪，待书面确认……" /><Button variant="outline" disabled={saving || value === String(report.data.personalFindings || "")} onClick={async () => { setSaving(true); await onSave(report, value); setSaving(false); }}><Save />{saving ? "保存中…" : "保存个人发现"}</Button></section>;
+}
+
+function ResearchView({ draft, setDraft, busy, reports, onRun, onSaveFindings, onDelete }: { draft: ResearchDraft; setDraft: (value: ResearchDraft) => void; busy: boolean; reports: RecordItem[]; onRun: () => void; onSaveFindings: (report: RecordItem, value: string) => Promise<void> | void; onDelete: (id: string) => void }) {
+  const update = (key: string, value: string) => setDraft({ ...draft, [key]: value });
+  const stageLabel = (value: string) => researchStages.find((item) => item.key === value)?.title || "阶段未记录";
+  const verdictLabel: Record<string, string> = { recommended: "可继续推进", proceed_with_caution: "谨慎推进", insufficient_information: "信息不足", avoid: "建议放弃" };
+  const natureLabel: Record<string, string> = { fact: "公开事实", inference: "分析推断", review_claim: "口碑线索" };
+  return <><PageHead eyebrow="公司背调" title="三阶段反向尽调，来源不足就不下结论" description="从投递前初筛到 Offer 前终核；公开事实、分析推断、匿名口碑和个人发现严格分开。" />
+    <section className="research-workflow">{researchStages.map((stage, index) => <button key={stage.key} className={draft.researchStage === stage.key ? "active" : ""} onClick={() => update("researchStage", stage.key)}><span>{index + 1}</span><div><b>{stage.title}</b><small>{stage.time}</small><p>{stage.description}</p></div></button>)}</section>
+    <section className="research-form panel"><div className="research-form-grid"><Field label="公司完整名称（尽量填写工商主体）"><Input value={draft.company} onChange={(event) => update("company", event.target.value)} placeholder="例如：××科技（杭州）有限公司" /></Field><Field label="公司类型"><select value={draft.companyType} onChange={(event) => update("companyType", event.target.value)}><option value="unknown">暂不确定</option><option value="large_tech">大厂 / 集团</option><option value="mid_size">中厂 / 成熟企业</option><option value="startup">小公司 / 初创</option><option value="soe_bank">国企 / 银行 / 研究所</option><option value="outsourcing">外包 / 派遣</option><option value="other">其他</option></select></Field><Field label="目标岗位"><Input value={draft.targetRole} onChange={(event) => update("targetRole", event.target.value)} placeholder="例如：Java 后端开发" /></Field><Field label="部门 / 业务线"><Input value={draft.businessLine} onChange={(event) => update("businessLine", event.target.value)} placeholder="未知可留空，报告会列为待确认" /></Field><Field label="个人发现（未核验线索）"><Textarea value={draft.personalFindings} onChange={(event) => update("personalFindings", event.target.value)} placeholder="粘贴校友反馈、HR 口头说法、你观察到的异常；AI 只把它当检索线索。" /></Field><Field label="Offer / 口头承诺（待核对）"><Textarea value={draft.offerDetails} onChange={(event) => update("offerDetails", event.target.value)} placeholder="例如签约主体、月薪×月数、绩效、试用期、社保公积金、部门与城市；未到 Offer 阶段可留空。" /></Field></div><div className="research-submit"><p><AlertTriangle />联网信息可能不完整；涉及匿名评价会标为“口碑线索”，不会当作已核实事实。</p><Button disabled={busy || !draft.company.trim()} onClick={onRun}>{busy ? <RefreshCw className="spin" /> : <Building2 />}{busy ? "正在分层检索与交叉核对…" : `生成${stageLabel(draft.researchStage)}报告`}</Button></div></section>
+    <section className="research-legal panel"><AlertTriangle /><div><h3>法律口径提示</h3><p>试用期不是统一“最长 6 个月”，上限取决于劳动合同期限；试用期工资还需同时满足法定比例与当地最低工资。三方协议违约金也不存在全国统一“不得超过 5000 元”的通用规则，应以协议、学校政策和适用法律为准。以下报告用于求职决策辅助，不替代法律意见。</p><div><a href="https://www.npc.gov.cn/zgrdw/npc/xinwen/lfgz/zxfl/2007-06/29/content_368169.htm" target="_blank" rel="noreferrer">劳动合同法（中国人大网）<ExternalLink /></a><a href="https://chinajob.mohrss.gov.cn/c/2024-07-12/411982.shtml" target="_blank" rel="noreferrer">高校毕业生就业法律知识（中国就业网）<ExternalLink /></a></div></div></section>
+    {reports.length ? <div className="report-list">{reports.map((report) => { const sources = report.data.sources || []; const findings = report.data.findings || []; const legacy = !Array.isArray(report.data.findings); return <article className="panel report research-report" key={report.id}><header><div><div className="report-badges"><StatusPill tone={report.data.verdict === "avoid" ? "red" : report.data.verdict === "proceed_with_caution" ? "orange" : "blue"}>{verdictLabel[report.data.verdict] || "旧版报告"}</StatusPill><span>{stageLabel(report.data.researchStage)}</span><span>置信度 {report.data.confidence === "high" ? "高" : report.data.confidence === "medium" ? "中" : "低"}</span></div><h2>{report.data.company || report.title}</h2><p>{formatDate(report.data.generatedAt, true)} · {report.data.targetRole || "未指定岗位"}{report.data.businessLine ? ` · ${report.data.businessLine}` : ""}</p></div><button aria-label="删除背调报告" onClick={() => onDelete(report.id)}><Trash2 /></button></header><p className="report-overview">{report.data.overview}</p>{legacy ? <div className="report-columns"><section><h3>旧版已核实线索</h3><ul>{(report.data.facts || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h3>风险与不确定性</h3><ul>{(report.data.risks || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h3>面试建议确认</h3><ul>{(report.data.questions || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section></div> : <div className="research-finding-groups">{researchCategories.map(([key, label]) => { const entries = findings.filter((item: any) => item.category === key); return <section key={key}><h3>{label}<span>{entries.length}</span></h3>{entries.length ? entries.map((item: any, itemIndex: number) => <article className={`research-finding severity-${item.severity}`} key={`${item.title}-${itemIndex}`}><div><b>{item.title}</b><span>{natureLabel[item.nature] || item.nature}{item.asOf ? ` · ${item.asOf}` : ""}</span></div><p>{item.detail}</p>{item.sourceIndexes?.length ? <div className="finding-sources">{item.sourceIndexes.map((sourceIndex: number) => sources[sourceIndex] ? <a key={sourceIndex} href={sources[sourceIndex].url} target="_blank" rel="noreferrer">来源 {sourceIndex + 1}<ExternalLink /></a> : null)}</div> : null}</article>) : <p className="research-empty">当前公开检索未形成可追溯结论，需手动核查。</p>}</section>; })}</div>} {!legacy && <section className="research-recommendations"><h3>综合建议与分析</h3><p>{report.data.overallEvaluation}</p><div><section><h4>应聘建议</h4><ul>{(report.data.applicationAdvice || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h4>面试建议</h4><ul>{(report.data.interviewAdvice || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section><h4>Offer 前建议</h4><ul>{(report.data.offerAdvice || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section><section className="risk-list"><h4>风险提示</h4><ul>{(report.data.risks || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section></div><section className="questions"><h4>需要向 HR / 面试官确认</h4><ul>{(report.data.questions || []).map((item: string) => <li key={item}>{item}</li>)}</ul></section>{report.data.limitations?.length ? <section className="limitations"><h4>信息缺口</h4><ul>{report.data.limitations.map((item: string) => <li key={item}>{item}</li>)}</ul></section> : null}</section>}<ResearchFindingEditor key={`${report.id}-${report.version}`} report={report} onSave={onSaveFindings} /><footer><h3>报告来源（仅保留千问联网接口返回的真实来源）</h3>{sources.length ? <div className="source-list">{sources.map((source: any, index: number) => <a key={index} href={source.url} target="_blank" rel="noreferrer"><b>{index + 1}. {source.title}</b><small>{source.publishedAt || "发布日期未知"} · 抓取 {formatDate(source.crawledAt, true)}</small></a>)}</div> : <p className="research-empty">未返回可核验来源，因此不能把报告内容视为已核实事实。</p>}</footer></article>; })}</div> : <EmptyState icon={Building2} title="还没有背调报告" text="选择阶段并填写公司后才会联网检索；不会展示预设或虚构报告。" />}
+    <section className="research-tools panel"><div className="panel-title"><div><h2>手动背调工具箱</h2><p>官方渠道优先；商业聚合和匿名评价只用于发现线索，关键结论回到原始来源复核。</p></div></div><div>{researchTools.map((tool) => <a key={tool.name} href={tool.url} target="_blank" rel="noreferrer"><span>{tool.official ? "官方" : "辅助"}</span><b>{tool.name}</b><p>{tool.note}</p><ExternalLink /></a>)}</div></section>
   </>;
 }
 

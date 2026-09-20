@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canTransitionAIJob, deterministicScore, filterEvidenceIds, InterviewReviewSchema, JobAnalysisSchema, percentile } from "../lib/ai-contracts.ts";
+import { canTransitionAIJob, CompanyResearchSchema, deterministicScore, filterEvidenceIds, InterviewReviewSchema, JobAnalysisSchema, percentile } from "../lib/ai-contracts.ts";
 
 test("deterministic score follows published weights", () => {
   const score = deterministicScore([
@@ -29,4 +29,16 @@ test("schemas reject unknown fields and malformed quotes", () => {
 test("percentile is stable for small samples", () => {
   assert.equal(percentile([10, 40, 20, 30], 0.5), 20);
   assert.equal(percentile([10, 40, 20, 30], 0.95), 40);
+});
+
+test("company research keeps stage-specific findings and rejects untraceable shapes", () => {
+  const base = {
+    overview: "基于公开来源的摘要", verdict: "proceed_with_caution",
+    findings: [{ category: "basic", title: "经营状态", detail: "存续", nature: "fact", severity: "none", sourceIndexes: [0], asOf: "2026-09-20" }],
+    overallEvaluation: "可以继续核查", applicationAdvice: ["先确认主体"], interviewAdvice: ["询问业务线"], offerAdvice: ["核对签约主体"], risks: [], questions: ["签约主体是什么？"], limitations: [], confidence: "medium",
+  };
+  const valid = CompanyResearchSchema.safeParse(base);
+  assert.equal(valid.success, true);
+  assert.equal(CompanyResearchSchema.safeParse({ ...base, findings: [{ category: "basic", title: "经营状态", detail: "存续", nature: "fact", severity: "none", sourceIndexes: ["0"], asOf: "" }] }).success, false);
+  assert.equal(CompanyResearchSchema.safeParse({ ...base, preciseScore: 91 }).success, false);
 });

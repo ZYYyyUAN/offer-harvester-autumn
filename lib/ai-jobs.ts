@@ -13,7 +13,7 @@ const modelFor: Record<AIJobType, string> = {
   job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
-  job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v2",
+  job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
   job_capture_url: "job-capture-url-v1", job_capture_image: "job-capture-image-v1",
 };
@@ -132,11 +132,28 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
   if (type === "company_research") {
     const company = String(input.company || "").trim();
     if (!company) throw new ApiError(400, "请输入公司名称");
-    const response = await responsesSearch({ system: "你是谨慎的公司背调研究员。区分事实与推断；来源由系统单独提取，你不得在正文中编造链接或伪精确评分。", prompt: `调查公司：${company}。关注业务、经营、团队文化、岗位风险和面试待确认问题。`, schemaName: "company_research_v3", schema: companyJsonSchema, validator: CompanyResearchSchema });
+    const researchStage = ["screening", "interview", "offer"].includes(String(input.researchStage)) ? String(input.researchStage) : "screening";
+    const companyType = String(input.companyType || "unknown").slice(0, 80);
+    const targetRole = String(input.targetRole || "").slice(0, 200);
+    const businessLine = String(input.businessLine || "").slice(0, 300);
+    const personalFindings = String(input.personalFindings || "").slice(0, 6000);
+    const offerDetails = String(input.offerDetails || "").slice(0, 6000);
+    const response = await responsesSearch({
+      system: "你是证据优先的求职者公司背调研究员。必须区分已核实事实、基于事实的推断、匿名员工口碑；不得把匿名评价当作事实。只使用联网检索结果，不生成链接，不给伪精确分数。每条 finding 的 sourceIndexes 必须引用当前搜索结果中从 0 开始的有效编号；无法核实时不要下结论，写入 limitations。工商、司法和劳动用工结论优先采用官方来源，近期动态必须写明日期。用户个人发现属于未核验线索，不得擅自升级为事实。",
+      prompt: `对“${company}”做应届秋招求职者视角的三阶段尽职调查。当前重点阶段：${researchStage}；公司类型：${companyType}；目标岗位：${targetRole || "未提供"}；目标部门/业务线：${businessLine || "未提供"}。\n\n必须覆盖：\n1. 公司基本信息：准确主体、经营状态、成立时间、注册资本与实缴、参保人数、地址；无法查到就明确缺失。\n2. 主营业务与产品、商业模式、融资/重大合作，以及发展前景的正向信号和不确定性。\n3. 员工待遇：薪资福利、工时、发薪、人员流动、技术氛围；匿名口碑统一标记 review_claim 并提示样本偏差。\n4. 最新动态：优先最近 12 个月，必须有日期和来源。\n5. 合规风险：经营异常、行政处罚、劳动争议、被执行/失信/限制消费；不能仅凭同名主体下结论。\n6. 岗位与业务线：是否核心、技术栈、外包/派遣/招转培/毁约/强制轮岗等招聘风险。\n7. Offer 核验：签约主体、薪资构成、社保公积金、试用期、部门地点、三方与书面承诺。法律口径必须谨慎，不得声称三方违约金全国统一不超过 5000 元；试用期上限取决于劳动合同期限。\n8. 综合评价、应聘建议、面试建议、Offer 前建议、风险提示和可直接向 HR/面试官确认的问题。\n\n个人发现（未核验，仅作为检索线索）：${personalFindings || "无"}\nOffer/口头承诺（仅作为待核对输入）：${offerDetails || "无"}\n\n不同阶段调整深度：投递前优先合法性与基本盘；面试前优先真实工作状态、业务线和招聘风评；Offer 前优先主体、条款、薪资福利和岗位一致性。不要因为资料缺失而补全。`,
+      schemaName: "company_research_v4", schema: companyJsonSchema, validator: CompanyResearchSchema,
+    });
     const sources = response.sources;
+    const findings = (response.data.findings as Array<Record<string, unknown>>).map((finding) => ({
+      ...finding,
+      sourceIndexes: ((finding.sourceIndexes as number[]) || []).filter((index) => Number.isInteger(index) && index >= 0 && index < sources.length),
+    })).filter((finding) => (finding.sourceIndexes as number[]).length > 0);
+    const rejectedFindingCount = (response.data.findings as Array<unknown>).length - findings.length;
     const risks = [...(response.data.risks as string[])];
     if (sources.length < 2) risks.unshift("可核验来源少于两个，本报告仅作为线索，不应据此作出关键决策。");
-    return { result: { ...response.data, risks, sources, company, generatedAt: new Date().toISOString(), confidence: sources.length < 2 ? "low" : response.data.confidence }, usage: response.usage, confidence: sources.length < 2 ? "low" : String(response.data.confidence), record: { kind: "research", title: company } };
+    if (rejectedFindingCount > 0) risks.unshift(`${rejectedFindingCount} 条未能关联有效来源的模型发现已被系统过滤。`);
+    const noEvidence = sources.length === 0 || findings.length === 0;
+    return { result: { ...response.data, overview: noEvidence ? "公开检索未返回足够且可关联的来源，当前不能形成可信的公司结论。请使用下方官方工具手动核查，或稍后重试。" : response.data.overview, verdict: noEvidence ? "insufficient_information" : response.data.verdict, overallEvaluation: noEvidence ? "信息不足，暂不建议仅依据本次自动背调决定是否投递、面试或签约。" : response.data.overallEvaluation, findings, risks, sources, company, researchStage, companyType, targetRole, businessLine, personalFindings, offerDetails, rejectedFindingCount, generatedAt: new Date().toISOString(), confidence: sources.length < 2 ? "low" : response.data.confidence }, usage: response.usage, confidence: sources.length < 2 ? "low" : String(response.data.confidence), record: { kind: "research", title: company } };
   }
   if (type === "interview_review") {
     const transcript = String(input.transcript || "").trim();
@@ -160,7 +177,7 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
 
 export async function runAIJob(ownerId: string, id: string) {
   const db = getDatabase();
-  let row = await db.prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
+  const row = await db.prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
   if (!row) throw new ApiError(404, "AI 任务不存在");
   if (row.status === "cancelled") throw new ApiError(409, "任务已取消");
   if (row.status === "succeeded") return getAIJob(ownerId, id);
@@ -183,7 +200,7 @@ export async function runAIJob(ownerId: string, id: string) {
       if (output.record) resultRecordId = await saveRecord(ownerId, output.record.kind, output.record.title, payload);
       await db.batch([
         db.prepare("UPDATE ai_job_attempts SET status = 'succeeded', token_usage = ?, response_summary = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(JSON.stringify(output.usage || {}), JSON.stringify(payload).slice(0, 1000), attemptId),
-        db.prepare("UPDATE ai_jobs SET status = 'succeeded', result = ?, result_record_id = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, output.confidence, Date.now() - started, id, ownerId),
+        db.prepare("UPDATE ai_jobs SET status = 'succeeded', result = ?, result_record_id = ?, source_refs = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, JSON.stringify(Array.isArray((output.result as Record<string, unknown>).sources) ? (output.result as Record<string, unknown>).sources : []), output.confidence, Date.now() - started, id, ownerId),
       ]);
       return getAIJob(ownerId, id);
     } catch (error) {

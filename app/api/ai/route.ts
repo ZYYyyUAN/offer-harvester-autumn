@@ -1,5 +1,6 @@
 import { ApiError, apiError, getBindings, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
-import { analyzeResumeFile, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { analyzeResumeFile, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
+import { CompanyResearchSchema, companyJsonSchema } from "@/lib/ai-contracts";
 
 const requirementSchema = {
   type: "object",
@@ -121,42 +122,17 @@ export async function POST(request: Request) {
     if (action === "companyResearch") {
       const company = String(body.company || "").trim();
       if (!company) throw new ApiError(400, "请输入公司名称");
-      const schema = {
-        type: "object",
-        additionalProperties: false,
-        required: ["overview", "facts", "risks", "questions", "sources", "confidence"],
-        properties: {
-          overview: { type: "string" },
-          facts: { type: "array", items: { type: "string" } },
-          risks: { type: "array", items: { type: "string" } },
-          questions: { type: "array", items: { type: "string" } },
-          sources: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["title", "url", "publishedAt"],
-              properties: {
-                title: { type: "string" },
-                url: { type: "string" },
-                publishedAt: { type: "string" },
-              },
-            },
-          },
-          confidence: { type: "string", enum: ["high", "medium", "low"] },
-        },
-      };
-      const result = await structuredChat({ system: "你是谨慎的公司背调研究员。必须区分事实和推断，至少交叉核对两个独立来源；来源不足时置信度必须为 low，不得生成伪精确评分。", prompt: `请调查公司：${company}。关注业务、融资/经营、团队文化、岗位风险和面试需要确认的问题。`, schemaName: "company_research", schema, search: true });
-      const sources = (Array.isArray(result.data.sources) ? result.data.sources : []).filter((source: unknown) => {
-        if (!source || typeof source !== "object") return false;
-        try {
-          const url = new URL(String((source as Record<string, unknown>).url || ""));
-          return url.protocol === "https:" || url.protocol === "http:";
-        } catch { return false; }
+      const result = await responsesSearch({
+        system: "你是证据优先的求职者公司背调研究员。区分事实、推断和匿名口碑；不得生成链接、伪精确评分或把个人线索当作事实。",
+        prompt: `调查公司：${company}。覆盖公司基本信息、主营业务与产品、发展前景、员工待遇、最近12个月动态、合规风险、岗位与招聘风评，以及综合评价、应聘建议、面试建议、Offer前建议和待确认问题。每条 finding 使用从0开始的 sourceIndexes 引用当前搜索结果；无法核实就写入 limitations。`,
+        schemaName: "company_research_compat_v4", schema: companyJsonSchema, validator: CompanyResearchSchema,
       });
+      const sources = result.sources;
+      const findings = (result.data.findings as Array<Record<string, unknown>>).map((finding) => ({ ...finding, sourceIndexes: ((finding.sourceIndexes as number[]) || []).filter((index) => Number.isInteger(index) && index >= 0 && index < sources.length) })).filter((finding) => (finding.sourceIndexes as number[]).length > 0);
       const risks = Array.isArray(result.data.risks) ? [...result.data.risks] : [];
       if (sources.length < 2) risks.unshift("可核验来源少于两个，本报告仅作为线索，不应据此作出关键决策。");
-      const payload = { ...result.data, sources, risks, confidence: sources.length < 2 ? "low" : result.data.confidence, company, model: "qwen3.8-max", generatedAt: new Date().toISOString(), elapsedMs: Date.now() - startedAt };
+      const noEvidence = sources.length === 0 || findings.length === 0;
+      const payload = { ...result.data, overview: noEvidence ? "公开检索未返回足够且可关联的来源，当前不能形成可信的公司结论。" : result.data.overview, verdict: noEvidence ? "insufficient_information" : result.data.verdict, overallEvaluation: noEvidence ? "信息不足，请手动核查后再作决策。" : result.data.overallEvaluation, findings, sources, risks, confidence: sources.length < 2 ? "low" : result.data.confidence, company, researchStage: "screening", model: "qwen3.8-max", promptVersion: "company-research-v3", generatedAt: new Date().toISOString(), elapsedMs: Date.now() - startedAt };
       const record = await saveAiRecord(userId, "research", company, payload);
       return Response.json({ result: payload, record });
     }
