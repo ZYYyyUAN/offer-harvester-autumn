@@ -6,6 +6,7 @@ import {
   Archive,
   ArrowDown,
   Bookmark,
+  BookOpen,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -55,7 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "aiCenter" | "feishu";
+type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "knowledge" | "aiCenter" | "feishu";
 type Kind = "applications" | "saved_jobs" | "tasks" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
 type RecordItem = { id: string; kind: Kind; title: string; data: Record<string, any>; version: number; createdAt: string; updatedAt: string; deletedAt: string | null };
 type StoredFile = { id: string; filename: string; mimeType: string; size: number; metadata: Record<string, any>; version: number; createdAt: string };
@@ -81,6 +82,7 @@ const nav = [
   { id: "interviews" as View, label: "面试复盘", icon: MessagesSquare },
   { id: "offers" as View, label: "OFFER 决策", icon: Scale },
   { id: "calendar" as View, label: "日程提醒", icon: CalendarDays },
+  { id: "knowledge" as View, label: "求职知识库", icon: BookOpen },
   { id: "resources" as View, label: "寻找岗位", icon: Search },
 ];
 
@@ -606,6 +608,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         {view === "interviews" && <InterviewView items={records.interviews} active={activeInterview} audioFiles={audioFiles} recording={recording} onSelect={setSelectedInterview} onAdd={() => setEditor({ kind: "interviews" })} onEdit={(item) => setEditor({ kind: "interviews", item })} onDelete={(id) => deleteRecord("interviews", id)} onSave={updateInterview} onRecord={recording ? stopRecording : startRecording} onAudio={uploadInterviewAudio} onTranscribe={transcribeInterview} onReview={reviewInterview} onCreateTask={createAIAction} />}
         {view === "offers" && <OffersView items={records.offers} weights={weights} setWeights={setWeights} onAdd={() => setEditor({ kind: "offers" })} onEdit={(item) => setEditor({ kind: "offers", item })} onDelete={(id) => deleteRecord("offers", id)} />}
         {view === "calendar" && <CalendarView items={records.reminders} applications={records.applications} interviews={records.interviews} offers={records.offers} tasks={records.tasks} onAdd={() => setEditor({ kind: "reminders" })} onEdit={(item) => setEditor({ kind: "reminders", item })} onDelete={(id) => deleteRecord("reminders", id)} onExport={exportIcs} />}
+        {view === "knowledge" && <KnowledgeView onNavigate={setView} />}
         {view === "feishu" && <FeishuView resumes={resumes} records={records} onDataChanged={load} />}
         {view === "resources" && <JobResourcesView />}
       </main>
@@ -707,6 +710,49 @@ function SavedJobsView({ items, screenshots, settings, serverNow, onSave, onExtr
   return <><PageHead eyebrow="机会收集箱" title="先收藏岗位，再决定是否投递" description="保存岗位链接、JD 截图和关键信息；确认后可一键转入投递看板。" action={<Button onClick={() => setOpen(true)}><Plus />收藏岗位</Button>} />
     {items.length ? <div className="saved-job-grid">{items.map((item) => { const image = screenshots.find((entry) => entry.id === item.data.screenshotFileId); return <article className="saved-job-card" key={item.id}>{image ? <img src={`/api/files/content?id=${image.id}`} alt={`${item.data.company || "岗位"} JD 截图`} /> : <div className="saved-job-placeholder"><ImageIcon /><span>未上传 JD 截图</span></div>}<div className="saved-job-body"><div><span className="resource-badge">{item.data.priority || "待评估"}</span><h2>{item.data.company || "公司待补充"}</h2><p>{item.data.role || "岗位名称待补充"}</p></div><dl><div><dt>地点</dt><dd>{item.data.location || "—"}</dd></div><div><dt>招聘方式</dt><dd>{item.data.recruitmentMode || (item.data.deadline ? "固定截止" : "滚动招聘")}</dd></div></dl><JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} />{item.data.jd && <p className="saved-job-jd">{item.data.jd}</p>}<div className="card-actions"><Button variant="outline" asChild><a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />查看原岗位</a></Button><Button disabled={Boolean(item.data.convertedApplicationId)} onClick={() => onConvert(item)}>{item.data.convertedApplicationId ? <CheckCircle2 /> : <BriefcaseBusiness />}{item.data.convertedApplicationId ? "已转投递" : "转入投递"}</Button><Button variant="ghost" size="icon" aria-label="删除收藏岗位" onClick={() => onDelete(item.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={Bookmark} title="还没有收藏岗位" text="遇到感兴趣的岗位时，先保存链接和 JD，避免信息散落在浏览器标签页和聊天记录中。" action={<Button onClick={() => setOpen(true)}><Plus />收藏第一个岗位</Button>} />}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog capture-dialog"><DialogHeader><DialogTitle>收藏岗位</DialogTitle><DialogDescription>AI 只在你点击时提取，结果不会直接写入正式记录。</DialogDescription></DialogHeader><form onSubmit={submit}><div className="capture-source"><Field label="岗位链接"><Input type="url" value={draft.sourceUrl} placeholder="https://..." onChange={(e) => update("sourceUrl", e.target.value)} /></Field><Button type="button" variant="outline" disabled={extracting || !draft.sourceUrl} onClick={() => extract("url")}><Sparkles />提取链接</Button></div><div className="editor-grid"><Field label="公司"><Input value={draft.company} onChange={(e) => update("company", e.target.value)} /></Field><Field label="岗位"><Input value={draft.role} onChange={(e) => update("role", e.target.value)} /></Field><Field label="工作地点"><Input value={draft.location} onChange={(e) => update("location", e.target.value)} /></Field><Field label="薪资范围"><Input value={draft.salary} onChange={(e) => update("salary", e.target.value)} /></Field><Field label="招聘方式"><select value={draft.recruitmentMode} onChange={(e) => update("recruitmentMode", e.target.value)}><option>自动判断</option><option>滚动招聘</option><option>固定截止</option></select></Field><Field label="网申截止日期（可空）"><Input type="date" value={draft.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field><Field label="优先级"><select value={draft.priority} onChange={(e) => update("priority", e.target.value)}><option>高</option><option>普通</option><option>低</option></select></Field><Field label="完整 JD"><Textarea value={draft.jd} placeholder="提取结果或手动粘贴岗位职责与任职要求…" onChange={(e) => update("jd", e.target.value)} /></Field><Field label="JD 截图"><label className="upload-zone"><ImageIcon /><span>{file ? file.name : "选择 PNG、JPG 或 WebP，最大 10 MB"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} /></label><Button className="ocr-button" type="button" variant="outline" disabled={extracting || !file} onClick={() => extract("image")}><ImageIcon />识别截图</Button></Field></div>{warnings.length > 0 && <div className="capture-warnings"><AlertTriangle />{warnings.map((item) => <p key={item}>{item}</p>)}</div>}{conflicts.length > 0 && <div className="capture-conflicts"><b>发现字段冲突，当前保留你的填写</b>{conflicts.map((item) => <div key={item.key}><span><small>当前</small>{item.current}</span><span><small>AI 提取</small>{item.incoming}</span><Button type="button" variant="outline" onClick={() => { update(item.key, item.incoming); setConflicts((items) => items.filter((entry) => entry.key !== item.key)); }}>采用提取值</Button></div>)}</div>}<div className="capture-tip"><AlertTriangle /><span>未填写截止日期时自动按滚动招聘处理；若官网虽然写了远期截止，但岗位实际招满即止，请手动选择“滚动招聘”。</span></div><DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit" disabled={saving || extracting}>{saving ? <RefreshCw className="spin" /> : <Bookmark />}{saving ? "正在保存…" : "核对并保存"}</Button></DialogFooter></form></DialogContent></Dialog>
+  </>;
+}
+
+const hangzhouCompanyTiers = [
+  { tier: "冲刺", companies: "淘天、阿里本地生活、阿里云、网易、蚂蚁集团、字节杭州、快手杭州", focus: "技术深度与算法笔试要求高，优先关注提前批和正式批早期", fit: "项目与笔试足够强时冲刺", tone: "blue" },
+  { tier: "核心主攻", companies: "有赞、微盟、同花顺、恒生电子、邦盛科技、趣链科技、同盾科技、连连支付", focus: "本土中厂与金融科技公司较集中，Java 业务场景匹配度重要", fit: "非 985/211 候选人的主要机会池", tone: "green" },
+  { tier: "稳健保底", companies: "建行杭州研发中心、招行杭州研发中心、宁波银行杭州、邮储银行杭州、浙江电信 / 移动、之江实验室等", focus: "重视统一笔试、稳定性与综合素质，须逐条核对当届招聘单位、学历和专业限制", fit: "适合作为稳底盘", tone: "orange" },
+];
+
+const backendTopics = [
+  { title: "Java 与框架", text: "Java、Spring Boot、MyBatis-Plus；重点掌握 Spring Cloud Alibaba 的 Nacos、Sentinel、Seata。" },
+  { title: "数据与缓存", text: "MySQL 索引、事务、锁与慢 SQL；Redis 数据结构、缓存异常、分布式锁和热点治理。" },
+  { title: "消息与搜索", text: "RabbitMQ / RocketMQ 的可靠性、幂等与顺序性；Elasticsearch 商品或内容搜索。" },
+  { title: "部署与云原生", text: "至少能用 Docker 完成部署；冲刺大厂时补齐 Kubernetes 核心对象与发布流程。" },
+];
+
+const interviewFoundations = [
+  ["Java", "HashMap、ConcurrentHashMap、线程池、CAS、AQS、JVM、GC、类加载"],
+  ["MySQL", "B+ 树、最左前缀、事务隔离、MVCC、行锁与慢 SQL 优化"],
+  ["Redis", "数据结构、穿透/击穿/雪崩、持久化、过期策略、分布式锁"],
+  ["消息队列", "消息丢失、重复消费、顺序性、死信队列、削峰填谷"],
+  ["Spring", "Bean 生命周期、事务传播、循环依赖、AOP 原理"],
+  ["分布式", "CAP/BASE、2PC、TCC、可靠消息最终一致性、锁方案对比"],
+];
+
+function KnowledgeView({ onNavigate }: { onNavigate: (view: View) => void }) {
+  return <><PageHead eyebrow="目标城市知识库" title="杭州 / 江浙沪后端秋招作战手册" description="把城市认知、技术准备和投递动作放在同一张地图里；公司分层与薪资为个人策略参考，不是招聘方官方评级。" action={<Button onClick={() => onNavigate("savedJobs")}><Bookmark />开始整理目标岗位</Button>} />
+    <section className="panel knowledge-hero"><div><span>杭州后端生态</span><h2>电商、支付与金融科技场景密集，Java 生态匹配度是主线</h2><p>非 985/211 背景并不等于没有机会，但需要用笔试排名、项目深度、可验证的性能数据和更合理的公司分层降低简历筛选风险。</p><div className="knowledge-tags"><span>Java / Spring Boot</span><span>MySQL / Redis</span><span>Spring Cloud Alibaba</span><span>电商与支付场景</span></div></div><aside><b>推荐投递配比</b><strong>30% / 50% / 20%</strong><small>冲刺大厂 / 主攻中厂 / 国企银行保底</small></aside></section>
+    <nav className="knowledge-nav" aria-label="知识库目录">{[["market","市场认知"],["stack","技术栈"],["project","简历项目"],["interview","笔试面试"],["salary","薪资政策"],["strategy","投递策略"],["actions","行动清单"]].map(([id,label]) => <a href={`#${id}`} key={id}>{label}</a>)}</nav>
+
+    <section className="knowledge-section" id="market"><header><span>01</span><div><h2>市场认知与公司分层</h2><p>先建立机会池，再按筛选难度和业务匹配度分配时间。</p></div></header><div className="company-tier-grid">{hangzhouCompanyTiers.map((item) => <article className={`tier-${item.tone}`} key={item.tier}><span>{item.tier}</span><h3>{item.companies}</h3><p>{item.focus}</p><small>{item.fit}</small></article>)}</div><div className="knowledge-warning"><AlertTriangle /><div><b>外包辨识原则</b><p>核对劳动合同主体、社保缴纳主体、汇报关系、是否驻场和转正路径；不要仅凭“阿里生态”“大厂项目”等宣传判断岗位价值。</p></div></div></section>
+
+    <section className="knowledge-section" id="stack"><header><span>02</span><div><h2>杭州后端默认技术栈</h2><p>准备顺序以岗位覆盖率和面试频率为准，而不是无限堆叠名词。</p></div></header><div className="knowledge-card-grid">{backendTopics.map((item) => <article key={item.title}><Database /><h3>{item.title}</h3><p>{item.text}</p></article>)}</div><div className="knowledge-callout"><b>杭州特色补强</b><p>Nacos、Sentinel、Seata、Canal 至少选一个讲清原理、故障场景与落地取舍，避免只停留在“用过”。</p></div></section>
+
+    <section className="knowledge-section" id="project"><header><span>03</span><div><h2>简历与项目：把教育平台讲成可迁移的业务能力</h2><p>项目优先级建议：电商 / 支付 / 订单类 &gt; 平台 / SaaS &gt; 普通管理系统。</p></div></header><div className="project-upgrade"><article><span>场景改造</span><h3>智慧教育训练平台</h3><ul><li>课程报名防超卖：Redis + Lua 或数据库乐观锁</li><li>异步通知与削峰：MQ、重试、幂等和死信队列</li><li>缓存一致性：更新数据库后删除缓存、Canal 异步订阅等方案取舍</li></ul></article><article><span>证据标准</span><h3>每个亮点都要可验证</h3><ul><li>说明基线、压测方法、数据规模与机器配置</li><li>用真实测量描述响应时间、QPS、错误率和资源占用</li><li>没有测过就先补实验，不虚构“800ms → 120ms”等数字</li></ul></article></div><div className="knowledge-callout"><b>针对性加分项</b><p>Spring Cloud Alibaba、电商/支付/金融项目、MySQL 慢查询、Redis 故障排查，以及省级以上竞赛或有质量的开源贡献。</p></div></section>
+
+    <section className="knowledge-section" id="interview"><header><span>04</span><div><h2>笔试与面试准备</h2><p>杭州校招笔试和算法筛选常常发生在简历深挖之前，基础与手写需要并行。</p></div></header><div className="interview-knowledge"><div><h3>高频基础</h3><ol>{interviewFoundations.map(([title,text]) => <li key={title}><b>{title}</b><span>{text}</span></li>)}</ol></div><div><h3>算法与手写</h3><p>LeetCode Hot 100 + 剑指 Offer；以中等题 20 分钟内形成可解释解法为训练目标。</p><div className="code-topic-tags"><span>LRU 缓存</span><span>线程安全单例</span><span>生产者消费者</span><span>二分查找</span><span>链表反转</span></div><h3>电商场景题</h3><ul><li>订单超时未支付：延时消息与定时补偿</li><li>库存防超卖：Redis + Lua 与数据库乐观锁</li><li>秒杀系统：限流、削峰、库存预扣和幂等</li><li>缓存一致性：删缓存策略、延时双删与 Canal</li></ul></div></div></section>
+
+    <section className="knowledge-section" id="salary"><header><span>05</span><div><h2>薪资、生活成本与杭州政策</h2><p>薪资为用户提供的 2026 本科市场参考区间；政策已按杭州官方公开信息校正，申请前仍应再次核验。</p></div></header><div className="salary-policy-grid"><article className="salary-table"><h3>税前年薪参考</h3>{[["大厂 SP / SSP","30–40W+"],["中厂 / 独角兽","22–28W"],["普通互联网","18–22W"],["银行 / 国企研发","16–22W，福利结构不同"]].map(([label,value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}<small>区间不是录用承诺，需统一比较月薪、月数、奖金、股票、补贴、公积金与工时。</small></article><article className="policy-card"><h3>官方政策核对</h3><ul><li><b>人才落户：</b>本科毕业两年内可关注“先落户后就业”；其他学历、年龄、就业与社保条件以最新办事指南为准。</li><li><b>应届生生活补贴：</b>官方指南为本科 1 万、硕士 3 万、博士 10 万，满足参保等条件后分笔发放。</li><li><b>新引进应届生租房补贴：</b>符合条件的申请家庭每户每年 1 万元，可发放 3 年；并非按本科/硕士分别 1 万/1.5 万。</li><li><b>租房预算：</b>滨江、余杭等区域单间 1500–2500 元/月仅作市场估算，签约前以实时房源和通勤为准。</li></ul><div className="policy-links"><a href="https://hrss.hangzhou.gov.cn/art/2024/5/13/art_1229578386_4267025.html" target="_blank" rel="noreferrer">杭州应届生生活补贴指南 <ExternalLink /></a><a href="https://ql.hangzhou.gov.cn/col/col1229597836/art/2026/art_8d62018211ba4915b09c78c7d2a7ca13.html" target="_blank" rel="noreferrer">杭州住房保障政策答复 <ExternalLink /></a><a href="https://zfgb.hangzhou.gov.cn/10/105220253/t117220253054/518554.shtml" target="_blank" rel="noreferrer">杭州户籍制度改革意见 <ExternalLink /></a></div></article></div></section>
+
+    <section className="knowledge-section" id="strategy"><header><span>06</span><div><h2>投递节奏与渠道</h2><p>把“什么时候投、投什么、从哪里投”拆开管理。</p></div></header><div className="strategy-timeline">{[["7–8 月","提前批","冲刺大厂和头部中厂，用真实笔面试校准准备度"],["9.1–10.15","黄金主战场","集中主攻第二梯队、银行和国企；尽早完成核心岗位投递"],["10.15–11.15","面试与决策","处理笔面试、横向比较 OFFER，同时补投遗漏岗位"],["11.15 后","补录与春招准备","关注剩余缺口岗位，复盘短板并建立春招保底计划"]].map(([time,title,text]) => <article key={time}><time>{time}</time><div><b>{title}</b><p>{text}</p></div></article>)}</div><div className="channel-grid"><article><b>1 · 内推</b><p>优先通过可信员工或校友获取岗位信息，核对岗位编号、团队和截止时间。</p></article><article><b>2 · 官网网申</b><p>作为正式记录来源，保存岗位链接、网申截止和投递账号。</p></article><article><b>3 · 宣讲会 / 双选会</b><p>关注浙大、杭电、浙工大等高校公开活动，确认是否允许外校学生参加。</p></article><article><b>4 · 招聘平台</b><p>BOSS 直聘等适合补充中小公司机会，但仍需核对用工主体与岗位真实性。</p></article></div></section>
+
+    <section className="knowledge-section" id="actions"><header><span>07</span><div><h2>把知识变成今天的行动</h2><p>不要一次性做完，先建立任务和目标岗位池。</p></div></header><div className="knowledge-actions">{[["01","改写项目","补充防超卖、异步通知、缓存一致性，并为每个指标准备测量证据","profile"],["02","补齐组件","选择 Nacos 或 Sentinel，能解释原理、故障与适用边界","tasks"],["03","算法训练","安排 Hot 100 两轮计划，记录错题与限时结果","tasks"],["04","建立公司池","按 30% / 50% / 20% 分层收藏约 30 家真实岗位","savedJobs"],["05","寻找内推","从可信渠道获取岗位编号，保存联系人和下一次跟进日期","resources"]].map(([number,title,text,target]) => <article key={number}><span>{number}</span><div><b>{title}</b><p>{text}</p></div><Button variant="outline" onClick={() => onNavigate(target as View)}>去执行</Button></article>)}</div></section>
   </>;
 }
 
