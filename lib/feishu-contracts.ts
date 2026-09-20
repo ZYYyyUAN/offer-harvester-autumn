@@ -113,6 +113,24 @@ export type FeishuWorkspaceConfig = {
   bootstrappedAt?: string;
 };
 
+type FeishuObject = Record<string, unknown>;
+
+function objectValue(value: unknown): FeishuObject {
+  return value && typeof value === "object" ? value as FeishuObject : {};
+}
+
+export function feishuBitableAppInfo(payload: FeishuObject) {
+  const app = objectValue(payload.app);
+  const appToken = String(payload.app_token ?? payload.token ?? app.app_token ?? app.token ?? "");
+  const url = String(payload.url ?? app.url ?? (appToken ? `https://feishu.cn/base/${appToken}` : ""));
+  return { appToken, url };
+}
+
+export function feishuBitableTableId(payload: FeishuObject) {
+  const table = objectValue(payload.table);
+  return String(payload.table_id ?? payload.id ?? table.table_id ?? table.id ?? "");
+}
+
 export type LocalApplication = {
   id: string;
   version: number;

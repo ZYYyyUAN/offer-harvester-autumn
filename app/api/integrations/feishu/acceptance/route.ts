@@ -11,7 +11,7 @@ export async function POST() {
     const connection = await getFeishuConnection(userId); if (!connection || String(connection.status) !== "connected") throw new ApiError(409, "请先连接飞书");
     const scopes = safeJson<string[]>(String(connection.scopes ?? "[]"), []); if (!requiredCapabilitiesReady(scopes)) throw new ApiError(409, "缺少飞书必需权限，验收包未创建任何数据");
     runId = crypto.randomUUID(); const tag = `ACCEPT-${runId.slice(0,8)}`; await db.prepare("INSERT INTO integration_runs (id, owner_id, integration_id, run_type, status, preview) VALUES (?, ?, ?, 'acceptance_suite', 'running', ?)").bind(runId, userId, connection.id, JSON.stringify({ tag, synthetic: true, startedAt: new Date().toISOString() })).run();
-    let config = safeJson<FeishuWorkspaceConfig>(String(connection.config ?? "{}"), {}); config = await bootstrapWorkspace(userId, config); await updateWorkspaceConfig(userId, String(connection.id), config);
+    let config = safeJson<FeishuWorkspaceConfig>(String(connection.config ?? "{}"), {}); config = await bootstrapWorkspace(userId, config, (partial) => updateWorkspaceConfig(userId, String(connection.id), partial)); await updateWorkspaceConfig(userId, String(connection.id), config);
     const appId = crypto.randomUUID(); const application = { id: appId, version: 1, updatedAt: new Date().toISOString(), data: { company: `${tag} 合成公司`, role: "产品实习生", location: "测试城市", stage: "准备简历", notes: "仅用于飞书全链路验收", acceptanceRunId: runId, synthetic: true } };
     const resumeId = crypto.randomUUID(); const objectKey = `${userId}/acceptance/${runId}/resume.pdf`; const reportTitle = `${tag} 合成分析报告`;
     await bucket.put(objectKey, pdf, { httpMetadata: { contentType: "application/pdf" } });

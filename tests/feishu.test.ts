@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applicationToFeishuFields, feishuFieldsToApplication, feishuOAuthScopeValue, isRemoteImportable } from "../lib/feishu-contracts.ts";
+import { applicationToFeishuFields, feishuBitableAppInfo, feishuBitableTableId, feishuFieldsToApplication, feishuOAuthScopeValue, isRemoteImportable } from "../lib/feishu-contracts.ts";
 import { buildSyncPreview } from "../lib/feishu-sync.ts";
 import { buildFeishuCapabilities, requiredCapabilitiesReady, validateResumeMagic } from "../lib/feishu-diagnostics.ts";
 
@@ -57,4 +57,11 @@ test("OAuth 会明确请求飞书核心用户权限", () => {
   const scopes = feishuOAuthScopeValue().split(" ");
   for (const expected of ["offline_access", "drive:drive", "docx:document", "bitable:app"]) assert.ok(scopes.includes(expected));
   assert.equal(new Set(scopes).size, scopes.length);
+});
+
+test("多维表格创建响应兼容顶层和嵌套标识", () => {
+  assert.equal(feishuBitableTableId({ table_id: "tbl-top" }), "tbl-top");
+  assert.equal(feishuBitableTableId({ table: { table_id: "tbl-nested" } }), "tbl-nested");
+  assert.deepEqual(feishuBitableAppInfo({ app_token: "app-top", url: "https://example.test/base/app-top" }), { appToken: "app-top", url: "https://example.test/base/app-top" });
+  assert.equal(feishuBitableAppInfo({ app: { token: "app-nested" } }).appToken, "app-nested");
 });

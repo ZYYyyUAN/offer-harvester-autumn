@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/server-data";
-import { applicationFieldMap, checklistFieldMap, type FeishuWorkspaceConfig, type RemoteApplication } from "@/lib/feishu-contracts";
+import { applicationFieldMap, checklistFieldMap, feishuBitableAppInfo, feishuBitableTableId, type FeishuWorkspaceConfig, type RemoteApplication } from "@/lib/feishu-contracts";
 import { feishuRequest } from "@/lib/feishu";
 
 type Item = Record<string, unknown>;
@@ -39,23 +39,39 @@ const bitableFields = [
   ...Object.values(checklistFieldMap).map((fieldName) => ({ field_name: fieldName, type: 7 })),
 ];
 
-async function ensureBitable(ownerId: string, folderToken: string, config: FeishuWorkspaceConfig) {
+async function ensureBitable(ownerId: string, folderToken: string, config: FeishuWorkspaceConfig, onAppReady?: (partial: FeishuWorkspaceConfig) => Promise<void>) {
   let appToken = config.bitableAppToken;
   let appUrl = config.bitableUrl;
   if (!appToken) {
+    const existing = (await listFiles(ownerId, folderToken)).find((item) => {
+      const type = String(item.type ?? "").toLowerCase();
+      return String(item.name ?? "") === "OFFER 收割机 · 投递记录" && (type === "bitable" || type === "base" || String(item.url ?? "").includes("/base/"));
+    });
+    const existingInfo = feishuBitableAppInfo(existing ?? {});
+    appToken = existingInfo.appToken;
+    appUrl = existingInfo.url;
+  }
+  if (!appToken) {
     const created = await feishuRequest<{ app?: Item; app_token?: string; url?: string }>(ownerId, "/bitable/v1/apps", { method: "POST", body: JSON.stringify({ name: "OFFER 收割机 · 投递记录", folder_token: folderToken }) });
-    appToken = String(created.app_token ?? created.app?.app_token ?? created.app?.token ?? "");
-    appUrl = String(created.url ?? created.app?.url ?? (appToken ? `https://feishu.cn/base/${appToken}` : ""));
+    const createdInfo = feishuBitableAppInfo(created as Item);
+    appToken = createdInfo.appToken;
+    appUrl = createdInfo.url;
   }
   if (!appToken) throw new ApiError(502, "飞书未返回多维表格标识", "FEISHU_INVALID_RESPONSE");
+  if (onAppReady) await onAppReady({ ...config, bitableAppToken: appToken, bitableUrl: appUrl });
   const tables = await feishuRequest<{ items?: Item[] }>(ownerId, `/bitable/v1/apps/${appToken}/tables?page_size=100`);
   let table = (tables.items ?? []).find((item) => String(item.name ?? "") === "投递记录");
+  let tableId = table ? feishuBitableTableId(table) : "";
   if (!table) {
-    const created = await feishuRequest<{ table?: Item }>(ownerId, `/bitable/v1/apps/${appToken}/tables`, { method: "POST", body: JSON.stringify({ table: { name: "投递记录", default_view_name: "全部投递", fields: bitableFields } }) });
-    table = created.table;
+    const created = await feishuRequest<{ table?: Item; table_id?: string; id?: string }>(ownerId, `/bitable/v1/apps/${appToken}/tables`, { method: "POST", body: JSON.stringify({ table: { name: "投递记录", default_view_name: "全部投递", fields: bitableFields } }) });
+    tableId = feishuBitableTableId(created as Item);
+    if (!tableId) {
+      const refreshed = await feishuRequest<{ items?: Item[] }>(ownerId, `/bitable/v1/apps/${appToken}/tables?page_size=100`);
+      table = (refreshed.items ?? []).find((item) => String(item.name ?? "") === "投递记录");
+      tableId = table ? feishuBitableTableId(table) : "";
+    }
   }
-  const tableId = String(table?.table_id ?? table?.id ?? "");
-  if (!tableId) throw new ApiError(502, "飞书未返回数据表标识", "FEISHU_INVALID_RESPONSE");
+  if (!tableId) throw new ApiError(502, "飞书已响应创建数据表，但重新查询后仍未找到数据表标识", "FEISHU_INVALID_RESPONSE");
   const existing = await feishuRequest<{ items?: Item[] }>(ownerId, `/bitable/v1/apps/${appToken}/tables/${tableId}/fields?page_size=100`);
   const byName = new Map((existing.items ?? []).map((field) => [String(field.field_name ?? field.name ?? ""), field]));
   for (const definition of bitableFields) {
@@ -67,13 +83,23 @@ async function ensureBitable(ownerId: string, folderToken: string, config: Feish
   return { appToken, appUrl, tableId, fieldIds: Object.fromEntries([...byName].map(([name, field]) => [name, String(field.field_id ?? field.id ?? "")])) };
 }
 
-export async function bootstrapWorkspace(ownerId: string, current: FeishuWorkspaceConfig) {
+export async function bootstrapWorkspace(ownerId: string, current: FeishuWorkspaceConfig, onProgress?: (config: FeishuWorkspaceConfig) => Promise<void>) {
+  let workspace = { ...current };
+  const save = async (next: FeishuWorkspaceConfig) => {
+    workspace = next;
+    if (onProgress) await onProgress(workspace);
+  };
   const root = await ensureFolder(ownerId, "OFFER 收割机", "", current.rootFolderToken);
-  const resumes = await ensureFolder(ownerId, "简历", root.token, current.resumeFolderToken);
-  const reports = await ensureFolder(ownerId, "分析报告", root.token, current.reportFolderToken);
-  const interviews = await ensureFolder(ownerId, "面试复盘", root.token, current.interviewFolderToken);
-  const bitable = await ensureBitable(ownerId, root.token, current);
-  return { ...current, rootFolderToken: root.token, rootFolderUrl: root.url, resumeFolderToken: resumes.token, reportFolderToken: reports.token, interviewFolderToken: interviews.token, bitableAppToken: bitable.appToken, bitableUrl: bitable.appUrl, tableId: bitable.tableId, fieldIds: bitable.fieldIds, bootstrappedAt: new Date().toISOString() } satisfies FeishuWorkspaceConfig;
+  await save({ ...workspace, rootFolderToken: root.token, rootFolderUrl: root.url });
+  const resumes = await ensureFolder(ownerId, "简历", root.token, workspace.resumeFolderToken);
+  await save({ ...workspace, resumeFolderToken: resumes.token });
+  const reports = await ensureFolder(ownerId, "分析报告", root.token, workspace.reportFolderToken);
+  await save({ ...workspace, reportFolderToken: reports.token });
+  const interviews = await ensureFolder(ownerId, "面试复盘", root.token, workspace.interviewFolderToken);
+  await save({ ...workspace, interviewFolderToken: interviews.token });
+  const bitable = await ensureBitable(ownerId, root.token, workspace, async (partial) => save({ ...workspace, ...partial }));
+  await save({ ...workspace, bitableAppToken: bitable.appToken, bitableUrl: bitable.appUrl, tableId: bitable.tableId, fieldIds: bitable.fieldIds, bootstrappedAt: new Date().toISOString() });
+  return workspace satisfies FeishuWorkspaceConfig;
 }
 
 export async function listBitableRecords(ownerId: string, config: FeishuWorkspaceConfig) {
