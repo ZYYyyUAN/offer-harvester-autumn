@@ -13,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const existingRows = await db.prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE owner_id = ? AND kind = 'saved_jobs' AND deleted_at IS NULL").bind(userId).all<Record<string, unknown>>();
     const duplicate = existingRows.results.map(mapRecord).find((item) => jobFingerprint(item.data) === fingerprint);
     if (duplicate && body.allowDuplicate !== true) return Response.json({ duplicate, requiresConfirmation: true });
-    const id = crypto.randomUUID(); const saved = { ...data, screenshotFileId: String(body.screenshotFileId || original.screenshotFileId || ""), extractionJobId: jobId, fingerprint, savedAt: new Date().toISOString(), priority: String(body.priority || "普通") };
+    const id = crypto.randomUUID(); const saved = { ...data, screenshotFileId: String(body.screenshotFileId || original.screenshotFileId || ""), extractionJobId: jobId, fingerprint, savedAt: new Date().toISOString(), priority: String(body.priority || "普通"), recruitmentMode: ["自动判断", "滚动招聘", "固定截止"].includes(String(body.recruitmentMode)) ? String(body.recruitmentMode) : "自动判断" };
     await db.batch([
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'saved_jobs', ?, ?)").bind(id, userId, `${data.company} ${data.role}`.trim() || "收藏岗位", JSON.stringify(saved)),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'activity_events', ?, ?)").bind(crypto.randomUUID(), userId, "确认岗位提取", JSON.stringify({ entityType: "saved_jobs", entityId: id, action: "capture_confirmed", aiJobId: jobId })),

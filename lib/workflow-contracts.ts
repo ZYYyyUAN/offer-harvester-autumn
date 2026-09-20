@@ -41,6 +41,12 @@ export const ActionTaskSchema = z.object({
 export const JobSearchSettingsSchema = z.object({
   cycleEndDate: z.string().max(40).default(""),
   cycleConfirmed: z.boolean().default(false),
+  phaseCountdownConfirmed: z.boolean().default(true),
+  goldenWindowEnd: z.string().max(40).default("2026-10-15"),
+  offerDecisionEnd: z.string().max(40).default("2026-11-15"),
+  autumnWrapUpEnd: z.string().max(40).default("2026-12-20"),
+  jobDeadlineWarningDays: z.number().int().min(1).max(30).default(7),
+  jobDeadlineCriticalDays: z.number().int().min(1).max(14).default(3),
   savedStaleDays: z.number().int().min(1).max(90).default(7),
   pendingStaleDays: z.number().int().min(1).max(90).default(3),
   appliedStaleDays: z.number().int().min(1).max(90).default(7),
@@ -50,6 +56,48 @@ export const JobSearchSettingsSchema = z.object({
 }).strict();
 
 export const defaultJobSearchSettings = JobSearchSettingsSchema.parse({ cycleEndDate: "2027-01-31", cycleConfirmed: false });
+
+export const autumnPhaseDefinitions = [
+  { key: "golden", label: "正式批黄金投递", dateKey: "goldenWindowEnd", hint: "互联网大厂多为滚动招聘，尽量在此前完成核心目标岗位投递。" },
+  { key: "decision", label: "Offer 集中决策", dateKey: "offerDecisionEnd", hint: "收到 OFFER 后留意接受时限，避免超期作废。" },
+  { key: "wrapup", label: "秋招补录收尾", dateKey: "autumnWrapUpEnd", hint: "秋招捡漏窗口结束后，后续主要转向春招。" },
+] as const;
+
+function shanghaiDateKey(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
+function dateOnlyValue(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : Number.NaN;
+}
+
+export function buildAutumnPhaseCountdowns(settings = defaultJobSearchSettings, now = new Date()) {
+  const today = dateOnlyValue(shanghaiDateKey(now));
+  return autumnPhaseDefinitions.map((phase) => {
+    const date = String(settings[phase.dateKey] || "");
+    const target = dateOnlyValue(date);
+    const daysRemaining = Number.isFinite(target) ? Math.round((target - today) / 86400000) : null;
+    return { ...phase, date, daysRemaining, status: daysRemaining == null ? "unset" : daysRemaining < 0 ? "ended" : daysRemaining === 0 ? "today" : "active" };
+  });
+}
+
+export function jobDeadlineStatus(data: Record<string, unknown>, settings = defaultJobSearchSettings, now = new Date()) {
+  const recruitmentMode = String(data.recruitmentMode || "自动判断");
+  const deadline = String(data.deadline || "");
+  const rolling = recruitmentMode === "滚动招聘" || (recruitmentMode !== "固定截止" && !deadline);
+  if (rolling) return { mode: "rolling" as const, level: "urgent" as const, message: "滚动招聘，招满即止，建议尽快投递" };
+  if (!deadline) return { mode: "fixed" as const, level: "missing" as const, message: "固定截止岗位尚未填写截止日期" };
+  const daysRemaining = Math.round((dateOnlyValue(deadline) - dateOnlyValue(shanghaiDateKey(now))) / 86400000);
+  if (!Number.isFinite(daysRemaining)) return { mode: "fixed" as const, level: "missing" as const, message: "截止日期格式无效" };
+  if (daysRemaining < 0) return { mode: "fixed" as const, level: "expired" as const, daysRemaining, message: "该岗位网申已截止" };
+  const message = daysRemaining === 0 ? "该岗位今天截止" : `距离网申截止：剩余 ${daysRemaining} 天`;
+  const criticalDays = Math.min(settings.jobDeadlineCriticalDays, settings.jobDeadlineWarningDays);
+  const level = daysRemaining <= criticalDays ? "critical" as const : daysRemaining <= settings.jobDeadlineWarningDays ? "warning" as const : "normal" as const;
+  return { mode: "fixed" as const, level, daysRemaining, message };
+}
 export const checklistKeys = ["research", "analysis", "resumeSelected", "resumeOptimized", "submitted", "followedUp", "interviewScheduled"] as const;
 
 export function normalizeJobCapture(value: unknown, fallbackUrl = "") {
@@ -88,6 +136,12 @@ export function jobFingerprint(data: Record<string, unknown>) {
 
 export function riskForRecord(kind: string, data: Record<string, unknown>, updatedAt: string, settings = defaultJobSearchSettings, now = new Date()) {
   const updatedDays = Math.floor((now.getTime() - new Date(updatedAt).getTime()) / 86400000);
+  if (["saved_jobs", "applications"].includes(kind) && data.deadline) {
+    const status = jobDeadlineStatus(data, settings, now);
+    if (status.level === "expired") return { level: "high", reason: "网申截止日期已过" };
+    if (status.level === "critical") return { level: "high", reason: status.message };
+    if (status.level === "warning") return { level: "medium", reason: status.message };
+  }
   const deadline = data.deadline || data.dueAt || data.nextFollowUpAt;
   if (deadline) {
     const days = Math.ceil((new Date(String(deadline)).getTime() - now.getTime()) / 86400000);
