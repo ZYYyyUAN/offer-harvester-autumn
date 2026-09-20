@@ -78,6 +78,7 @@ export function publicConnection(row: ConnectionRow | null | undefined) {
   return {
     id: String(row.id), status: String(row.status), externalUserId: row.external_user_id ? String(row.external_user_id) : null,
     externalUserName: row.external_user_name ? String(row.external_user_name) : null,
+    tenantFingerprint: row.external_tenant_key ? String(row.external_tenant_key).slice(0, 4) + "••••" + String(row.external_tenant_key).slice(-4) : null,
     scopes: safeJson<string[]>(String(row.scopes ?? "[]"), []), config, lastError: row.last_error ? String(row.last_error) : null,
     version: Number(row.version ?? 1), updatedAt: String(row.updated_at), disconnectedAt: row.disconnected_at ? String(row.disconnected_at) : null,
   };
@@ -143,19 +144,22 @@ async function refreshToken(refreshToken: string) {
   return parseToken(await exchange({ grant_type: "refresh_token", refresh_token: refreshToken }));
 }
 
-export async function saveConnection(ownerId: string, tokens: TokenPayload, user?: { id?: string; name?: string }) {
+export async function saveConnection(ownerId: string, tokens: TokenPayload, user?: { id?: string; name?: string; tenantKey?: string }) {
   const db = getDatabase();
   const existing = await getFeishuConnection(ownerId);
   const accessEncrypted = await encryptSecret(tokens.accessToken);
   const refreshEncrypted = await encryptSecret(tokens.refreshToken);
   if (existing) {
-    await db.prepare("UPDATE integrations SET status = 'connected', external_user_id = ?, external_user_name = ?, access_token_encrypted = ?, refresh_token_encrypted = ?, token_expires_at = ?, scopes = ?, last_error = NULL, disconnected_at = NULL, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-      .bind(user?.id ?? existing.external_user_id ?? null, user?.name ?? existing.external_user_name ?? null, accessEncrypted, refreshEncrypted, tokens.expiresAt, JSON.stringify(tokens.scope), existing.id, ownerId).run();
+    const tenantChanged = Boolean(user?.tenantKey && existing.external_tenant_key && user.tenantKey !== existing.external_tenant_key);
+    await db.batch([
+      db.prepare("UPDATE integrations SET status = 'connected', external_user_id = ?, external_user_name = ?, external_tenant_key = ?, access_token_encrypted = ?, refresh_token_encrypted = ?, token_expires_at = ?, scopes = ?, config = CASE WHEN ? THEN '{}' ELSE config END, last_error = NULL, disconnected_at = NULL, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(user?.id ?? existing.external_user_id ?? null, user?.name ?? existing.external_user_name ?? null, user?.tenantKey ?? existing.external_tenant_key ?? null, accessEncrypted, refreshEncrypted, tokens.expiresAt, JSON.stringify(tokens.scope), tenantChanged ? 1 : 0, existing.id, ownerId),
+      db.prepare("UPDATE integration_mappings SET deleted_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE deleted_at END, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND integration_id = ? AND deleted_at IS NULL").bind(tenantChanged ? 1 : 0, ownerId, existing.id),
+    ]);
     return String(existing.id);
   }
   const id = crypto.randomUUID();
-  await db.prepare("INSERT INTO integrations (id, owner_id, provider, status, external_user_id, external_user_name, access_token_encrypted, refresh_token_encrypted, token_expires_at, scopes) VALUES (?, ?, ?, 'connected', ?, ?, ?, ?, ?, ?)")
-    .bind(id, ownerId, FEISHU_PROVIDER, user?.id ?? null, user?.name ?? null, accessEncrypted, refreshEncrypted, tokens.expiresAt, JSON.stringify(tokens.scope)).run();
+  await db.prepare("INSERT INTO integrations (id, owner_id, provider, status, external_user_id, external_user_name, external_tenant_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, scopes) VALUES (?, ?, ?, 'connected', ?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, ownerId, FEISHU_PROVIDER, user?.id ?? null, user?.name ?? null, user?.tenantKey ?? null, accessEncrypted, refreshEncrypted, tokens.expiresAt, JSON.stringify(tokens.scope)).run();
   return id;
 }
 
@@ -192,7 +196,7 @@ export async function feishuRequest<T = Record<string, unknown>>(ownerId: string
 
 export async function getFeishuUser(ownerId: string) {
   const data = await feishuRequest<Record<string, unknown>>(ownerId, "/authen/v1/user_info");
-  return { id: String(data.open_id ?? data.union_id ?? data.user_id ?? ""), name: String(data.name ?? data.en_name ?? "飞书用户") };
+  return { id: String(data.open_id ?? data.union_id ?? data.user_id ?? ""), name: String(data.name ?? data.en_name ?? "飞书用户"), tenantKey: String(data.tenant_key ?? data.tenantKey ?? "") || undefined };
 }
 
 export async function updateWorkspaceConfig(ownerId: string, integrationId: string, config: FeishuWorkspaceConfig) {

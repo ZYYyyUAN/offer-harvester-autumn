@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { applicationToFeishuFields, feishuFieldsToApplication, isRemoteImportable } from "../lib/feishu-contracts.ts";
 import { buildSyncPreview } from "../lib/feishu-sync.ts";
+import { buildFeishuCapabilities, requiredCapabilitiesReady, validateResumeMagic } from "../lib/feishu-diagnostics.ts";
 
 test("飞书字段转换对日期、复选框和稳定 ID 使用确定性规则", () => {
   const fields = applicationToFeishuFields({ id: "app-1", version: 3, updatedAt: "2026-09-19T00:00:00Z", data: { company: "示例公司", role: "产品经理", stage: "面试中", deadline: "2026-10-01", checklist: { submitted: { done: true }, analyzed: false } } });
@@ -36,4 +37,18 @@ test("单侧删除只产生提示且不自动删除另一侧", async () => {
   );
   assert.equal(preview[0].type, "deletion_warning");
   assert.equal(preview[0].defaultDecision, "skip");
+});
+
+test("飞书权限按必需与可选能力分组", () => {
+  const minimal = ["auth:user.id:read", "offline_access"];
+  assert.equal(requiredCapabilitiesReady(minimal), false);
+  const capabilities = buildFeishuCapabilities([...minimal, "drive:file:write", "docx:document:write", "bitable:app:write"]);
+  assert.equal(capabilities.filter((item) => item.required).every((item) => item.granted), true);
+  assert.equal(capabilities.find((item) => item.id === "minutes")?.required, false);
+});
+
+test("简历导入同时校验扩展名与文件头", () => {
+  assert.equal(validateResumeMagic(new TextEncoder().encode("%PDF-1.4"), "pdf"), true);
+  assert.equal(validateResumeMagic(new Uint8Array([0x50, 0x4b, 3, 4]), "docx"), true);
+  assert.equal(validateResumeMagic(new TextEncoder().encode("not a pdf"), "pdf"), false);
 });

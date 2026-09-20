@@ -16,7 +16,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const run = await db.prepare("SELECT * FROM integration_runs WHERE id = ? AND owner_id = ? AND run_type = 'application_sync'").bind(runId, userId).first<Record<string, unknown>>();
     if (!run) throw new ApiError(404, "同步预览不存在"); if (String(run.status) !== "preview") throw new ApiError(409, "该同步预览已提交或已失效"); if (Number(run.version) !== body.version) throw new ApiError(409, "同步预览版本已变化，请重新生成"); if (Date.parse(String(run.expires_at)) <= Date.now()) throw new ApiError(410, "同步预览已过期，请重新生成");
     const connection = await getFeishuConnection(userId); if (!connection || String(connection.id) !== String(run.integration_id) || String(connection.status) !== "connected") throw new ApiError(409, "飞书连接不可用");
-    const config = safeJson<FeishuWorkspaceConfig>(String(connection.config ?? "{}"), {}); const preview = safeJson<{ items: SyncPreviewItem[] }>(String(run.preview), { items: [] }); const decisionMap = new Map(body.decisions.map((item) => [item.itemId, item.action]));
+    const config = safeJson<FeishuWorkspaceConfig>(String(connection.config ?? "{}"), {}); const preview = safeJson<{ items: SyncPreviewItem[]; integrationVersion?: number; configHash?: string }>(String(run.preview), { items: [] });
+    if (preview.integrationVersion && preview.integrationVersion !== Number(connection.version)) throw new ApiError(409, "飞书连接或空间配置在预览后已变化，请重新生成预览");
+    if (preview.configHash && preview.configHash !== await stableHash(config)) throw new ApiError(409, "飞书空间配置在预览后已变化，请重新生成预览");
+    const decisionMap = new Map(body.decisions.map((item) => [item.itemId, item.action]));
     const remoteRecords = await listBitableRecords(userId, config); const remoteById = new Map(remoteRecords.map((item) => [item.recordId, item])); const remoteByLocal = new Map<string, (typeof remoteRecords)[number]>(); for (const item of remoteRecords) { const key = remoteLocalId(item.fields); if (key) remoteByLocal.set(key, item); }
     const results: Array<Record<string, unknown>> = [];
     for (const item of preview.items) {

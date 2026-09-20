@@ -1,0 +1,4 @@
+import { ApiError, apiError, getDatabase, requireApiUser, safeJson } from "@/lib/server-data";
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  try { const { userId } = await requireApiUser(); const id = (await context.params).id; const row = await getDatabase().prepare("SELECT * FROM integration_runs WHERE id = ? AND owner_id = ? AND run_type = 'acceptance_suite'").bind(id, userId).first<Record<string, unknown>>(); if (!row) throw new ApiError(404, "验收批次不存在"); return Response.json({ run: { id: row.id, status: row.status, version: row.version, preview: safeJson(String(row.preview), {}), result: safeJson(String(row.result), {}), error: row.error, createdAt: row.created_at, finishedAt: row.finished_at } }); } catch (error) { return apiError(error); }
+}

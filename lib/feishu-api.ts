@@ -15,7 +15,8 @@ async function listFiles(ownerId: string, folderToken: string) {
   const items: Item[] = [];
   let pageToken = "";
   do {
-    const query = new URLSearchParams({ folder_token: folderToken, page_size: "200" });
+    const query = new URLSearchParams({ page_size: "200" });
+    if (folderToken) query.set("folder_token", folderToken);
     if (pageToken) query.set("page_token", pageToken);
     const data = await feishuRequest<{ files?: Item[]; items?: Item[]; has_more?: boolean; page_token?: string }>(ownerId, `/drive/v1/files?${query}`);
     items.push(...(data.files ?? data.items ?? []));
@@ -26,7 +27,7 @@ async function listFiles(ownerId: string, folderToken: string) {
 
 async function ensureFolder(ownerId: string, name: string, parentToken: string, current?: string) {
   if (current) return { token: current, url: `https://feishu.cn/drive/folder/${current}` };
-  if (parentToken) {
+  {
     const existing = (await listFiles(ownerId, parentToken)).find((item) => String(item.name ?? "") === name && String(item.type ?? "") === "folder");
     if (existing?.token) return { token: String(existing.token), url: String(existing.url ?? `https://feishu.cn/drive/folder/${existing.token}`) };
   }
@@ -100,6 +101,10 @@ export async function updateBitableRecord(ownerId: string, config: FeishuWorkspa
   await feishuRequest(ownerId, `/bitable/v1/apps/${config.bitableAppToken}/tables/${config.tableId}/records/${recordId}`, { method: "PUT", body: JSON.stringify({ fields }) });
 }
 
+export async function deleteBitableRecord(ownerId: string, config: FeishuWorkspaceConfig, recordId: string) {
+  await feishuRequest(ownerId, `/bitable/v1/apps/${config.bitableAppToken}/tables/${config.tableId}/records/${recordId}`, { method: "DELETE" });
+}
+
 export async function listWorkspaceFiles(ownerId: string, config: FeishuWorkspaceConfig, folder: "resumes" | "reports" | "interviews" = "resumes") {
   const token = folder === "resumes" ? config.resumeFolderToken : folder === "reports" ? config.reportFolderToken : config.interviewFolderToken;
   if (!token) throw new ApiError(409, "请先初始化飞书专用空间", "FEISHU_NOT_BOOTSTRAPPED");
@@ -116,6 +121,10 @@ export async function uploadDriveFile(ownerId: string, folderToken: string, file
   const data = await feishuRequest<{ file_token?: string }>(ownerId, "/drive/v1/medias/upload_all", { method: "POST", body: form });
   if (!data.file_token) throw new ApiError(502, "飞书未返回文件标识", "FEISHU_INVALID_RESPONSE");
   return String(data.file_token);
+}
+
+export async function deleteDriveFile(ownerId: string, token: string, type: "file" | "docx" = "file") {
+  await feishuRequest(ownerId, `/drive/v1/files/${encodeURIComponent(token)}?type=${type}`, { method: "DELETE" });
 }
 
 export async function downloadDriveFile(ownerId: string, token: string) {

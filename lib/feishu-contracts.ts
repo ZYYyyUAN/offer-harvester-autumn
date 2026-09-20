@@ -47,6 +47,9 @@ export const syncCommitSchema = z.object({
   decisions: z.array(syncDecisionSchema).max(500),
 }).strict();
 
+export const acceptanceCleanupSchema = z.object({ confirm: z.literal(true), version: z.number().int().positive() }).strict();
+export const resumeImportCommitSchema = z.object({ runId: z.string().uuid(), version: z.number().int().positive() }).strict();
+
 export const resumeImportSchema = z.object({
   remoteFileToken: z.string().min(1),
   name: z.string().min(1).max(240),

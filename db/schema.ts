@@ -120,6 +120,7 @@ export const integrations = sqliteTable(
     status: text("status").notNull().default("disconnected"),
     externalUserId: text("external_user_id"),
     externalUserName: text("external_user_name"),
+    externalTenantKey: text("external_tenant_key"),
     accessTokenEncrypted: text("access_token_encrypted"),
     refreshTokenEncrypted: text("refresh_token_encrypted"),
     tokenExpiresAt: text("token_expires_at"),
@@ -169,8 +170,8 @@ export const integrationMappings = sqliteTable(
     deletedAt: text("deleted_at"),
   },
   (table) => [
-    index("idx_integration_mappings_local").on(table.ownerId, table.integrationId, table.objectType, table.localId),
-    index("idx_integration_mappings_remote").on(table.ownerId, table.integrationId, table.objectType, table.remoteId),
+    uniqueIndex("uq_integration_mappings_active_local").on(table.ownerId, table.integrationId, table.objectType, table.localId).where(sql`${table.deletedAt} IS NULL AND ${table.objectType} IN ('application','resume') AND ${table.localId} IS NOT NULL`),
+    uniqueIndex("uq_integration_mappings_active_remote").on(table.ownerId, table.integrationId, table.objectType, table.remoteId).where(sql`${table.deletedAt} IS NULL AND ${table.objectType} IN ('application','resume') AND ${table.remoteId} IS NOT NULL`),
   ],
 );
 
