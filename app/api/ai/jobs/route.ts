@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     }
     if (parsed.data.type === "resume_suggestions") sourceRefs.push({ type: "resume", id: String(input.fileId || "") });
     if (parsed.data.type === "transcription") sourceRefs.push({ type: "audio", id: String(input.fileId || ""), segmentIndex: input.segmentIndex ?? 0 });
+    if (parsed.data.type === "foreign_interview_review") sourceRefs.push({ type: "practice_answer", id: crypto.randomUUID() });
     if (parsed.data.type === "job_capture_url") sourceRefs.push({ type: "job_url", id: String(input.sourceUrl || "") });
     if (parsed.data.type === "job_capture_image") sourceRefs.push({ type: "job_screenshot", id: String(input.fileId || "") });
     const created = await createAIJob(userId, parsed.data.type, input, { sourceRefs });

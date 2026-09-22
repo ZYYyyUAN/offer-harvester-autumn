@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canTransitionAIJob, CompanyResearchSchema, deterministicScore, filterEvidenceIds, InterviewReviewSchema, JobAnalysisSchema, percentile } from "../lib/ai-contracts.ts";
+import { canTransitionAIJob, CompanyResearchSchema, deterministicScore, filterEvidenceIds, ForeignInterviewReviewSchema, InterviewReviewSchema, JobAnalysisSchema, percentile } from "../lib/ai-contracts.ts";
 
 test("deterministic score follows published weights", () => {
   const score = deterministicScore([
@@ -41,4 +41,11 @@ test("company research keeps stage-specific findings and rejects untraceable sha
   assert.equal(valid.success, true);
   assert.equal(CompanyResearchSchema.safeParse({ ...base, findings: [{ category: "basic", title: "经营状态", detail: "存续", nature: "fact", severity: "none", sourceIndexes: ["0"], asOf: "" }] }).success, false);
   assert.equal(CompanyResearchSchema.safeParse({ ...base, preciseScore: 91 }).success, false);
+});
+
+test("foreign interview review requires auditable unsupported-claim output", () => {
+  const valid = { verdict: "practice_more", technicalFeedback: "需要补充边界条件", englishFeedback: "表达清楚", structureFeedback: "先结论后解释", strengths: [], improvements: ["补充复杂度"], correctedAnswer: "I would first clarify the requirements.", vocabulary: [{ term: "trade-off", usage: "Explain the trade-off." }], followUpQuestions: ["How would you test it?"], unsupportedClaims: [] };
+  assert.equal(ForeignInterviewReviewSchema.safeParse(valid).success, true);
+  assert.equal(ForeignInterviewReviewSchema.safeParse({ ...valid, unsupportedClaims: "none" }).success, false);
+  assert.equal(ForeignInterviewReviewSchema.safeParse({ ...valid, score: 100 }).success, false);
 });

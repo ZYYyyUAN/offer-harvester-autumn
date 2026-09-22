@@ -1,6 +1,6 @@
 import { ApiError, getBindings, getDatabase, safeJson } from "@/lib/server-data";
 import { aiErrorDetails, analyzeResumeFile, ocrImage, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
-import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
+import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, ForeignInterviewReviewSchema, foreignInterviewJsonSchema, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
 import { getEvaluationCase } from "@/lib/ai-evaluation-cases";
 import { jobCaptureJsonSchema, normalizeJobCapture } from "@/lib/workflow-contracts";
 
@@ -10,11 +10,13 @@ type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: str
 const modelFor: Record<AIJobType, string> = {
   job_analysis: "qwen3.8-max", resume_suggestions: "qwen-doc-turbo", company_research: "qwen3.8-max",
   interview_review: "qwen3.8-max", transcription: "qwen3-asr-flash", evaluation_case: "qwen3.8-max",
+  foreign_interview_review: "qwen3.8-max",
   job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
+  foreign_interview_review: "foreign-interview-review-v1",
   job_capture_url: "job-capture-url-v1", job_capture_image: "job-capture-image-v1",
 };
 
@@ -161,6 +163,18 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     const response = await structuredChat({ model: "qwen3.8-max", system: "你是严格引用原话的面试复盘教练。只能基于转写文本和上下文，不得补写候选人经历。quotes 必须逐字复制转写中的连续片段。", prompt: `岗位：${String(input.role || "未指定")}\nJD：${String(input.jd || "未提供")}\n转写：${transcript}`, schemaName: "interview_review_v2", schema: interviewJsonSchema, validator: InterviewReviewSchema });
     const quotes = (response.data.quotes as string[]).filter((quote) => quote.length > 0 && transcript.includes(quote));
     return { result: { ...response.data, quotes, rejectedQuoteCount: (response.data.quotes as string[]).length - quotes.length }, usage: response.usage, confidence: "medium", record: null };
+  }
+  if (type === "foreign_interview_review") {
+    const question = String(input.question || "").trim();
+    const answer = String(input.answer || "").trim();
+    if (question.length < 5 || answer.length < 20) throw new ApiError(400, "请先填写完整英文问题和至少 20 个字符的回答");
+    const response = await structuredChat({
+      model: "qwen3.8-max",
+      system: "你是严谨的 Java 后端应届生英文技术面试教练。只评价用户提供的问题、回答和上下文，不得补写候选人的学校、项目、年限、指标或技能。优先判断技术内容是否准确、表达是否清晰、结构是否完整，再给出简洁自然的英文修订稿。不要追求华丽词汇，不因口音或简单语法扣分。发现回答中无法由输入支持的经历或数字，逐条放入 unsupportedClaims。所有反馈使用中文，correctedAnswer 和 followUpQuestions 使用英文。",
+      prompt: `目标岗位：${String(input.role || "Java Backend New Graduate")}\n岗位上下文：${String(input.jd || "未提供").slice(0, 8000)}\n面试问题：${question}\n候选人回答：${answer}`,
+      schemaName: "foreign_interview_review_v1", schema: foreignInterviewJsonSchema, validator: ForeignInterviewReviewSchema, maxTokens: 2400,
+    });
+    return { result: response.data, usage: response.usage, confidence: "medium", record: null };
   }
   if (type === "transcription") {
     const fileId = String(input.fileId || "");

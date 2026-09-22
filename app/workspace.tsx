@@ -20,6 +20,7 @@ import {
   Eye,
   ExternalLink,
   FileText,
+  Globe2,
   ImageIcon,
   LayoutDashboard,
   List,
@@ -56,7 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "offers" | "calendar" | "resources" | "knowledge" | "aiCenter" | "feishu";
+type View = "dashboard" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "foreignPrep" | "offers" | "calendar" | "resources" | "knowledge" | "aiCenter" | "feishu";
 type Kind = "applications" | "saved_jobs" | "tasks" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
 type RecordItem = { id: string; kind: Kind; title: string; data: Record<string, any>; version: number; createdAt: string; updatedAt: string; deletedAt: string | null };
 type StoredFile = { id: string; filename: string; mimeType: string; size: number; metadata: Record<string, any>; version: number; createdAt: string };
@@ -82,6 +83,7 @@ const nav = [
   { id: "aiCenter" as View, label: "AI 任务中心", icon: ListChecks },
   { id: "company" as View, label: "公司背调", icon: Building2 },
   { id: "interviews" as View, label: "面试复盘", icon: MessagesSquare },
+  { id: "foreignPrep" as View, label: "外企准备", icon: Globe2 },
   { id: "offers" as View, label: "OFFER 决策", icon: Scale },
   { id: "calendar" as View, label: "日程提醒", icon: CalendarDays },
   { id: "knowledge" as View, label: "求职知识库", icon: BookOpen },
@@ -624,6 +626,16 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
 
+  async function saveForeignPrep(data: Record<string, any>) {
+    const result = await api<{ profile: Record<string, any> }>("/api/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ version: profile.version, foreignPrep: data }) });
+    setProfile(result.profile);
+    return result.profile;
+  }
+
+  async function reviewForeignAnswer(question: string, answer: string, role: string, jd: string) {
+    return createAndRunAI("foreign_interview_review", { question, answer, role, jd });
+  }
+
   function exportIcs() {
     const sourceEvents = [
       ...records.reminders.map((item) => ({ id: item.id, data: item.data })),
@@ -676,6 +688,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
         {view === "aiCenter" && <AICenterView jobs={aiJobs} legacy={legacyAI} activeId={activeAIJobId} attempts={aiAttempts} evaluation={evaluation} onSelect={openAIJob} onRetry={retryAIJob} onCancel={cancelAIJob} onRefresh={refreshAIJobs} onRunEvaluation={runEvaluation} onNavigate={setView} />}
         {view === "company" && <ResearchView draft={researchDraft} setDraft={setResearchDraft} busy={researchBusy} reports={records.research} onRun={runResearch} onSaveFindings={updateResearchFindings} onDelete={(id) => deleteRecord("research", id)} />}
         {view === "interviews" && <InterviewView items={records.interviews} active={activeInterview} audioFiles={audioFiles} recording={recording} onSelect={setSelectedInterview} onAdd={() => setEditor({ kind: "interviews" })} onEdit={(item) => setEditor({ kind: "interviews", item })} onDelete={(id) => deleteRecord("interviews", id)} onSave={updateInterview} onRecord={recording ? stopRecording : startRecording} onAudio={uploadInterviewAudio} onTranscribe={transcribeInterview} onReview={reviewInterview} onCreateTask={createAIAction} />}
+        {view === "foreignPrep" && <ForeignPrepView saved={profile.foreignPrep || {}} onSave={saveForeignPrep} onReview={reviewForeignAnswer} onOpenAI={() => setView("aiCenter")} />}
         {view === "offers" && <OffersView items={records.offers} weights={weights} setWeights={setWeights} onAdd={() => setEditor({ kind: "offers" })} onEdit={(item) => setEditor({ kind: "offers", item })} onDelete={(id) => deleteRecord("offers", id)} />}
         {view === "calendar" && <CalendarView items={records.reminders} applications={records.applications} interviews={records.interviews} offers={records.offers} tasks={records.tasks} onAdd={() => setEditor({ kind: "reminders" })} onEdit={(item) => setEditor({ kind: "reminders", item })} onDelete={(id) => deleteRecord("reminders", id)} onExport={exportIcs} />}
         {view === "knowledge" && <KnowledgeView onNavigate={setView} />}
@@ -798,6 +811,72 @@ function SavedJobsView({ items, screenshots, settings, serverNow, onSave, onExtr
   return <><PageHead eyebrow="机会收集箱" title="先收藏岗位，再决定是否投递" description="保存岗位链接、JD 截图和关键信息；确认后可一键转入投递看板。" action={<Button onClick={() => setOpen(true)}><Plus />收藏岗位</Button>} />
     {items.length ? <div className="saved-job-grid">{items.map((item) => { const image = screenshots.find((entry) => entry.id === item.data.screenshotFileId); return <article className="saved-job-card" key={item.id}>{image ? <img src={`/api/files/content?id=${image.id}`} alt={`${item.data.company || "岗位"} JD 截图`} /> : <div className="saved-job-placeholder"><ImageIcon /><span>未上传 JD 截图</span></div>}<div className="saved-job-body"><div><span className="resource-badge">{item.data.priority || "待评估"}</span><h2>{item.data.company || "公司待补充"}</h2><p>{item.data.role || "岗位名称待补充"}</p></div><dl><div><dt>地点</dt><dd>{item.data.location || "—"}</dd></div><div><dt>招聘方式</dt><dd>{item.data.recruitmentMode || (item.data.deadline ? "固定截止" : "滚动招聘")}</dd></div></dl><JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} />{item.data.jd && <p className="saved-job-jd">{item.data.jd}</p>}<div className="card-actions"><Button variant="outline" asChild><a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />查看原岗位</a></Button><Button disabled={Boolean(item.data.convertedApplicationId)} onClick={() => onConvert(item)}>{item.data.convertedApplicationId ? <CheckCircle2 /> : <BriefcaseBusiness />}{item.data.convertedApplicationId ? "已转投递" : "转入投递"}</Button><Button variant="ghost" size="icon" aria-label="删除收藏岗位" onClick={() => onDelete(item.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={Bookmark} title="还没有收藏岗位" text="遇到感兴趣的岗位时，先保存链接和 JD，避免信息散落在浏览器标签页和聊天记录中。" action={<Button onClick={() => setOpen(true)}><Plus />收藏第一个岗位</Button>} />}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog capture-dialog"><DialogHeader><DialogTitle>收藏岗位</DialogTitle><DialogDescription>AI 只在你点击时提取，结果不会直接写入正式记录。</DialogDescription></DialogHeader><form onSubmit={submit}><div className="capture-source"><Field label="岗位链接"><Input type="url" value={draft.sourceUrl} placeholder="https://..." onChange={(e) => update("sourceUrl", e.target.value)} /></Field><Button type="button" variant="outline" disabled={extracting || !draft.sourceUrl} onClick={() => extract("url")}><Sparkles />提取链接</Button></div><div className="editor-grid"><Field label="公司"><Input value={draft.company} onChange={(e) => update("company", e.target.value)} /></Field><Field label="岗位"><Input value={draft.role} onChange={(e) => update("role", e.target.value)} /></Field><Field label="工作地点"><Input value={draft.location} onChange={(e) => update("location", e.target.value)} /></Field><Field label="薪资范围"><Input value={draft.salary} onChange={(e) => update("salary", e.target.value)} /></Field><Field label="招聘方式"><select value={draft.recruitmentMode} onChange={(e) => update("recruitmentMode", e.target.value)}><option>自动判断</option><option>滚动招聘</option><option>固定截止</option></select></Field><Field label="网申截止日期（可空）"><Input type="date" value={draft.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field><Field label="优先级"><select value={draft.priority} onChange={(e) => update("priority", e.target.value)}><option>高</option><option>普通</option><option>低</option></select></Field><Field label="完整 JD"><Textarea value={draft.jd} placeholder="提取结果或手动粘贴岗位职责与任职要求…" onChange={(e) => update("jd", e.target.value)} /></Field><Field label="JD 截图"><label className="upload-zone"><ImageIcon /><span>{file ? file.name : "选择 PNG、JPG 或 WebP，最大 10 MB"}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} /></label><Button className="ocr-button" type="button" variant="outline" disabled={extracting || !file} onClick={() => extract("image")}><ImageIcon />识别截图</Button></Field></div>{warnings.length > 0 && <div className="capture-warnings"><AlertTriangle />{warnings.map((item) => <p key={item}>{item}</p>)}</div>}{conflicts.length > 0 && <div className="capture-conflicts"><b>发现字段冲突，当前保留你的填写</b>{conflicts.map((item) => <div key={item.key}><span><small>当前</small>{item.current}</span><span><small>AI 提取</small>{item.incoming}</span><Button type="button" variant="outline" onClick={() => { update(item.key, item.incoming); setConflicts((items) => items.filter((entry) => entry.key !== item.key)); }}>采用提取值</Button></div>)}</div>}<div className="capture-tip"><AlertTriangle /><span>未填写截止日期时自动按滚动招聘处理；若官网虽然写了远期截止，但岗位实际招满即止，请手动选择“滚动招聘”。</span></div><DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit" disabled={saving || extracting}>{saving ? <RefreshCw className="spin" /> : <Bookmark />}{saving ? "正在保存…" : "核对并保存"}</Button></DialogFooter></form></DialogContent></Dialog>
+  </>;
+}
+
+const foreignQuestions = [
+  "Please introduce yourself in one minute.",
+  "Could you walk me through your most important backend project?",
+  "What was the hardest technical problem in your project, and how did you solve it?",
+  "What is the difference between HashMap and ConcurrentHashMap?",
+  "How would you prevent cache penetration, breakdown, and avalanche?",
+  "How do database indexes improve query performance, and when can they become ineffective?",
+  "How would you design an order service that avoids overselling?",
+  "Why did you choose a message queue instead of a synchronous call?",
+  "How do you make a backend service observable and maintainable?",
+  "Tell me about a disagreement in a team and how you handled it.",
+  "Why do you want to join this company and this team?",
+  "What would you like to ask the interviewers?",
+];
+
+const foreignCompanies = [
+  { name: "State Street", domain: "金融服务 / 技术", cities: "在官网按 Hangzhou / China 实时筛选", url: "https://careers.statestreet.com/global/en" },
+  { name: "Bosch 博世", domain: "汽车、工业与软件", cities: "上海 / 苏州 / 杭州等以当期职位为准", url: "https://www.bosch.com.cn/careers/job-offers/" },
+  { name: "Siemens 西门子", domain: "工业数字化", cities: "在官网按 China 与城市筛选", url: "https://jobs.siemens.com/careers" },
+  { name: "Philips 飞利浦", domain: "医疗健康科技", cities: "在官网核对中国区研发岗位", url: "https://www.careers.philips.com/" },
+  { name: "Cisco 思科", domain: "网络与云基础设施", cities: "在官网核对中国区技术岗位", url: "https://jobs.cisco.com/" },
+  { name: "Schneider Electric 施耐德电气", domain: "能源管理与工业自动化", cities: "官网可按 China / Shanghai / Suzhou 等筛选", url: "https://careers.se.com/china" },
+  { name: "Microsoft 微软", domain: "云、平台与软件", cities: "在官网按 China 与学生岗位筛选", url: "https://careers.microsoft.com/v2/global/en/home.html" },
+  { name: "Amazon 亚马逊", domain: "云与软件服务", cities: "岗位与面试流程以具体职位为准", url: "https://www.amazon.jobs/zh/" },
+  { name: "PayPal", domain: "支付与金融科技", cities: "在官网核对中国及应届岗位", url: "https://careers.pypl.com/" },
+];
+
+const foreignPlan = [
+  ["intro", "写完并录熟 60 秒英文自我介绍", "只写已确认的学校、技能、项目与求职动机"],
+  ["project", "完成一个项目的 4 句英文版本", "背景、技术选择、解决的问题、可验证结果"],
+  ["technical", "练完 6 道 Java 后端英文技术题", "先保证技术准确，再处理语法和用词"],
+  ["behavior", "准备 3 个 STAR(R) 行为故事", "合作、困难、失败与复盘各有真实证据"],
+  ["coding", "完成一次 45 分钟英文 Coding 模拟", "澄清问题、口述思路、边界与复杂度"],
+  ["company", "核对 5 个目标岗位的语言与福利", "向 HR 确认面试语言、团队、加班、假期和 on-call"],
+];
+
+function ForeignPrepView({ saved, onSave, onReview, onOpenAI }: { saved: Record<string, any>; onSave: (data: Record<string, any>) => Promise<any>; onReview: (question: string, answer: string, role: string, jd: string) => Promise<AIJob>; onOpenAI: () => void }) {
+  const initial = { role: "Java 后端开发（应届）", jd: "", selfIntro: "", projectStory: "", whyCompany: "", behaviorStories: "", questionsForInterviewer: "", checklist: {}, companyStatuses: {}, practiceQuestion: foreignQuestions[0], practiceAnswer: "", latestReview: null, ...saved };
+  const [data, setData] = useState<Record<string, any>>(initial);
+  const [tab, setTab] = useState("overview");
+  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => { setData((current) => ({ ...current, ...saved })); }, [saved]);
+  useEffect(() => { if (!seconds) return; const id = window.setInterval(() => setSeconds((value) => Math.max(0, value - 1)), 1000); return () => window.clearInterval(id); }, [seconds]);
+  const update = (key: string, value: any) => setData((current) => ({ ...current, [key]: value }));
+  const completed = foreignPlan.filter(([key]) => data.checklist?.[key]).length;
+  async function persist(next = data) { setSaving(true); try { await onSave(next); toast.success("外企准备进度已保存到云端"); } catch (error) { toast.error((error as Error).message); } finally { setSaving(false); } }
+  async function review() { if (String(data.practiceAnswer || "").trim().length < 20) return toast.error("请先写下至少 20 个字符的英文回答"); setBusy(true); const toastId = toast.loading("千问正在检查技术准确性与英文表达…"); try { const job = await onReview(data.practiceQuestion, data.practiceAnswer, data.role, data.jd); const next = { ...data, latestReview: { ...(job.result || {}), aiJobId: job.id, question: data.practiceQuestion, answer: data.practiceAnswer, reviewedAt: new Date().toISOString() } }; setData(next); await onSave(next); toast.success("点评已生成并保存", { id: toastId }); } catch (error) { toast.error((error as Error).message, { id: toastId }); } finally { setBusy(false); } }
+  function speak() { if (!("speechSynthesis" in window)) return toast.error("当前浏览器不支持朗读"); window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(data.practiceQuestion); utterance.lang = "en-US"; utterance.rate = .88; window.speechSynthesis.speak(utterance); }
+  return <><PageHead eyebrow="外企准备" title="把英文技术面试拆成可练习、可复盘的动作" description="面试语言由岗位、团队和面试官决定；这里按“可能出现全英文”做准备，不把任何公司的流程、假期或 WLB 当成固定承诺。" action={<Button onClick={() => persist()} disabled={saving}><Save />{saving ? "保存中…" : "保存全部"}</Button>} />
+    <section className="panel foreign-hero"><div><span>当前完成度</span><strong>{completed} / {foreignPlan.length}</strong><p>目标：能用简单准确的英文讲清 Java 后端项目、技术取舍与真实经历。</p></div><div className="foreign-progress"><i style={{ width: `${Math.round(completed / foreignPlan.length * 100)}%` }} /></div><aside><b>先确认，不猜测</b><p>收到面试邀请后向 HR 询问轮次、语言比例、Coding 工具和海外面试官安排。</p></aside></section>
+    <nav className="foreign-tabs">{[["overview","训练计划"],["materials","英文材料"],["practice","AI 模拟"],["companies","目标公司"],["verify","福利核验"]].map(([id,label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</nav>
+
+    {tab === "overview" && <div className="foreign-layout"><section className="panel foreign-checklist"><div className="panel-title"><div><h2>四周准备清单</h2><p>完成情况会随“保存全部”同步到云端。</p></div></div>{foreignPlan.map(([key,title,text], index) => <label key={key}><input type="checkbox" checked={Boolean(data.checklist?.[key])} onChange={(e) => update("checklist", { ...(data.checklist || {}), [key]: e.target.checked })} /><span><b>{String(index + 1).padStart(2,"0")} · {title}</b><small>{text}</small></span></label>)}</section><section className="panel foreign-principles"><h2>技术岗准备重点</h2>{[["代码","可运行、边界清楚、命名可读，并能说明复杂度与测试"],["基础","Java 并发、JVM、网络、MySQL、Redis；把推理过程说出来"],["设计","先澄清需求，再解释 trade-off、失败模式与可维护性"],["沟通","不会时承认边界并澄清：Could you please rephrase that question?"]].map(([title,text]) => <article key={title}><b>{title}</b><p>{text}</p></article>)}<div className="knowledge-warning"><AlertTriangle /><div><b>不要背虚构模板</b><p>示例里的“2 年经验”“性能提升数字”只有在你的真实资料可证明时才能使用。</p></div></div></section></div>}
+
+    {tab === "materials" && <section className="panel foreign-materials"><div className="foreign-form-head"><div><h2>英文材料库</h2><p>先用你会说的简单句完成，再逐步润色；内容必须来自真实经历。</p></div></div><div className="form-grid"><Field label="目标岗位"><Input value={data.role} onChange={(e) => update("role", e.target.value)} /></Field><Field label="目标岗位 JD（可选）"><Textarea value={data.jd} onChange={(e) => update("jd", e.target.value)} placeholder="用于 AI 点评时补充岗位语境" /></Field><Field label="60 秒自我介绍"><Textarea value={data.selfIntro} onChange={(e) => update("selfIntro", e.target.value)} placeholder="Name → education → verified backend skills → one project → why this role" /></Field><Field label="项目四句稿"><Textarea value={data.projectStory} onChange={(e) => update("projectStory", e.target.value)} placeholder="What I built → technologies → problem and decision → verified result" /></Field><Field label="Why this company / role"><Textarea value={data.whyCompany} onChange={(e) => update("whyCompany", e.target.value)} placeholder="基于真实产品、业务和岗位要求，不写空泛赞美" /></Field><Field label="STAR(R) 行为故事"><Textarea value={data.behaviorStories} onChange={(e) => update("behaviorStories", e.target.value)} placeholder="Situation / Task / Action / Result / Reflection" /></Field><Field label="反问面试官"><Textarea value={data.questionsForInterviewer} onChange={(e) => update("questionsForInterviewer", e.target.value)} placeholder="团队业务、代码评审、on-call、英文协作、培养机制…" /></Field></div></section>}
+
+    {tab === "practice" && <div className="foreign-layout"><section className="panel foreign-practice"><div className="panel-title"><div><h2>英文模拟面试</h2><p>AI 只评价当前问题和你的回答，不会替你补造经历。</p></div><button onClick={onOpenAI}>查看审计记录</button></div><Field label="面试问题"><select value={data.practiceQuestion} onChange={(e) => update("practiceQuestion", e.target.value)}>{foreignQuestions.map((question) => <option key={question}>{question}</option>)}</select></Field><div className="practice-tools"><Button variant="outline" onClick={speak}><MessagesSquare />朗读题目</Button><Button variant="outline" onClick={() => setSeconds(90)}><Timer />{seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2,"0")}` : "90 秒计时"}</Button></div><Field label="你的英文回答"><Textarea className="practice-answer" value={data.practiceAnswer} onChange={(e) => update("practiceAnswer", e.target.value)} placeholder="先自己回答。建议保留自然、简单、能当场说出口的表达。" /></Field><Button onClick={review} disabled={busy}>{busy ? <RefreshCw className="spin" /> : <Sparkles />}{busy ? "正在点评…" : "AI 检查技术与表达"}</Button></section><section className="panel foreign-review">{data.latestReview ? <><div className="report-badges"><StatusPill tone={data.latestReview.verdict === "ready" ? "green" : data.latestReview.verdict === "rewrite" ? "red" : "orange"}>{({ ready:"可以继续模拟", practice_more:"需要再练", rewrite:"建议重写" } as any)[data.latestReview.verdict] || "已点评"}</StatusPill><span>{formatDate(data.latestReview.reviewedAt, true)}</span></div><h2>最近一次点评</h2><dl><div><dt>技术内容</dt><dd>{data.latestReview.technicalFeedback}</dd></div><div><dt>英文表达</dt><dd>{data.latestReview.englishFeedback}</dd></div><div><dt>回答结构</dt><dd>{data.latestReview.structureFeedback}</dd></div></dl>{data.latestReview.unsupportedClaims?.length > 0 && <div className="foreign-risk"><AlertTriangle /><div><b>需要核实的说法</b>{data.latestReview.unsupportedClaims.map((item: string) => <p key={item}>{item}</p>)}</div></div>}<h3>建议版本</h3><p className="corrected-answer">{data.latestReview.correctedAnswer}</p><h3>下一轮追问</h3><ul>{data.latestReview.followUpQuestions?.map((item: string) => <li key={item}>{item}</li>)}</ul></> : <EmptyState icon={Sparkles} title="还没有点评" text="选择一道问题，写下自己的英文回答后再让 AI 检查。" />}</section></div>}
+
+    {tab === "companies" && <section className="panel foreign-companies"><div className="panel-title"><div><h2>江浙沪外企机会池</h2><p>不按“学校友好度”或福利传闻排名；职位是否开放、地点、语言和用工主体以当期官方 JD 为准。</p></div></div><div>{foreignCompanies.map((company) => <article key={company.name}><div><span>{company.domain}</span><h3>{company.name}</h3><p>{company.cities}</p></div><select aria-label={`${company.name} 跟进状态`} value={data.companyStatuses?.[company.name] || "未查看"} onChange={(e) => update("companyStatuses", { ...(data.companyStatuses || {}), [company.name]: e.target.value })}><option>未查看</option><option>已看官网</option><option>已收藏岗位</option><option>已投递</option><option>不适合</option></select><a href={company.url} target="_blank" rel="noreferrer">官网职位 <ExternalLink /></a></article>)}</div></section>}
+
+    {tab === "verify" && <div className="foreign-layout"><section className="panel verify-list"><h2>收到面试邀请后</h2>{["面试共几轮，哪几轮使用英文，是否有海外面试官","Coding 是共享编辑器、白板还是本地 IDE，允许哪种语言","是否需要系统设计、英语演示或项目英文讲解","工作语言、海外会议频率与时区","团队、业务线、汇报对象和用工主体"].map((item) => <p key={item}><CheckCircle2 />{item}</p>)}</section><section className="panel verify-list"><h2>拿到 Offer 后</h2>{["年假、病假与公司假具体天数及入职首年折算规则","加班、on-call、调休/加班费及下班消息规则","固定薪资、奖金条件、公积金基数、商业保险覆盖范围","试用期、岗位地点、远程/混合办公与调岗条款","中国区业务稳定性、团队近年变化和裁员补偿按书面政策确认"].map((item) => <p key={item}><CheckCircle2 />{item}</p>)}</section></div>}
   </>;
 }
 
@@ -931,7 +1010,7 @@ function AnalysisView({ input, setInput, busy, result, onRun, onEvidence, onCrea
   </>;
 }
 
-const aiTypeLabels: Record<string, string> = { job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", transcription: "录音转写", evaluation_case: "合成评测", job_capture_url: "岗位链接提取", job_capture_image: "岗位截图识别" };
+const aiTypeLabels: Record<string, string> = { job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", foreign_interview_review: "外企英文面试点评", transcription: "录音转写", evaluation_case: "合成评测", job_capture_url: "岗位链接提取", job_capture_image: "岗位截图识别" };
 const aiStatusLabels: Record<string, string> = { queued: "排队中", running: "运行中", succeeded: "成功", failed: "失败", cancelled: "已取消" };
 
 function FeishuView({ resumes, records, onDataChanged }: { resumes: StoredFile[]; records: Record<Kind, RecordItem[]>; onDataChanged: () => Promise<void> }) {
@@ -1038,7 +1117,7 @@ function AICenterView({ jobs, legacy, activeId, attempts, evaluation, onSelect, 
   const [type, setType] = useState(""); const [status, setStatus] = useState(""); const [date, setDate] = useState("");
   const filtered = jobs.filter((job) => (!type || job.type === type) && (!status || job.status === status) && (!date || job.createdAt.slice(0, 10) === date));
   const active = jobs.find((job) => job.id === activeId) || filtered[0];
-  const navigateTarget = active?.type === "company_research" ? "company" : active?.type === "interview_review" || active?.type === "transcription" ? "interviews" : "analysis";
+  const navigateTarget = active?.type === "company_research" ? "company" : active?.type === "foreign_interview_review" ? "foreignPrep" : active?.type === "interview_review" || active?.type === "transcription" ? "interviews" : "analysis";
   return <><PageHead eyebrow="AI 任务中心" title="每次分析都能复核、重试和追溯" description="记录输入快照、来源、模型、提示版本、耗时和每次尝试；取消后的迟到结果不会写入正式记录。" action={<div className="head-actions"><Button variant="outline" onClick={onRefresh}><RefreshCw />刷新</Button><Button onClick={onRunEvaluation}><Sparkles />运行 20 组合成回归</Button></div>} />
     {evaluation && <section className={`evaluation-banner ${evaluation.passed ? "passed" : ""}`}><div><b>合成回归：{evaluation.completed || 0}/{evaluation.total || 20}</b><span>只使用内置合成简历事实与 JD，不读取你的真实资料。</span></div><div><strong>F1 {Math.round((evaluation.f1 || 0) * 100)}%</strong><span>无效引用 {evaluation.invalidReferenceCount || 0} · 编造事实 {evaluation.unsupportedFactCount || 0} · Schema {Math.round((evaluation.schemaPassRate || 0) * 100)}%</span></div></section>}
     <section className="ai-filters panel"><label>任务类型<select value={type} onChange={(event) => setType(event.target.value)}><option value="">全部</option>{Object.entries(aiTypeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>状态<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">全部</option>{Object.entries(aiStatusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>日期<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></section>

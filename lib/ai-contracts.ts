@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const aiJobTypes = ["job_analysis", "resume_suggestions", "company_research", "interview_review", "transcription", "evaluation_case", "job_capture_url", "job_capture_image"] as const;
+export const aiJobTypes = ["job_analysis", "resume_suggestions", "company_research", "interview_review", "foreign_interview_review", "transcription", "evaluation_case", "job_capture_url", "job_capture_image"] as const;
 export const aiJobStatuses = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
 export const AIJobTypeSchema = z.enum(aiJobTypes);
 export const AIJobStatusSchema = z.enum(aiJobStatuses);
@@ -77,6 +77,19 @@ export const InterviewReviewSchema = z.object({
   actions: z.array(z.string()).max(30),
 }).strict();
 
+export const ForeignInterviewReviewSchema = z.object({
+  verdict: z.enum(["ready", "practice_more", "rewrite"]),
+  technicalFeedback: z.string().max(1800),
+  englishFeedback: z.string().max(1800),
+  structureFeedback: z.string().max(1800),
+  strengths: z.array(z.string().max(500)).max(12),
+  improvements: z.array(z.string().max(500)).max(12),
+  correctedAnswer: z.string().max(5000),
+  vocabulary: z.array(z.object({ term: z.string().max(100), usage: z.string().max(500) }).strict()).max(20),
+  followUpQuestions: z.array(z.string().max(500)).max(10),
+  unsupportedClaims: z.array(z.string().max(500)).max(10),
+}).strict();
+
 export const requirementJsonSchema = {
   type: "object", additionalProperties: false, required: ["summary", "requirements", "suggestions"],
   properties: {
@@ -115,6 +128,19 @@ export const companyJsonSchema = {
 export const interviewJsonSchema = {
   type: "object", additionalProperties: false, required: ["summary", "strengths", "gaps", "star", "quotes", "actions"],
   properties: { summary: { type: "string" }, strengths: { type: "array", items: { type: "string" } }, gaps: { type: "array", items: { type: "string" } }, star: { type: "object", additionalProperties: false, required: ["situation", "task", "action", "result"], properties: { situation: { type: "string" }, task: { type: "string" }, action: { type: "string" }, result: { type: "string" } } }, quotes: { type: "array", items: { type: "string" } }, actions: { type: "array", items: { type: "string" } } },
+};
+
+export const foreignInterviewJsonSchema = {
+  type: "object", additionalProperties: false,
+  required: ["verdict", "technicalFeedback", "englishFeedback", "structureFeedback", "strengths", "improvements", "correctedAnswer", "vocabulary", "followUpQuestions", "unsupportedClaims"],
+  properties: {
+    verdict: { type: "string", enum: ["ready", "practice_more", "rewrite"] },
+    technicalFeedback: { type: "string" }, englishFeedback: { type: "string" }, structureFeedback: { type: "string" },
+    strengths: { type: "array", items: { type: "string" } }, improvements: { type: "array", items: { type: "string" } },
+    correctedAnswer: { type: "string" },
+    vocabulary: { type: "array", items: { type: "object", additionalProperties: false, required: ["term", "usage"], properties: { term: { type: "string" }, usage: { type: "string" } } } },
+    followUpQuestions: { type: "array", items: { type: "string" } }, unsupportedClaims: { type: "array", items: { type: "string" } },
+  },
 };
 
 export function deterministicScore(requirements: Array<z.infer<typeof RequirementSchema>>) {
