@@ -57,8 +57,24 @@ export async function POST(request: Request) {
       interviewId: url.searchParams.get("interviewId") || null,
       sequence: Number(url.searchParams.get("sequence") || 0),
       duration: Number(url.searchParams.get("duration") || 0),
+      libraryType: url.searchParams.get("libraryType") || (purpose === "resume" ? "completed" : ""),
+      applicationId: url.searchParams.get("applicationId") || null,
+      applicationCompany: url.searchParams.get("applicationCompany") || "",
+      applicationRole: url.searchParams.get("applicationRole") || "",
+      sourceResumeId: url.searchParams.get("sourceResumeId") || null,
+      parentFileId: url.searchParams.get("parentFileId") || null,
+      optimizationRevision: Number(url.searchParams.get("optimizationRevision") || 0),
+      optimizationStatus: url.searchParams.get("optimizationStatus") || "",
     };
     const { db, bucket } = getBindings();
+    if (purpose === "resume" && metadata.applicationId) {
+      const application = await db.prepare("SELECT id FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL").bind(metadata.applicationId, userId).first();
+      if (!application) throw new ApiError(404, "关联岗位不存在");
+    }
+    for (const relatedFileId of [metadata.sourceResumeId, metadata.parentFileId].filter(Boolean)) {
+      const related = await db.prepare("SELECT id FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL").bind(relatedFileId, userId).first();
+      if (!related) throw new ApiError(404, "关联的简历版本不存在");
+    }
     await bucket.put(objectKey, body, { httpMetadata: { contentType: mime } });
     await db.prepare("INSERT INTO stored_files (id, owner_id, purpose, filename, object_key, mime_type, size, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(id, userId, purpose, filename, objectKey, mime, body.byteLength, JSON.stringify(metadata)).run();
