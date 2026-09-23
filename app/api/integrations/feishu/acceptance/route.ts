@@ -58,6 +58,7 @@ export async function POST() {
   };
   let connectionId = "";
   let runCreated = false;
+  let activeStep = "连接与权限检查";
 
   const recordStep = (id: string, label: string, ok: boolean, detail?: string) => {
     steps.push({ id, label, status: ok ? "succeeded" : "failed", detail });
@@ -82,6 +83,7 @@ export async function POST() {
       .bind(runId, userId, connectionId, JSON.stringify({ tag, synthetic: true, startedAt: new Date().toISOString() })).run();
     runCreated = true;
 
+    activeStep = "初始化专用空间";
     let config = safeJson<FeishuWorkspaceConfig>(String(connection.config ?? "{}"), {});
     config = await bootstrapWorkspace(userId, config, (partial) => updateWorkspaceConfig(userId, connectionId, partial));
     const firstIdentity = workspaceIdentity(config);
@@ -90,6 +92,7 @@ export async function POST() {
     const bootstrapIdempotent = JSON.stringify(firstIdentity) === JSON.stringify(workspaceIdentity(config));
     recordStep("bootstrap", "专用空间连续初始化不重复创建", bootstrapIdempotent);
 
+    activeStep = "投递双向同步";
     const now = new Date().toISOString();
     const appId = crypto.randomUUID();
     const application: LocalApplication = {
@@ -181,6 +184,7 @@ export async function POST() {
     const duplicateCount = remotes.filter((item) => remoteLocalId(item.fields) === appId).length;
     recordStep("dedupe", "稳定 ID 防止重复提交", duplicateCount === 1, `匹配记录数：${duplicateCount}`);
 
+    activeStep = "简历导入导出";
     const remoteResumeId = await uploadDriveFile(userId, String(config.resumeFolderToken), `${tag}-synthetic-resume.pdf`, "application/pdf", pdf.buffer as ArrayBuffer);
     resources.remoteResumeIds.push(remoteResumeId);
     const resumeFiles = await listWorkspaceFiles(userId, config, "resumes");
@@ -189,6 +193,7 @@ export async function POST() {
       .bind(crypto.randomUUID(), userId, connectionId, resumeId, remoteResumeId, JSON.stringify({ synthetic: true, acceptanceRunId: runId })).run();
     recordStep("resume", "合成简历导出与导入预览可见", resumeVisible);
 
+    activeStep = "报告创建、更新与另存";
     const reportTitle = `${tag} 合成分析报告`;
     const document = await createNativeDocument(userId, String(config.reportFolderToken), reportTitle, ["这是不含真实业务信息的合成验收报告。", `验收批次：${runId}`]);
     resources.remoteDocumentIds.push(document.documentId);
@@ -203,15 +208,18 @@ export async function POST() {
     ]);
     recordStep("report", "报告创建、更新原文档与另存副本", true);
 
+    activeStep = "妙记能力降级";
     const minutesGranted = scopes.some((scope) => scope.startsWith("minutes:"));
     recordStep("minutes", minutesGranted ? "妙记权限已授权并可显示链接入口" : "妙记未授权时仅显示文件和文本降级入口", true);
 
+    activeStep = "远程删除提示";
     await deleteBitableRecord(userId, config, remoteApplicationId);
     remotes = await listBitableRecords(userId, config);
     preview = await buildSyncPreview([localConflict], remotes, mappings);
     const deletionWarning = preview.find((item) => item.localId === appId);
     recordStep("deletion", "飞书单侧删除只生成提示", deletionWarning?.type === "deletion_warning", deletionWarning?.type);
 
+    activeStep = "刷新令牌";
     const refreshed = await verifyFeishuRefreshToken(userId);
     recordStep("refresh", "刷新令牌真实调用并保存", Boolean(refreshed.expiresAt));
 
@@ -219,7 +227,8 @@ export async function POST() {
     return saveRun(failed ? "partial" : "succeeded", failed ? "部分验收断言未通过，可清理后重试" : undefined);
   } catch (error) {
     if (!runCreated) return apiError(error);
-    recordStep("runtime", "验收执行中断", false, error instanceof Error ? error.message : "验收失败");
-    return saveRun("partial", error instanceof Error ? error.message : "验收失败");
+    const message = error instanceof Error ? error.message : "验收失败";
+    recordStep("runtime", `${activeStep}执行中断`, false, message);
+    return saveRun("partial", `${activeStep}：${message}`);
   }
 }

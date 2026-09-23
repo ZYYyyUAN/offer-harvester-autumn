@@ -193,13 +193,13 @@ export async function createNativeDocument(ownerId: string, folderToken: string,
   const documentId = String(created.document?.document_id ?? created.document?.id ?? "");
   if (!documentId) throw new ApiError(502, "飞书未返回文档标识", "FEISHU_INVALID_RESPONSE");
   const children = paragraphs.filter(Boolean).slice(0, 300).map((content) => ({ block_type: 2, text: { elements: [{ text_run: { content: content.slice(0, 10_000) } }] } }));
-  if (children.length) await feishuRequest(ownerId, `/docx/v1/documents/${documentId}/blocks/${documentId}/children/batch_create`, { method: "POST", body: JSON.stringify({ children, index: -1 }) });
+  if (children.length) await feishuRequest(ownerId, `/docx/v1/documents/${documentId}/blocks/${documentId}/children`, { method: "POST", body: JSON.stringify({ children, index: -1 }) });
   return { documentId, url: `https://feishu.cn/docx/${documentId}` };
 }
 
 export async function appendNativeDocument(ownerId: string, documentId: string, paragraphs: string[]) {
   const children = paragraphs.filter(Boolean).slice(0, 300).map((content) => ({ block_type: 2, text: { elements: [{ text_run: { content: content.slice(0, 10_000) } }] } }));
-  if (children.length) await feishuRequest(ownerId, `/docx/v1/documents/${documentId}/blocks/${documentId}/children/batch_create`, { method: "POST", body: JSON.stringify({ children, index: -1 }) });
+  if (children.length) await feishuRequest(ownerId, `/docx/v1/documents/${documentId}/blocks/${documentId}/children`, { method: "POST", body: JSON.stringify({ children, index: -1 }) });
   return { documentId, url: `https://feishu.cn/docx/${documentId}` };
 }
 
