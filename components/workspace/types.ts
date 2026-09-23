@@ -1,4 +1,5 @@
 export type View = "dashboard" | "today" | "profile" | "resumes" | "savedJobs" | "applications" | "tasks" | "evidence" | "analysis" | "company" | "interviews" | "foreignPrep" | "offers" | "calendar" | "resources" | "knowledge" | "aiCenter" | "feishu" | "trash";
+export const workspaceViews: View[] = ["dashboard", "today", "profile", "resumes", "savedJobs", "applications", "tasks", "evidence", "analysis", "company", "interviews", "foreignPrep", "offers", "calendar", "resources", "knowledge", "aiCenter", "feishu", "trash"];
 export type Kind = "applications" | "saved_jobs" | "tasks" | "evidence" | "interviews" | "offers" | "reminders" | "analyses" | "research";
 export type RecordItem = { id: string; kind: Kind; title: string; data: Record<string, any>; version: number; createdAt: string; updatedAt: string; deletedAt: string | null };
 export type StoredFile = { id: string; filename: string; mimeType: string; size: number; metadata: Record<string, any>; version: number; createdAt: string; deletedAt?: string | null };

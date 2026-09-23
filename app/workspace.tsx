@@ -43,7 +43,7 @@ import { CalendarView, OffersView } from "@/components/workspace/decision-module
 import { FilePreview, RecordEditor } from "@/components/workspace/dialogs";
 import { FeishuView } from "@/components/workspace/feishu-module";
 import { api, EmptyState, Field, fileSize, formatDate, PageHead, StatusPill, useConfirmDialog } from "@/components/workspace/shared";
-import type { AIJob, Dashboard, Kind, RecordItem, ResearchDraft, StoredFile, View } from "@/components/workspace/types";
+import { workspaceViews, type AIJob, type Dashboard, type Kind, type RecordItem, type ResearchDraft, type StoredFile, type View } from "@/components/workspace/types";
 import { defaultJobSearchSettings, jobDeadlineStatus } from "@/lib/workflow-contracts";
 import {
   Dialog,
@@ -132,7 +132,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("view");
-    if (nav.some((item) => item.id === requested)) setView(requested as View);
+    if (workspaceViews.includes(requested as View)) setView(requested as View);
     const status = new URLSearchParams(window.location.search).get("feishu");
     if (status === "connected") toast.success("飞书授权已完成，请初始化专用空间");
     if (status === "error") toast.error(new URLSearchParams(window.location.search).get("message") || "飞书连接失败");
@@ -145,7 +145,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   }, [view, routeReady]);
 
   useEffect(() => {
-    const onPopState = () => { const requested = new URLSearchParams(window.location.search).get("view"); if (nav.some((item) => item.id === requested)) setView(requested as View); };
+    const onPopState = () => { const requested = new URLSearchParams(window.location.search).get("view"); if (workspaceViews.includes(requested as View)) setView(requested as View); };
     window.addEventListener("popstate", onPopState); return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
