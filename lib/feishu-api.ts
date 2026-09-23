@@ -131,7 +131,15 @@ export async function deleteBitableRecord(ownerId: string, config: FeishuWorkspa
   try {
     await feishuRequest(ownerId, `/bitable/v1/apps/${config.bitableAppToken}/tables/${config.tableId}/records/${recordId}`, { method: "DELETE" });
   } catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+    // Feishu can report a missing record as a successful HTTP response with a
+    // business error code. Deletion is idempotent: an already-missing record
+    // is the desired final state and must not leave acceptance cleanup partial.
+    if (!(error instanceof ApiError)
+      || (error.status !== 404
+        && error.code !== "FEISHU_1254043"
+        && error.message !== "RecordIdNotFound")) {
+      throw error;
+    }
   }
 }
 
