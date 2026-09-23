@@ -1136,7 +1136,7 @@ function FeishuView({ resumes, records, onDataChanged }: { resumes: StoredFile[]
   const reload = useCallback(async () => {
     const [connection, history, health] = await Promise.all([api<any>("/api/integrations/feishu"), api<any>("/api/integrations/feishu/runs"), api<any>("/api/integrations/feishu/diagnostics")]);
     setStatus(connection); setRuns(history.runs || []); setDiagnostic(health);
-    const latestAcceptance = (history.runs || []).find((run: any) => run.runType === "acceptance_suite"); if (latestAcceptance) setAcceptanceRun(latestAcceptance);
+    const acceptanceRuns = (history.runs || []).filter((run: any) => run.runType === "acceptance_suite"); const actionableAcceptance = acceptanceRuns.find((run: any) => run.status !== "cleaned") || acceptanceRuns[0]; if (actionableAcceptance) setAcceptanceRun(actionableAcceptance);
   }, []);
   useEffect(() => { reload().catch((error) => toast.error(error.message)); }, [reload]);
 
