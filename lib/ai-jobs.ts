@@ -85,7 +85,19 @@ function evaluationMetrics(result: Record<string, unknown>, caseId: string) {
   const precision = requirementTexts.length ? predictedMatched / requirementTexts.length : 0;
   const recall = fixture.expected.length ? expectedMatched / fixture.expected.length : 1;
   const unsupportedFacts = fixture.forbiddenFacts.filter((fact) => normalize(JSON.stringify(result)).includes(normalize(fact)));
-  return { caseId, expectedCount: fixture.expected.length, predictedCount: requirementTexts.length, matchedExpected: expectedMatched, matchedPredicted: predictedMatched, precision, recall, f1: precision + recall ? 2 * precision * recall / (precision + recall) : 0, unsupportedFacts, schemaValid: true };
+  return {
+    caseId,
+    expectedCount: fixture.expected.length,
+    predictedCount: requirementTexts.length,
+    matchedExpected: expectedMatched,
+    matchedPredicted: predictedMatched,
+    precision,
+    recall,
+    f1: precision + recall ? 2 * precision * recall / (precision + recall) : 0,
+    unsupportedFacts,
+    schemaValid: true,
+    citationCoverage: Number(result.citationCoverage ?? 0),
+  };
 }
 
 async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>) {
