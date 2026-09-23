@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
 
-const LinkSchema = z.object({ applicationId: z.string().min(1), fileId: z.string().nullable() }).strict();
+const LinkSchema = z.object({
+  applicationId: z.string().min(1),
+  applicationVersion: z.number().int().positive(),
+  fileId: z.string().nullable(),
+  fileVersion: z.number().int().positive().nullable().optional(),
+  previousFileVersion: z.number().int().positive().nullable().optional(),
+}).strict();
 
 export async function POST(request: Request) {
   try {
@@ -11,14 +17,20 @@ export async function POST(request: Request) {
     const application = await db.prepare("SELECT * FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL")
       .bind(input.applicationId, userId).first<Record<string, unknown>>();
     if (!application) throw new ApiError(404, "投递记录不存在");
+    if (Number(application.version) !== input.applicationVersion) {
+      throw new ApiError(409, "投递记录已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(application.version) });
+    }
     const data = safeJson<Record<string, any>>(String(application.data), {});
     const previousId = String(data.resumeId || "");
     let file: Record<string, unknown> | null = null;
     let fileMetadata: Record<string, any> | null = null;
     if (input.fileId) {
-      file = await db.prepare("SELECT id, filename, metadata FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
+      file = await db.prepare("SELECT id, filename, metadata, version FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
         .bind(input.fileId, userId).first<Record<string, unknown>>();
       if (!file) throw new ApiError(404, "简历不存在");
+      if (!Number.isInteger(input.fileVersion) || Number(file.version) !== input.fileVersion) {
+        throw new ApiError(409, "简历已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(file.version) });
+      }
       fileMetadata = safeJson<Record<string, any>>(String(file.metadata), {});
       if (fileMetadata.libraryType === "optimization" && fileMetadata.applicationId && fileMetadata.applicationId !== input.applicationId) throw new ApiError(409, "该优化简历已关联其他岗位");
       data.resumeId = input.fileId;
@@ -31,22 +43,25 @@ export async function POST(request: Request) {
       data.checklist = { ...(data.checklist || {}), resumeSelected: { done: false, at: new Date().toISOString() } };
     }
     const statements = [
-      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-        .bind(JSON.stringify(data), input.applicationId, userId),
+      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+        .bind(JSON.stringify(data), input.applicationId, userId, input.applicationVersion),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'activity_events', ?, ?)")
         .bind(crypto.randomUUID(), userId, input.fileId ? `关联简历：${data.resumeName}` : "取消简历关联", JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: input.fileId ? "resume_linked" : "resume_unlinked", fileId: input.fileId, previousFileId: previousId })),
     ];
     if (input.fileId && fileMetadata?.libraryType === "optimization") {
-      statements.push(db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-        .bind(input.applicationId, JSON.stringify({ ...fileMetadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || "") }), input.fileId, userId));
+      statements.push(db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+        .bind(input.applicationId, JSON.stringify({ ...fileMetadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || "") }), input.fileId, userId, input.fileVersion));
     }
     if (!input.fileId && previousId) {
-      const previous = await db.prepare("SELECT metadata FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume'").bind(previousId, userId).first<Record<string, unknown>>();
+      const previous = await db.prepare("SELECT metadata, version FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume'").bind(previousId, userId).first<Record<string, unknown>>();
       if (previous) {
+        if (!Number.isInteger(input.previousFileVersion) || Number(previous.version) !== input.previousFileVersion) {
+          throw new ApiError(409, "原关联简历已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(previous.version) });
+        }
         const previousMetadata = safeJson<Record<string, any>>(String(previous.metadata), {});
         if (previousMetadata.libraryType === "optimization" && previousMetadata.applicationId === input.applicationId) {
-          statements.push(db.prepare("UPDATE stored_files SET record_id = NULL, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-            .bind(JSON.stringify({ ...previousMetadata, applicationId: null, applicationCompany: "", applicationRole: "", isFinalSubmitted: false }), previousId, userId));
+          statements.push(db.prepare("UPDATE stored_files SET record_id = NULL, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+            .bind(JSON.stringify({ ...previousMetadata, applicationId: null, applicationCompany: "", applicationRole: "", isFinalSubmitted: false }), previousId, userId, input.previousFileVersion));
         }
       }
     }

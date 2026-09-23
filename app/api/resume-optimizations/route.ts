@@ -1,19 +1,21 @@
 import { z } from "zod";
 import { ApiError, apiError, getBindings, mapFile, requireApiUser, safeJson } from "@/lib/server-data";
 
-const CreateSchema = z.object({ applicationId: z.string().min(1), sourceFileId: z.string().min(1) }).strict();
+const CreateSchema = z.object({ applicationId: z.string().min(1), applicationVersion: z.number().int().positive(), sourceFileId: z.string().min(1), sourceFileVersion: z.number().int().positive() }).strict();
 
 export async function POST(request: Request) {
   try {
     const { userId } = await requireApiUser();
     const input = CreateSchema.parse(await request.json());
     const { db, bucket } = getBindings();
-    const application = await db.prepare("SELECT id, data FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL")
+    const application = await db.prepare("SELECT id, data, version FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL")
       .bind(input.applicationId, userId).first<Record<string, unknown>>();
     if (!application) throw new ApiError(404, "待投递岗位不存在");
-    const source = await db.prepare("SELECT id, filename, object_key, mime_type, size, metadata FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
+    if (Number(application.version) !== input.applicationVersion) throw new ApiError(409, "待投递岗位已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(application.version) });
+    const source = await db.prepare("SELECT id, filename, object_key, mime_type, size, metadata, version FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
       .bind(input.sourceFileId, userId).first<Record<string, unknown>>();
     if (!source) throw new ApiError(404, "源简历不存在");
+    if (Number(source.version) !== input.sourceFileVersion) throw new ApiError(409, "源简历已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(source.version) });
     const sourceObject = await bucket.get(String(source.object_key));
     if (!sourceObject) throw new ApiError(404, "源简历文件内容不存在");
 
@@ -48,8 +50,8 @@ export async function POST(request: Request) {
     await db.batch([
       db.prepare("INSERT INTO stored_files (id, owner_id, record_id, purpose, filename, object_key, mime_type, size, metadata) VALUES (?, ?, ?, 'resume', ?, ?, ?, ?, ?)")
         .bind(id, userId, input.applicationId, String(source.filename), objectKey, String(source.mime_type), Number(source.size), JSON.stringify(metadata)),
-      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-        .bind(JSON.stringify(appData), input.applicationId, userId),
+      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+        .bind(JSON.stringify(appData), input.applicationId, userId, input.applicationVersion),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'activity_events', ?, ?)")
         .bind(crypto.randomUUID(), userId, `创建岗位优化简历：${displayName}`, JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: "resume_optimization_created", fileId: id, sourceFileId: input.sourceFileId })),
     ]);

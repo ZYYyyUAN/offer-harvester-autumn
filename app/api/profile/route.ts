@@ -1,4 +1,5 @@
 import { ApiError, apiError, getDatabase, safeJson, requireApiUser } from "@/lib/server-data";
+import { ProfileDataSchema } from "@/lib/data-contracts";
 
 export async function GET() {
   try {
@@ -25,16 +26,17 @@ export async function PATCH(request: Request) {
       .prepare("SELECT data, version FROM profiles WHERE owner_id = ?")
       .bind(user.userId)
       .first<Record<string, unknown>>();
-    if (current && body.version && Number(current.version) !== body.version) {
-      throw new ApiError(409, "个人资料已在其他设备更新，请刷新后重试");
+    if (current && !Number.isInteger(body.version)) throw new ApiError(400, "修改个人资料必须提供版本号", "VERSION_REQUIRED");
+    if (current && Number(current.version) !== body.version) {
+      throw new ApiError(409, "个人资料已在其他设备更新，请刷新后重试", "VERSION_CONFLICT", false, { currentVersion: Number(current.version) });
     }
     const existing = current ? safeJson<Record<string, unknown>>(String(current.data), {}) : {};
     const { version: _version, ...updates } = body;
-    const data = { ...existing, ...updates, email: String(updates.email || existing.email || user.email) };
+    const data = ProfileDataSchema.parse({ ...existing, ...updates, email: String(updates.email || existing.email || user.email) });
     if (current) {
       await getDatabase()
-        .prepare("UPDATE profiles SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ?")
-        .bind(JSON.stringify(data), user.userId)
+        .prepare("UPDATE profiles SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND version = ?")
+        .bind(JSON.stringify(data), user.userId, body.version)
         .run();
     } else {
       await getDatabase()

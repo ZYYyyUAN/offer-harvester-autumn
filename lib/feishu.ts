@@ -144,6 +144,22 @@ async function refreshToken(refreshToken: string) {
   return parseToken(await exchange({ grant_type: "refresh_token", refresh_token: refreshToken }));
 }
 
+export async function verifyFeishuRefreshToken(ownerId: string) {
+  const connection = await getFeishuConnection(ownerId);
+  if (!connection?.refresh_token_encrypted) {
+    throw new ApiError(409, "飞书连接没有可用的刷新令牌，请重新授权", "FEISHU_REAUTH_REQUIRED");
+  }
+  try {
+    const refreshed = await refreshToken(await decryptSecret(String(connection.refresh_token_encrypted)));
+    await saveConnection(ownerId, refreshed);
+    return { expiresAt: refreshed.expiresAt, scopes: refreshed.scope };
+  } catch (error) {
+    await getDatabase().prepare("UPDATE integrations SET status = 'needs_reauth', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
+      .bind(error instanceof Error ? error.message : "令牌刷新失败", connection.id, ownerId).run();
+    throw new ApiError(401, "飞书刷新令牌验证失败，请重新连接", "FEISHU_REAUTH_REQUIRED");
+  }
+}
+
 export async function saveConnection(ownerId: string, tokens: TokenPayload, user?: { id?: string; name?: string; tenantKey?: string }) {
   const db = getDatabase();
   const existing = await getFeishuConnection(ownerId);

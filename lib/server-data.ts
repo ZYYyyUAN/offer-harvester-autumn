@@ -53,7 +53,7 @@ export function getDatabase() {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public code = "APP_ERROR", public retryable = false) {
+  constructor(public status: number, message: string, public code = "APP_ERROR", public retryable = false, public details?: Record<string, unknown>) {
     super(message);
   }
 }
@@ -61,7 +61,8 @@ export class ApiError extends Error {
 export function apiError(error: unknown) {
   const status = error instanceof ApiError ? error.status : 500;
   const message = error instanceof Error ? error.message : "服务暂时不可用";
-  return Response.json({ error: message }, { status });
+  const details = error instanceof ApiError ? error.details : undefined;
+  return Response.json({ error: message, code: error instanceof ApiError ? error.code : "INTERNAL_ERROR", ...(details || {}) }, { status });
 }
 
 export function safeJson<T>(value: string | null, fallback: T): T {

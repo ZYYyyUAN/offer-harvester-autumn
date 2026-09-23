@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
 
-const FinalizeSchema = z.object({ applicationId: z.string().min(1), fileId: z.string().min(1), appliedAt: z.string().datetime() }).strict();
+const FinalizeSchema = z.object({
+  applicationId: z.string().min(1),
+  applicationVersion: z.number().int().positive(),
+  fileId: z.string().min(1),
+  fileVersions: z.record(z.string(), z.number().int().positive()),
+  appliedAt: z.string().datetime(),
+}).strict();
 
 export async function POST(request: Request) {
   try {
@@ -11,9 +17,11 @@ export async function POST(request: Request) {
     const application = await db.prepare("SELECT * FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL")
       .bind(input.applicationId, userId).first<Record<string, unknown>>();
     if (!application) throw new ApiError(404, "投递记录不存在");
-    const selected = await db.prepare("SELECT id, filename, metadata FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
+    if (Number(application.version) !== input.applicationVersion) throw new ApiError(409, "投递记录已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(application.version) });
+    const selected = await db.prepare("SELECT id, filename, metadata, version FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL")
       .bind(input.fileId, userId).first<Record<string, unknown>>();
     if (!selected) throw new ApiError(404, "最终投递简历不存在");
+    if (input.fileVersions[input.fileId] !== Number(selected.version)) throw new ApiError(409, "最终投递简历已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(selected.version) });
     const selectedMetadata = safeJson<Record<string, any>>(String(selected.metadata), {});
     if (selectedMetadata.libraryType !== "optimization") throw new ApiError(400, "请先在简历优化库创建岗位专用版本");
     if (selectedMetadata.applicationId && selectedMetadata.applicationId !== input.applicationId) throw new ApiError(409, "该简历属于其他岗位");
@@ -31,20 +39,23 @@ export async function POST(request: Request) {
       resumeOptimized: { done: true, at: now },
       submitted: { done: true, at: input.appliedAt },
     };
-    const siblings = await db.prepare("SELECT id, metadata FROM stored_files WHERE owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL AND json_extract(metadata, '$.applicationId') = ?")
+    const siblings = await db.prepare("SELECT id, metadata, version FROM stored_files WHERE owner_id = ? AND purpose = 'resume' AND deleted_at IS NULL AND json_extract(metadata, '$.applicationId') = ?")
       .bind(userId, input.applicationId).all<Record<string, unknown>>();
+    for (const row of siblings.results) {
+      if (input.fileVersions[String(row.id)] !== Number(row.version)) throw new ApiError(409, "岗位专用简历已在其他设备更新", "VERSION_CONFLICT", false, { fileId: String(row.id), currentVersion: Number(row.version) });
+    }
     const statements = siblings.results.map((row) => {
       const metadata = safeJson<Record<string, any>>(String(row.metadata), {});
       const isSelected = String(row.id) === input.fileId;
-      return db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-        .bind(input.applicationId, JSON.stringify({ ...metadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: isSelected, submittedAt: isSelected ? input.appliedAt : null, optimizationStatus: isSelected ? "已投递" : "已归档" }), String(row.id), userId);
+      return db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+        .bind(input.applicationId, JSON.stringify({ ...metadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: isSelected, submittedAt: isSelected ? input.appliedAt : null, optimizationStatus: isSelected ? "已投递" : "已归档" }), String(row.id), userId, Number(row.version));
     });
     if (!siblings.results.some((row) => String(row.id) === input.fileId)) {
-      statements.push(db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?")
-        .bind(input.applicationId, JSON.stringify({ ...selectedMetadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: true, submittedAt: input.appliedAt, optimizationStatus: "已投递" }), input.fileId, userId));
+      statements.push(db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
+        .bind(input.applicationId, JSON.stringify({ ...selectedMetadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: true, submittedAt: input.appliedAt, optimizationStatus: "已投递" }), input.fileId, userId, input.fileVersions[input.fileId]));
     }
     statements.push(
-      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(JSON.stringify(data), input.applicationId, userId),
+      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?").bind(JSON.stringify(data), input.applicationId, userId, input.applicationVersion),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'application_events', ?, ?)")
         .bind(crypto.randomUUID(), userId, `完成投递：${data.resumeName}`, JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: "application_submitted", from: previousStage, to: "已投递", fileId: input.fileId, appliedAt: input.appliedAt }))
     );

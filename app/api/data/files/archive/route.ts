@@ -1,4 +1,5 @@
 import { apiError, getBindings, requireApiUser } from "@/lib/server-data";
+import { buildBackupFileEntries } from "@/lib/backup";
 
 function writeText(target: Uint8Array, offset: number, length: number, value: string) {
   target.set(new TextEncoder().encode(value).slice(0, length), offset);
@@ -25,26 +26,26 @@ function tarHeader(name: string, size: number, modifiedAt: string) {
   return header;
 }
 
-function archiveName(row: Record<string, unknown>) {
-  const original = String(row.filename || "file");
-  const match = original.match(/(\.[a-z0-9]{1,10})$/i);
-  const purpose = String(row.purpose || "files").replace(/[^a-z0-9_-]/gi, "_");
-  return `${purpose}/${String(row.id).replace(/[^a-z0-9_-]/gi, "_")}${match?.[1]?.toLowerCase() || ""}`;
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireApiUser();
     const { db, bucket } = getBindings();
-    const rows = await db.prepare("SELECT id, purpose, filename, object_key, size, updated_at FROM stored_files WHERE owner_id = ? AND deleted_at IS NULL ORDER BY purpose, created_at")
-      .bind(userId).all<Record<string, unknown>>();
+    const part = Math.max(0, Number(new URL(request.url).searchParams.get("part") || 0));
+    const manifest = await buildBackupFileEntries(userId);
+    const selected = manifest.filter((file) => file.part === part);
+    const ids = new Set(selected.map((file) => file.id));
+    const rows = await db.prepare("SELECT id, object_key, updated_at FROM stored_files WHERE owner_id = ? ORDER BY purpose, created_at").bind(userId).all<Record<string, unknown>>();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          for (const row of rows.results) {
+          const manifestBytes = new TextEncoder().encode(JSON.stringify({ schemaVersion: 3, part, files: selected }, null, 2));
+          controller.enqueue(tarHeader("manifest.json", manifestBytes.byteLength, new Date().toISOString())); controller.enqueue(manifestBytes);
+          const manifestPadding = (512 - (manifestBytes.byteLength % 512)) % 512; if (manifestPadding) controller.enqueue(new Uint8Array(manifestPadding));
+          for (const row of rows.results.filter((item) => ids.has(String(item.id)))) {
             const object = await bucket.get(String(row.object_key));
             if (!object) continue;
-            controller.enqueue(tarHeader(archiveName(row), object.size, String(row.updated_at)));
+            const entry = selected.find((item) => item.id === String(row.id))!;
+            controller.enqueue(tarHeader(entry.archivePath, object.size, String(row.updated_at)));
             const reader = object.body.getReader();
             while (true) {
               const { done, value } = await reader.read();
@@ -60,6 +61,6 @@ export async function GET() {
       },
     });
     const day = new Date().toISOString().slice(0, 10);
-    return new Response(stream, { headers: { "content-type": "application/x-tar", "content-disposition": `attachment; filename="offer-harvester-files-${day}.tar"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });
+    return new Response(stream, { headers: { "content-type": "application/x-tar", "content-disposition": `attachment; filename="offer-harvester-files-${day}-part-${part + 1}.tar"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });
   } catch (error) { return apiError(error); }
 }

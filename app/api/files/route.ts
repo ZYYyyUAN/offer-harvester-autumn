@@ -15,7 +15,12 @@ function validMagic(bytes: Uint8Array, mime: string) {
   if (mime === "image/png") return bytes[0] === 0x89 && String.fromCharCode(...bytes.slice(1, 4)) === "PNG";
   if (mime === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (mime === "image/webp") return String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
-  if (mime.startsWith("audio/") || mime.startsWith("video/")) return true;
+  if (mime === "audio/mpeg") return bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33 || bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0;
+  if (["audio/webm", "video/webm"].includes(mime)) return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+  if (["audio/mp4", "video/mp4"].includes(mime)) return String.fromCharCode(...bytes.slice(4, 8)) === "ftyp";
+  if (["audio/wav", "audio/x-wav"].includes(mime)) return String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WAVE";
+  if (mime === "audio/ogg") return String.fromCharCode(...bytes.slice(0, 4)) === "OggS";
+  if (mime === "audio/flac") return String.fromCharCode(...bytes.slice(0, 4)) === "fLaC";
   return false;
 }
 
@@ -92,12 +97,14 @@ export async function PATCH(request: Request) {
     const body = (await request.json()) as { id?: string; metadata?: Record<string, unknown>; version?: number; restore?: boolean };
     if (!body.id) throw new ApiError(400, "缺少文件 ID");
     const { db } = getBindings();
-    const current = await db.prepare("SELECT metadata, version FROM stored_files WHERE id = ? AND owner_id = ?").bind(body.id, userId).first<Record<string, unknown>>();
+    const current = await db.prepare("SELECT metadata, version, deleted_at FROM stored_files WHERE id = ? AND owner_id = ?").bind(body.id, userId).first<Record<string, unknown>>();
     if (!current) throw new ApiError(404, "文件不存在");
-    if (body.version && body.version !== Number(current.version)) throw new ApiError(409, "文件信息已被更新");
+    if (!Number.isInteger(body.version)) throw new ApiError(400, "修改文件必须提供版本号", "VERSION_REQUIRED");
+    if (body.version !== Number(current.version)) throw new ApiError(409, "文件信息已被更新", "VERSION_CONFLICT", false, { currentVersion: Number(current.version) });
+    if (current.deleted_at && !body.restore) throw new ApiError(409, "文件已在回收站，请先恢复", "FILE_DELETED");
     const metadata = { ...JSON.parse(String(current.metadata)), ...(body.metadata ?? {}) };
-    await db.prepare("UPDATE stored_files SET metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP, deleted_at = ? WHERE id = ? AND owner_id = ?")
-      .bind(JSON.stringify(metadata), body.restore ? null : null, body.id, userId).run();
+    await db.prepare("UPDATE stored_files SET metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP, deleted_at = ? WHERE id = ? AND owner_id = ? AND version = ?")
+      .bind(JSON.stringify(metadata), body.restore ? null : current.deleted_at, body.id, userId, body.version).run();
     return Response.json({ ok: true });
   } catch (error) {
     return apiError(error);
@@ -110,15 +117,19 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
     const permanent = url.searchParams.get("permanent") === "true";
+    const version = Number(url.searchParams.get("version"));
     if (!id) throw new ApiError(400, "缺少文件 ID");
+    if (!Number.isInteger(version)) throw new ApiError(400, "删除文件必须提供版本号", "VERSION_REQUIRED");
     const { db, bucket } = getBindings();
-    const row = await db.prepare("SELECT object_key FROM stored_files WHERE id = ? AND owner_id = ?").bind(id, userId).first<Record<string, unknown>>();
+    const row = await db.prepare("SELECT object_key, version, deleted_at FROM stored_files WHERE id = ? AND owner_id = ?").bind(id, userId).first<Record<string, unknown>>();
     if (!row) throw new ApiError(404, "文件不存在");
+    if (Number(row.version) !== version) throw new ApiError(409, "文件信息已被更新", "VERSION_CONFLICT", false, { currentVersion: Number(row.version) });
+    if (permanent && !row.deleted_at) throw new ApiError(409, "请先将文件移入回收站", "NOT_IN_TRASH");
     if (permanent) {
       await bucket.delete(String(row.object_key));
       await db.prepare("DELETE FROM stored_files WHERE id = ? AND owner_id = ?").bind(id, userId).run();
     } else {
-      await db.prepare("UPDATE stored_files SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ?").bind(id, userId).run();
+      await db.prepare("UPDATE stored_files SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ?").bind(id, userId, version).run();
     }
     return Response.json({ ok: true });
   } catch (error) {

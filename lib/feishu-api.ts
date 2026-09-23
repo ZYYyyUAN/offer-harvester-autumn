@@ -128,7 +128,11 @@ export async function updateBitableRecord(ownerId: string, config: FeishuWorkspa
 }
 
 export async function deleteBitableRecord(ownerId: string, config: FeishuWorkspaceConfig, recordId: string) {
-  await feishuRequest(ownerId, `/bitable/v1/apps/${config.bitableAppToken}/tables/${config.tableId}/records/${recordId}`, { method: "DELETE" });
+  try {
+    await feishuRequest(ownerId, `/bitable/v1/apps/${config.bitableAppToken}/tables/${config.tableId}/records/${recordId}`, { method: "DELETE" });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+  }
 }
 
 export async function listWorkspaceFiles(ownerId: string, config: FeishuWorkspaceConfig, folder: "resumes" | "reports" | "interviews" = "resumes") {
@@ -150,7 +154,11 @@ export async function uploadDriveFile(ownerId: string, folderToken: string, file
 }
 
 export async function deleteDriveFile(ownerId: string, token: string, type: "file" | "docx" = "file") {
-  await feishuRequest(ownerId, `/drive/v1/files/${encodeURIComponent(token)}?type=${type}`, { method: "DELETE" });
+  try {
+    await feishuRequest(ownerId, `/drive/v1/files/${encodeURIComponent(token)}?type=${type}`, { method: "DELETE" });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+  }
 }
 
 export async function downloadDriveFile(ownerId: string, token: string) {
