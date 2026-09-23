@@ -1213,7 +1213,7 @@ function FeishuView({ resumes, records, onDataChanged }: { resumes: StoredFile[]
         </section>
       </>}
     </>}
-    {runs.length > 0 && <section className="panel run-history"><div className="panel-title"><div><h2>同步审计记录</h2><p>保留预览、决定、结果与部分失败信息。</p></div></div>{runs.slice(0, 12).map((run) => <article key={run.id}><StatusPill tone={run.status === "succeeded" ? "green" : run.status === "partial" ? "orange" : "blue"}>{run.status}</StatusPill><span><b>{run.runType === "application_sync" ? "投递记录同步" : "妙记导入"}</b><small>{formatDate(run.createdAt, true)}</small></span><small>{run.error || `成功 ${run.result?.succeeded ?? 0} 项`}</small></article>)}</section>}{confirmation.dialog}
+    {runs.length > 0 && <section className="panel run-history"><div className="panel-title"><div><h2>同步审计记录</h2><p>保留预览、决定、结果与部分失败信息。</p></div></div>{runs.slice(0, 12).map((run) => <article key={run.id}><StatusPill tone={run.status === "succeeded" || run.status === "cleaned" ? "green" : run.status === "partial" || run.status === "failed" ? "orange" : "blue"}>{run.status}</StatusPill><span><b>{({ application_sync: "投递记录同步", acceptance_suite: "合成全链路验收", minutes_import: "妙记导入", resume_import: "简历导入", resume_export: "简历导出", report_export: "报告导出" } as Record<string, string>)[run.runType] || "飞书集成任务"}</b><small>{formatDate(run.createdAt, true)}</small></span><small>{run.error || (run.runType === "acceptance_suite" ? `${run.result?.steps?.filter((step: any) => step.status === "succeeded").length ?? 0} 个步骤通过` : `成功 ${run.result?.succeeded ?? 0} 项`)}</small></article>)}</section>}{confirmation.dialog}
   </>;
 }
 
