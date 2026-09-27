@@ -622,11 +622,12 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       ...records.tasks.filter((item) => item.data.dueAt && !["done", "dismissed"].includes(item.data.status)).map((item) => ({ id: `task-${item.id}`, data: { dueAt: item.data.dueAt, title: item.data.title, notes: item.data.notes || "行动任务" } })),
     ];
     const events = sourceEvents.map((item) => {
-      const date = new Date(item.data.dueAt || (item.data as Record<string, any>).date);
+      const data = item.data as Record<string, any>;
+      const date = new Date(data.dueAt || data.date);
       if (!Number.isFinite(date.getTime())) return "";
       const stamp = date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-      const end = new Date(date.getTime() + Number(item.data.durationMinutes || 60) * 60_000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-      return `BEGIN:VEVENT\r\nUID:${item.id}@offer-harvester\r\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}\r\nDTSTART:${stamp}\r\nDTEND:${end}\r\nSUMMARY:${String(item.data.title || "求职提醒").replace(/[,;]/g, " ")}\r\nDESCRIPTION:${String(item.data.notes || "").replace(/\n/g, "\\n")}\r\nEND:VEVENT`;
+      const end = new Date(date.getTime() + Number(data.durationMinutes || 60) * 60_000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+      return `BEGIN:VEVENT\r\nUID:${item.id}@offer-harvester\r\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}\r\nDTSTART:${stamp}\r\nDTEND:${end}\r\nSUMMARY:${String(data.title || "求职提醒").replace(/[,;]/g, " ")}\r\nDESCRIPTION:${String(data.notes || "").replace(/\n/g, "\\n")}\r\nEND:VEVENT`;
     }).filter(Boolean).join("\r\n");
     const blob = new Blob([`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//OFFER Harvester//CN\r\n${events}\r\nEND:VCALENDAR`], { type: "text/calendar;charset=utf-8" });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "offer-harvester-calendar.ics"; link.click(); URL.revokeObjectURL(link.href);

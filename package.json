@@ -12,6 +12,7 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "start:e2e": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/e2e --ip 127.0.0.1 --port 4173 --inspector-port 0",
     "lint": "node ./node_modules/eslint/bin/eslint.js app components lib tests scripts",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:e2e": "npm run build && node scripts/e2e-db.mjs && playwright test"
