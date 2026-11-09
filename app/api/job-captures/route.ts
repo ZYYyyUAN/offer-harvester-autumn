@@ -12,7 +12,8 @@ export async function POST(request: Request) {
       if (!file) throw new ApiError(404, "岗位截图不存在");
     }
     const type = input.screenshotFileId ? "job_capture_image" : "job_capture_url";
-    const created = await createAIJob(userId, type, input, { sourceRefs: [{ type: input.screenshotFileId ? "job_screenshot" : "job_url", id: input.screenshotFileId || input.sourceUrl }] });
+    const jobInput = input.screenshotFileId ? { fileId: input.screenshotFileId } : { sourceUrl: input.sourceUrl };
+    const created = await createAIJob(userId, type, jobInput, { sourceRefs: [{ type: input.screenshotFileId ? "job_screenshot" : "job_url", id: input.screenshotFileId || input.sourceUrl }] });
     return Response.json(await runAIJob(userId, created.job.id), { status: 201 });
   } catch (error) { return apiError(error); }
 }

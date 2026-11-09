@@ -5,6 +5,8 @@ import { getEvaluationCase } from "@/lib/ai-evaluation-cases";
 import { jobCaptureJsonSchema, normalizeJobCapture } from "@/lib/workflow-contracts";
 import { atomicBatch, insertRecord, versionGuard } from "@/lib/jd-store";
 import { executeJDJob } from "@/lib/jd-feature";
+import { publicAtsSource } from "@/lib/job-source-contracts";
+import { readPublicAtsJob } from "@/lib/job-source";
 
 type JobRow = Record<string, unknown>;
 type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: string; status?: string };
@@ -21,7 +23,7 @@ const promptFor: Record<AIJobType, string> = {
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
   foreign_interview_review: "foreign-interview-review-v1",
-  job_capture_url: "job-capture-url-v1", job_capture_image: "job-capture-image-v1",
+  job_capture_url: "job-capture-url-v2", job_capture_image: "job-capture-image-v1",
 };
 
 export function mapAIJob(row: JobRow) {
@@ -43,8 +45,9 @@ export function mapAttempt(row: JobRow) {
 
 export async function createAIJob(ownerId: string, type: AIJobType, input: Record<string, unknown>, options: { batchId?: string; sourceRefs?: unknown[] } = {}) {
   const id = crypto.randomUUID();
+  const publicSource = type === "job_capture_url" && publicAtsSource(String(input.sourceUrl || ""));
   await getDatabase().prepare("INSERT INTO ai_jobs (id, owner_id, batch_id, type, status, input_snapshot, source_refs, model, prompt_version) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?)")
-    .bind(id, ownerId, options.batchId ?? null, type, JSON.stringify(input), JSON.stringify(options.sourceRefs ?? []), modelFor[type], promptFor[type]).run();
+    .bind(id, ownerId, options.batchId ?? null, type, JSON.stringify(input), JSON.stringify(options.sourceRefs ?? []), publicSource ? "public-ats-parser" : modelFor[type], publicSource ? "public-ats-v1" : promptFor[type]).run();
   return getAIJob(ownerId, id);
 }
 
@@ -102,12 +105,15 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
   if (type === "job_capture_url") {
     const sourceUrl = String(input.sourceUrl || "").trim();
     try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { throw new ApiError(400, "请输入有效的公开岗位链接"); }
+    const publicSource = publicAtsSource(sourceUrl);
+    if (publicSource) return { result: await readPublicAtsJob(publicSource, sourceUrl), usage: {}, confidence: "high", record: null };
     const response = await responsesSearch({
       system: "你是严格的岗位信息提取器。只提取指定网页正文实际出现的信息；缺失字段返回空字符串。不得依据常识补全公司、薪资或截止日期。evidence 必须引用网页原文。",
       prompt: `仅访问并抽取这个岗位页面：${sourceUrl}\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）、完整 JD。若网页要求登录、出现验证码或正文不可访问，在 warnings 中说明，不要改用其他职位。sourceUrl 原样返回。`,
       schemaName: "job_capture_url_v1", schema: jobCaptureJsonSchema,
     });
     const normalized = normalizeJobCapture(response.data, sourceUrl);
+    if (!normalized.company && !normalized.role && !normalized.jd) throw new ApiError(422, "未能读取这个岗位链接的正文。请上传 JD 截图或粘贴岗位职责与任职要求；已经填写的信息会保留。", "PAGE_CONTENT_UNAVAILABLE");
     return { result: { ...normalized, sources: response.sources }, usage: response.usage, confidence: response.sources.length && normalized.company && normalized.role ? "medium" : "low", record: null };
   }
   if (type === "job_capture_image") {
@@ -206,8 +212,11 @@ export async function runAIJob(ownerId: string, id: string) {
   if (row.status === "cancelled") throw new ApiError(409, "任务已取消");
   if (row.status === "succeeded") return getAIJob(ownerId, id);
   if (row.status === "running") return getAIJob(ownerId, id);
+  if (row.type === "job_capture_url" && publicAtsSource(String(safeJson<Record<string, unknown>>(String(row.input_snapshot), {}).sourceUrl || ""))) {
+    row.model = "public-ats-parser"; row.prompt_version = "public-ats-v1";
+  }
   const started = Date.now();
-  const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(id, ownerId, Number(row.version)).run();
+  const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', model = ?, prompt_version = ?, started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(String(row.model), String(row.prompt_version), id, ownerId, Number(row.version)).run();
   if (!claimed.meta.changes) return getAIJob(ownerId, id);
   const runVersion = Number(row.version) + 1;
   const countRow = await db.prepare("SELECT COUNT(*) AS count FROM ai_job_attempts WHERE job_id = ?").bind(id).first<JobRow>();

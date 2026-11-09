@@ -1,0 +1,35 @@
+{
+  "createdAt": "2026-11-09T12:09:55.380Z",
+  "syntheticCandidateDataOnly": true,
+  "cases": [
+    {
+      "name": "accessible_public_job",
+      "status": 201,
+      "passed": true,
+      "company": "Cloudflare",
+      "role": "Software Engineer, FL",
+      "location": "London",
+      "jdLength": 4173,
+      "model": "qwen3.8-max"
+    },
+    {
+      "name": "reported_feishu_url",
+      "status": 201,
+      "passed": true,
+      "company": "北京趣拿软件科技有限公司",
+      "role": "AI应用开发工程师（Java开发）",
+      "location": "北京",
+      "jdLength": 594,
+      "captureMethod": "public_ats_api",
+      "model": "public-ats-parser"
+    },
+    {
+      "name": "synthetic_screenshot",
+      "status": 201,
+      "passed": true,
+      "company": "Synthetic Capture Ltd",
+      "role": "Java Backend Engineer"
+    }
+  ],
+  "passed": true
+}

@@ -192,10 +192,10 @@ export async function responsesSearch(options: { system: string; prompt: string;
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model: "qwen3.8-max",
-      input: `${options.system}\n\n${options.prompt}\n只返回符合指定结构的 JSON。`,
+      input: `${options.system}\n\n${options.prompt}\n只返回符合以下 JSON Schema 的 JSON，不要添加 Markdown：${JSON.stringify(options.schema)}`,
       tools: [{ type: "web_search" }, { type: "web_extractor" }],
       enable_thinking: true,
-      text: { format: { type: "json_schema", name: options.schemaName, strict: true, schema: options.schema } },
+      text: { format: { type: "json_schema", json_schema: { name: options.schemaName, strict: true, schema: options.schema } } },
     }),
   });
   const output = Array.isArray(response.output) ? response.output as Array<Record<string, unknown>> : [];
