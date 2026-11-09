@@ -43,7 +43,7 @@ export async function applicationSaveStatements(ownerId: string, id: string, dat
   const statements: D1PreparedStatement[] = [];
   if (existing) statements.push(versionGuard(ownerId, id, existing.version));
   const submission = (await listKind(ownerId, "job_submissions")).find((s) => s.data.applicationId === id);
-  if (!submission && isSubmitted(data)) {
+  if (!submission && (isSubmitted(data) || (lateEntry && existing))) {
     const submissionId = crypto.randomUUID(), snapshotId = crypto.randomUUID();
     const snap = await snapshotData(ownerId, { id, data }, { submissionId, reason: lateEntry || (existing && isSubmitted(existing.data)) ? "late_entry" : "submitted" });
     const prior = (await listKind(ownerId, "jd_snapshots")).filter((s) => s.data.sourceEntryId === snap.sourceEntryId).sort((a, b) => b.data.revision - a.data.revision)[0];

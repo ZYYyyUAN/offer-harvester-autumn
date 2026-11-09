@@ -74,7 +74,7 @@ export function JDArchivePanel({ sourceId }: { sourceId: string }) {
         </article>;
       })}</div>}
     </> : <p>尚无历史快照。可以先补录；系统不会把今天的 JD 冒充为投递当天的内容。</p>}
-    {editing && <Dialog open onOpenChange={setEditing}><DialogContent><DialogHeader><DialogTitle>补录或纠正 JD</DialogTitle><DialogDescription>已有快照时会创建修订版，保留原文及原投递简历。</DialogDescription></DialogHeader>
+    {editing && <Dialog open onOpenChange={setEditing}><DialogContent><DialogHeader><DialogTitle>补录或纠正 JD</DialogTitle><DialogDescription>已有快照时会创建修订版，保留原文及原投递简历。投递记录首次补录前，请确认你确实投递过该岗位；时间未知可以保持未知。</DialogDescription></DialogHeader>
       <Field label="完整 JD"><Textarea rows={12} value={jd} onChange={(e) => setJd(e.target.value)} /></Field>
       <Field label="补录 / 纠正原因"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
       <DialogFooter><Button variant="outline" onClick={() => setEditing(false)}>取消</Button><Button disabled={busy || !reason.trim()} onClick={async () => { if (await act("sources/" + sourceId + "/archive", { version: data.source.version, jd, reason })) setEditing(false); }}>保存新归档</Button></DialogFooter>

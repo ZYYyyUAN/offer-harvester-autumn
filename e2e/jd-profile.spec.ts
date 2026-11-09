@@ -30,6 +30,10 @@ test("投递归档不可覆盖、各入口幂等、并发和所有权",async({re
   const pending=(await json(await request.post("/api/records",{data:{kind:"applications",data:{company:"空JD合成",role:"后端",stage:"待投递"}}}))).record;
   await json(await request.post("/api/applications/checklist",{data:{id:pending.id,version:pending.version,key:"submitted",done:true}}));
   expect((await archive(request,pending.id))[0].data.contentStatus).toBe("missing");
+  const ended=(await json(await request.post("/api/records",{data:{kind:"applications",data:{company:"历史已结束",role:"后端",stage:"已结束"}}}))).record;
+  expect(await archive(request,ended.id)).toHaveLength(0);
+  await json(await request.post("/api/jd/sources/"+ended.id+"/archive",{data:{version:ended.version,jd:"必须掌握 Java。",reason:"用户确认曾投递，补录历史"}}));
+  const late=(await archive(request,ended.id))[0];expect(late.data.captureReason).toBe("late_entry");expect(late.data.appliedAt).toBeNull();
 });
 test("真实管线配合模拟供应商：提取、差距、任务、修改稿和备份往返",async({request,page},info)=>{
   const app=await create(request); const snap=(await archive(request,app.id))[0];
