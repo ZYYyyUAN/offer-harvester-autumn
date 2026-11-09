@@ -1,4 +1,5 @@
 import { ApiError, apiError, getBindings, mapFile, requireApiUser } from "@/lib/server-data";
+import { sha256Hex } from "@/lib/data-safety";
 
 const limits: Record<string, number> = { resume: 20 * 1024 * 1024, avatar: 5 * 1024 * 1024, audio: 10 * 1024 * 1024, job_screenshot: 10 * 1024 * 1024 };
 const allowed: Record<string, string[]> = {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
     const objectKey = `${userId}/${purpose}/${id}`;
     const metadata = {
+      sha256: await sha256Hex(body),
       displayName: url.searchParams.get("displayName") || filename,
       target: url.searchParams.get("target") || "",
       note: url.searchParams.get("note") || "",

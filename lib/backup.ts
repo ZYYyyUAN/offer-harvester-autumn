@@ -1,4 +1,4 @@
-import { getBindings, safeJson } from "./server-data.ts";
+import { ApiError, getBindings, safeJson } from "./server-data.ts";
 import { safeArchiveName, sha256Hex } from "./data-safety.ts";
 
 export { safeArchiveName, sha256Hex } from "./data-safety.ts";
@@ -17,7 +17,7 @@ export async function buildBackupFileEntries(ownerId: string) {
   const entries: BackupFileEntry[] = []; let part = 0; let partBytes = 0;
   for (const row of rows.results) {
     const object = await bucket.get(String(row.object_key));
-    if (!object) continue;
+    if (!object) throw new ApiError(422, "备份缺少原文件：" + String(row.filename));
     if (partBytes && partBytes + object.size > BACKUP_PART_BYTES) { part++; partBytes = 0; }
     const buffer = await object.arrayBuffer();
     entries.push({

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
+import { ZodError } from "zod";
 
 export type StoredRecord = {
   id: string;
@@ -59,6 +60,7 @@ export class ApiError extends Error {
 }
 
 export function apiError(error: unknown) {
+  if (error instanceof ZodError) return Response.json({ error: "输入或数据结构不符合要求", code: "VALIDATION_ERROR", issues: error.issues.map((item) => ({ path: item.path, message: item.message })) }, { status: 400 });
   const status = error instanceof ApiError ? error.status : 500;
   const message = error instanceof Error ? error.message : "服务暂时不可用";
   const details = error instanceof ApiError ? error.details : undefined;

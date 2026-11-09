@@ -1,0 +1,6 @@
+CREATE UNIQUE INDEX `uq_jd_submission_application` ON `records` (`owner_id`,json_extract("data", '$.applicationId')) WHERE "records"."kind" = 'job_submissions' AND "records"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_jd_snapshot_revision` ON `records` (`owner_id`,json_extract("data", '$.sourceEntryId'),json_extract("data", '$.revision')) WHERE "records"."kind" = 'jd_snapshots' AND "records"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_jd_ai_result` ON `records` (`owner_id`,`kind`,json_extract("data", '$.aiJobId')) WHERE "records"."kind" IN ('jd_extractions', 'resume_gap_analyses');--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_jd_edit_revision` ON `records` (`owner_id`,json_extract("data", '$.extractionId'),json_extract("data", '$.requirementKey'),json_extract("data", '$.revision')) WHERE "records"."kind" = 'jd_requirement_edits';--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_jd_suggestion_task` ON `records` (`owner_id`,json_extract("data", '$.sourceSuggestionId')) WHERE "records"."kind" = 'tasks' AND json_extract("records"."data", '$.sourceSuggestionId') IS NOT NULL;--> statement-breakpoint
+CREATE INDEX `idx_jd_source` ON `records` (`owner_id`,`kind`,json_extract("data", '$.sourceEntryId'));

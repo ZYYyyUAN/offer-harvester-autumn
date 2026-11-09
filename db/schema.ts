@@ -29,6 +29,12 @@ export const records = sqliteTable(
       table.deletedAt,
     ),
     index("idx_records_owner_updated").on(table.ownerId, table.updatedAt),
+    uniqueIndex("uq_jd_submission_application").on(table.ownerId, sql`json_extract(${table.data}, '$.applicationId')`).where(sql`${table.kind} = 'job_submissions' AND ${table.deletedAt} IS NULL`),
+    uniqueIndex("uq_jd_snapshot_revision").on(table.ownerId, sql`json_extract(${table.data}, '$.sourceEntryId')`, sql`json_extract(${table.data}, '$.revision')`).where(sql`${table.kind} = 'jd_snapshots' AND ${table.deletedAt} IS NULL`),
+    uniqueIndex("uq_jd_ai_result").on(table.ownerId, table.kind, sql`json_extract(${table.data}, '$.aiJobId')`).where(sql`${table.kind} IN ('jd_extractions', 'resume_gap_analyses')`),
+    uniqueIndex("uq_jd_edit_revision").on(table.ownerId, sql`json_extract(${table.data}, '$.extractionId')`, sql`json_extract(${table.data}, '$.requirementKey')`, sql`json_extract(${table.data}, '$.revision')`).where(sql`${table.kind} = 'jd_requirement_edits'`),
+    uniqueIndex("uq_jd_suggestion_task").on(table.ownerId, sql`json_extract(${table.data}, '$.sourceSuggestionId')`).where(sql`${table.kind} = 'tasks' AND json_extract(${table.data}, '$.sourceSuggestionId') IS NOT NULL`),
+    index("idx_jd_source").on(table.ownerId, table.kind, sql`json_extract(${table.data}, '$.sourceEntryId')`),
   ],
 );
 

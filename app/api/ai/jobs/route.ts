@@ -4,7 +4,7 @@ import { createAIJob, expireStaleJobs, mapAIJob } from "@/lib/ai-jobs";
 import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
 
 const CreateSchema = z.object({
-  type: AIJobTypeSchema.exclude(["evaluation_case"]),
+  type: AIJobTypeSchema.exclude(["evaluation_case", "jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"]),
   input: z.record(z.unknown()).default({}),
   sourceRefs: z.array(z.unknown()).optional(),
 }).strict();

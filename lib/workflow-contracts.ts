@@ -35,6 +35,14 @@ export const ActionTaskSchema = z.object({
   checklistKey: z.string().max(80).default(""),
   createdBy: z.enum(["user", "ai", "system"]).default("user"),
   aiJobId: z.string().max(120).default(""),
+  sourceSuggestionId: z.string().max(240).optional(),
+  deletionBatchId: z.string().optional(),
+  gapAnalysisId: z.string().max(200).optional(),
+  targetResumeFileId: z.string().max(200).optional(),
+  targetResumeSha256: z.string().max(64).optional(),
+  sourceSnapshotIds: z.array(z.string()).optional(),
+  requirementIds: z.array(z.string()).optional(),
+  capabilityDecision: z.enum(["unknown", "has_evidence", "needs_practice"]).optional(),
   sourceRefs: z.array(z.object({ type: z.string(), id: z.string(), quote: z.string().optional() }).passthrough()).max(30).default([]),
 }).strict();
 

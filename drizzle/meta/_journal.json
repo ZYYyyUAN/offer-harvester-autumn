@@ -43,6 +43,13 @@
       "when": 1789900315692,
       "tag": "0005_nifty_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794154799013,
+      "tag": "0006_remarkable_hercules",
+      "breakpoints": true
     }
   ]
 }

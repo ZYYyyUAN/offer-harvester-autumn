@@ -9,6 +9,7 @@ const navigation = [
   ["dashboard", "数据总览", LayoutDashboard], ["today", "今日行动", Timer], ["profile", "个人资料", UserRound], ["feishu", "飞书同步", RefreshCw],
   ["resumes", "简历库", FileText], ["savedJobs", "收藏岗位", Bookmark], ["applications", "投递看板", BriefcaseBusiness], ["tasks", "行动清单", ListChecks],
   ["evidence", "事实库", Database], ["analysis", "岗位分析", Sparkles], ["aiCenter", "AI 任务中心", ListChecks], ["company", "公司背调", Building2],
+  ["skillProfile", "JD 技能画像", BookOpen],
   ["interviews", "面试复盘", MessagesSquare], ["foreignPrep", "外企准备", Globe2], ["offers", "OFFER 决策", Scale], ["calendar", "日程提醒", CalendarDays],
   ["knowledge", "求职知识库", BookOpen], ["resources", "寻找岗位", Search], ["trash", "回收站", Trash2],
 ] as const;

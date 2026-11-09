@@ -30,9 +30,13 @@ test("资料、投递并发、回收站与备份 v3", async ({ request }) => {
   const backup = await request.get("/api/data/export?format=json");
   expect(backup.ok()).toBeTruthy();
   const payload = await backup.json();
-  expect(payload.schemaVersion).toBe(3);
+  expect(payload.schemaVersion).toBe(4);
   expect(payload.records.some((item: any) => item.id === record.id)).toBeTruthy();
   expect(Array.isArray(payload.aiJobs)).toBeTruthy();
+  const legacy={...payload,schemaVersion:3,records:payload.records.map((item:any)=>item.id===record.id?{...item,data:{...item.data,notes:"v3 备份恢复"}}:item)};
+  const preview=await request.post("/api/data/imports",{data:{filename:"legacy-v3.json",content:JSON.stringify(legacy)}});expect(preview.ok()).toBe(true);
+  const importId=(await preview.json()).importId;expect((await request.post("/api/data/imports/"+importId+"/commit",{data:{decisions:{[record.id]:"backup"}}})).ok()).toBe(true);
+  expect((await (await request.get("/api/records?kind=applications")).json()).records.find((item:any)=>item.id===record.id).data.notes).toBe("v3 备份恢复");
 });
 
 test("附件版本冲突、回收站恢复与哈希归档", async ({ request }) => {
@@ -83,7 +87,7 @@ test("桌面和移动端导航、弹窗、按钮名称与横向溢出", async ({
   await page.getByRole("button", { name: /新增投递/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel("公司")).toBeVisible();
+  await expect(dialog.getByLabel("公司", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   const unnamedButtons = await page.locator("button:visible").evaluateAll((buttons) => buttons.filter((button) => !(button.getAttribute("aria-label") || button.textContent?.trim() || button.getAttribute("title"))).length);

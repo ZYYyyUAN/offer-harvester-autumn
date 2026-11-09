@@ -15,7 +15,10 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: { baseURL: "http://127.0.0.1:4173", extraHTTPHeaders: authHeaders, trace: "retain-on-failure", screenshot: "only-on-failure" },
-  webServer: { command: "npm run start:e2e", url: "http://127.0.0.1:4173/favicon.svg", reuseExistingServer: false, timeout: 120_000 },
+  webServer: [
+    { command: "node scripts/e2e-ai.mjs", url: "http://127.0.0.1:4174", reuseExistingServer: false, timeout: 30_000 },
+    { command: "npm run start:e2e", url: "http://127.0.0.1:4173/favicon.svg", reuseExistingServer: false, timeout: 120_000 },
+  ],
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], channel: "chrome", viewport: { width: 1440, height: 900 } } },
     { name: "mobile", use: { ...devices["Desktop Chrome"], channel: "chrome", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },

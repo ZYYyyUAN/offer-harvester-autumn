@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
+import { applicationSaveStatements } from "@/lib/application-submission";
+import { atomicBatch, versionGuard } from "@/lib/jd-store";
 
 const FinalizeSchema = z.object({
   applicationId: z.string().min(1),
@@ -28,11 +30,11 @@ export async function POST(request: Request) {
     const data = safeJson<Record<string, any>>(String(application.data), {});
     const now = new Date().toISOString();
     const previousStage = String(data.stage || "待投递");
-    data.stage = "已投递";
+    data.stage = previousStage === "待投递" ? "已投递" : previousStage;
     data.resumeId = input.fileId;
     data.finalResumeFileId = input.fileId;
     data.resumeName = String(selectedMetadata.displayName || selected.filename);
-    data.appliedAt = input.appliedAt;
+    data.appliedAt = data.appliedAt || input.appliedAt;
     data.checklist = {
       ...(data.checklist || {}),
       resumeSelected: { done: true, at: now },
@@ -44,22 +46,23 @@ export async function POST(request: Request) {
     for (const row of siblings.results) {
       if (input.fileVersions[String(row.id)] !== Number(row.version)) throw new ApiError(409, "岗位专用简历已在其他设备更新", "VERSION_CONFLICT", false, { fileId: String(row.id), currentVersion: Number(row.version) });
     }
-    const statements = siblings.results.map((row) => {
+    const statements: D1PreparedStatement[] = siblings.results.map((row) => versionGuard(userId, String(row.id), Number(row.version), "stored_files"));
+    statements.push(versionGuard(userId, input.fileId, Number(selected.version), "stored_files"));
+    statements.push(...siblings.results.map((row) => {
       const metadata = safeJson<Record<string, any>>(String(row.metadata), {});
       const isSelected = String(row.id) === input.fileId;
       return db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
         .bind(input.applicationId, JSON.stringify({ ...metadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: isSelected, submittedAt: isSelected ? input.appliedAt : null, optimizationStatus: isSelected ? "已投递" : "已归档" }), String(row.id), userId, Number(row.version));
-    });
+    }));
     if (!siblings.results.some((row) => String(row.id) === input.fileId)) {
       statements.push(db.prepare("UPDATE stored_files SET record_id = ?, metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?")
         .bind(input.applicationId, JSON.stringify({ ...selectedMetadata, applicationId: input.applicationId, applicationCompany: String(data.company || ""), applicationRole: String(data.role || ""), isFinalSubmitted: true, submittedAt: input.appliedAt, optimizationStatus: "已投递" }), input.fileId, userId, input.fileVersions[input.fileId]));
     }
     statements.push(
-      db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?").bind(JSON.stringify(data), input.applicationId, userId, input.applicationVersion),
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'application_events', ?, ?)")
         .bind(crypto.randomUUID(), userId, `完成投递：${data.resumeName}`, JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: "application_submitted", from: previousStage, to: "已投递", fileId: input.fileId, appliedAt: input.appliedAt }))
     );
-    await db.batch(statements);
+    await atomicBatch([...(await applicationSaveStatements(userId, input.applicationId, data, mapRecord(application))), ...statements]);
     const saved = await db.prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE id = ? AND owner_id = ?")
       .bind(input.applicationId, userId).first<Record<string, unknown>>();
     return Response.json({ application: mapRecord(saved!) });

@@ -3,17 +3,21 @@ import { aiErrorDetails, analyzeResumeFile, ocrImage, responsesSearch, structure
 import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, ForeignInterviewReviewSchema, foreignInterviewJsonSchema, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
 import { getEvaluationCase } from "@/lib/ai-evaluation-cases";
 import { jobCaptureJsonSchema, normalizeJobCapture } from "@/lib/workflow-contracts";
+import { atomicBatch, insertRecord, versionGuard } from "@/lib/jd-store";
+import { executeJDJob } from "@/lib/jd-feature";
 
 type JobRow = Record<string, unknown>;
 type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: string; status?: string };
 
 const modelFor: Record<AIJobType, string> = {
+  jd_requirements_extract: "qwen3.8-max", resume_text_extract: "qwen-doc-turbo", resume_gap_analysis: "qwen3.8-max",
   job_analysis: "qwen3.8-max", resume_suggestions: "qwen-doc-turbo", company_research: "qwen3.8-max",
   interview_review: "qwen3.8-max", transcription: "qwen3-asr-flash", evaluation_case: "qwen3.8-max",
   foreign_interview_review: "qwen3.8-max",
   job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
+  jd_requirements_extract: "jd-requirements-v2", resume_text_extract: "resume-text-v1", resume_gap_analysis: "resume-gap-v4",
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
   foreign_interview_review: "foreign-interview-review-v1",
@@ -49,12 +53,6 @@ export async function getAIJob(ownerId: string, id: string) {
   if (!row) throw new ApiError(404, "AI 任务不存在");
   const attempts = await getDatabase().prepare("SELECT * FROM ai_job_attempts WHERE job_id = ? AND owner_id = ? ORDER BY attempt_number ASC").bind(id, ownerId).all<JobRow>();
   return { job: mapAIJob(row), attempts: attempts.results.map(mapAttempt) };
-}
-
-async function saveRecord(ownerId: string, kind: string, title: string, data: Record<string, unknown>) {
-  const id = crypto.randomUUID();
-  await getDatabase().prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, ?, ?, ?)").bind(id, ownerId, kind, title, JSON.stringify(data)).run();
-  return id;
 }
 
 function cleanAnalysis(data: Record<string, unknown>, evidence: Evidence[]) {
@@ -207,15 +205,19 @@ export async function runAIJob(ownerId: string, id: string) {
   if (!row) throw new ApiError(404, "AI 任务不存在");
   if (row.status === "cancelled") throw new ApiError(409, "任务已取消");
   if (row.status === "succeeded") return getAIJob(ownerId, id);
+  if (row.status === "running") return getAIJob(ownerId, id);
   const started = Date.now();
-  await db.prepare("UPDATE ai_jobs SET status = 'running', started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ?").bind(id, ownerId).run();
+  const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(id, ownerId, Number(row.version)).run();
+  if (!claimed.meta.changes) return getAIJob(ownerId, id);
+  const runVersion = Number(row.version) + 1;
   const countRow = await db.prepare("SELECT COUNT(*) AS count FROM ai_job_attempts WHERE job_id = ?").bind(id).first<JobRow>();
   let nextAttempt = Number(countRow?.count || 0) + 1;
   for (let automaticAttempt = 0; automaticAttempt < 3; automaticAttempt++, nextAttempt++) {
     const attemptId = crypto.randomUUID();
     await db.prepare("INSERT INTO ai_job_attempts (id, job_id, owner_id, attempt_number, model, status) VALUES (?, ?, ?, ?, ?, 'running')").bind(attemptId, id, ownerId, nextAttempt, String(row.model)).run();
     try {
-      const output = await execute(ownerId, String(row.type) as AIJobType, safeJson(String(row.input_snapshot), {}));
+      const featureType = ["jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"].includes(String(row.type));
+      const output = featureType ? await executeJDJob(ownerId, id, String(row.type), safeJson(String(row.input_snapshot), {})) : await execute(ownerId, String(row.type) as AIJobType, safeJson(String(row.input_snapshot), {}));
       const current = await db.prepare("SELECT status FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
       if (current?.status === "cancelled") {
         await db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, response_summary = ? WHERE id = ?").bind("结果在取消后返回，已丢弃", attemptId).run();
@@ -223,10 +225,14 @@ export async function runAIJob(ownerId: string, id: string) {
       }
       let resultRecordId: string | null = null;
       const payload = { ...(output.result as Record<string, unknown>), model: String(row.model), promptVersion: String(row.prompt_version), elapsedMs: Date.now() - started };
-      if (output.record) resultRecordId = await saveRecord(ownerId, output.record.kind, output.record.title, payload);
-      await db.batch([
+      const resultWrites: D1PreparedStatement[] = "writes" in output ? output.writes : [];
+      if ("resultId" in output) resultRecordId = output.resultId;
+      if (output.record) { resultRecordId = crypto.randomUUID(); resultWrites.push(insertRecord(ownerId, output.record.kind, output.record.title, payload, resultRecordId)); }
+      const sourceRefs = [...safeJson<unknown[]>(String(row.source_refs), []), ...(Array.isArray((output.result as Record<string, unknown>).sources) ? (output.result as Record<string, unknown>).sources as unknown[] : [])];
+      await atomicBatch([
+        versionGuard(ownerId, id, runVersion, "ai_jobs", "running"), ...resultWrites,
         db.prepare("UPDATE ai_job_attempts SET status = 'succeeded', token_usage = ?, response_summary = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(JSON.stringify(output.usage || {}), JSON.stringify(payload).slice(0, 1000), attemptId),
-        db.prepare("UPDATE ai_jobs SET status = 'succeeded', result = ?, result_record_id = ?, source_refs = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, JSON.stringify(Array.isArray((output.result as Record<string, unknown>).sources) ? (output.result as Record<string, unknown>).sources : []), output.confidence, Date.now() - started, id, ownerId),
+        db.prepare("UPDATE ai_jobs SET status = 'succeeded', result = ?, result_record_id = ?, source_refs = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, JSON.stringify(sourceRefs), output.confidence, Date.now() - started, id, ownerId),
       ]);
       return getAIJob(ownerId, id);
     } catch (error) {

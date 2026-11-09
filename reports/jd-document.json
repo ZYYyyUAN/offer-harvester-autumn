@@ -1,0 +1,8 @@
+{
+  "syntheticOnly": true,
+  "createdAt": "2026-11-09T09:29:34.216Z",
+  "passed": true,
+  "model": "qwen-doc-turbo",
+  "status": "succeeded",
+  "text": "Synthetic candidate Java course project: implemented enrolment API."
+}

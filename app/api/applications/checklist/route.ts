@@ -1,4 +1,17 @@
+import { z } from "zod";
 import { checklistKeys } from "@/lib/workflow-contracts";
-import { ApiError, apiError, getDatabase, requireApiUser } from "@/lib/server-data";
-
-export async function POST(request: Request) { try { const { userId } = await requireApiUser(); const body = await request.json() as { id?: string; key?: string; done?: boolean; version?: number }; if (!body.id || !body.key || !checklistKeys.includes(body.key as any)) throw new ApiError(400, "无效的投递清单项目"); if (!Number.isInteger(body.version)) throw new ApiError(400, "清单变更必须提供版本号", "VERSION_REQUIRED"); const db = getDatabase(); const row = await db.prepare("SELECT data, version FROM records WHERE id = ? AND owner_id = ? AND kind = 'applications' AND deleted_at IS NULL").bind(body.id, userId).first<Record<string, unknown>>(); if (!row) throw new ApiError(404, "投递记录不存在"); if (Number(row.version) !== body.version) throw new ApiError(409, "投递记录已在其他设备更新", "VERSION_CONFLICT", false, { currentVersion: Number(row.version) }); const data = JSON.parse(String(row.data)); data.checklist = { ...(data.checklist || {}), [body.key]: { done: Boolean(body.done), at: new Date().toISOString() } }; if (body.key === "submitted" && body.done && data.stage === "待投递") data.stage = "已投递"; await db.batch([db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?").bind(JSON.stringify(data), body.id, userId, body.version), db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'activity_events', ?, ?)").bind(crypto.randomUUID(), userId, `${body.done ? '完成' : '取消'}清单：${body.key}`, JSON.stringify({ entityType: "applications", entityId: body.id, applicationId: body.id, action: "checklist_changed", key: body.key, done: body.done }))]); return Response.json({ ok: true, checklist: data.checklist, stage: data.stage }); } catch (error) { return apiError(error); } }
+import { ApiError, apiError, requireApiUser } from "@/lib/server-data";
+import { ownedRecord } from "@/lib/jd-store";
+import { saveApplication } from "@/lib/application-submission";
+const Input = z.object({ id: z.string().min(1), key: z.enum(checklistKeys), done: z.boolean(), version: z.number().int().positive() }).strict();
+export async function POST(request: Request) {
+  try {
+    const { userId } = await requireApiUser(); const input = Input.parse(await request.json());
+    const current = await ownedRecord(userId, input.id, "applications");
+    if (current.version !== input.version) throw new ApiError(409, "投递记录已更新", "VERSION_CONFLICT", false, { currentVersion: current.version });
+    const data: Record<string, any> = { ...current.data, checklist: { ...current.data.checklist, [input.key]: { done: input.done, at: new Date().toISOString() } } };
+    if (input.key === "submitted" && input.done && data.stage === "待投递") data.stage = "已投递";
+    const record = await saveApplication(userId, current.id, data, current);
+    return Response.json({ ok: true, checklist: record.data.checklist, stage: record.data.stage });
+  } catch (error) { return apiError(error); }
+}

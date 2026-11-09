@@ -101,6 +101,7 @@ export async function structuredChat(options: {
   }
   const choices = response.choices as Array<{ message?: { content?: unknown } }> | undefined;
   if (!choices?.[0]?.message) throw new ApiError(502, "AI 服务没有返回有效结果");
+  if ((choices[0] as { finish_reason?: string }).finish_reason === "length") throw new ApiError(422, "AI 输出被截断，请缩小分析范围后重试", "OUTPUT_TRUNCATED");
   const parsed = parseJsonContent(choices[0].message.content);
   let data: Record<string, unknown>;
   try {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ActionTaskSchema } from "./workflow-contracts.ts";
+import { jdDataSchemas } from "./jd-contracts.ts";
 
 const text = (max = 4000) => z.string().max(max).default("");
 const optionalDate = z.string().max(40).default("");
@@ -60,6 +61,7 @@ export const ReminderDataSchema = z.object({
 }).passthrough();
 
 const schemas: Record<string, z.ZodTypeAny> = {
+  ...jdDataSchemas,
   applications: ApplicationDataSchema,
   saved_jobs: SavedJobDataSchema,
   evidence: EvidenceDataSchema,

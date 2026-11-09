@@ -1,16 +1,19 @@
-import { readdirSync, rmSync } from "node:fs";
+import { readdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { Miniflare } from "miniflare";
 import { projectRoot } from "./sites-env.mjs";
-
-const statePath = path.resolve(projectRoot, ".wrangler/e2e");
-const workspacePath = path.resolve(projectRoot);
-if (!statePath.startsWith(`${workspacePath}${path.sep}`)) throw new Error("Refusing to clear an E2E directory outside the workspace");
+const target = process.argv[2] || ".wrangler/e2e";
+if (![".wrangler/e2e", ".wrangler/jd-regression"].includes(target)) throw new Error("Unknown isolated test target");
+const statePath = path.resolve(projectRoot, target);
+if (!statePath.startsWith(path.resolve(projectRoot) + path.sep)) throw new Error("Refusing to clear outside the workspace");
 rmSync(statePath, { recursive: true, force: true });
-
-const wrangler = path.join(projectRoot, "node_modules/wrangler/bin/wrangler.js");
-const config = path.join(projectRoot, "dist/server/wrangler.json");
-for (const filename of readdirSync(path.join(projectRoot, "drizzle")).filter((name) => name.endsWith(".sql")).sort()) {
-  const result = spawnSync(process.execPath, [wrangler, "d1", "execute", "DB", "--local", "--config", config, "--persist-to", statePath, "--file", path.join(projectRoot, "drizzle", filename)], { cwd: projectRoot, stdio: "inherit" });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-}
+const mf = new Miniflare({ modules: true, script: "export default {fetch(){return new Response('test database')}}",
+  d1Databases: { DB: "00000000-0000-4000-8000-000000000000" }, d1Persist: path.join(statePath,"v3/d1") });
+try {
+  const db = await mf.getD1Database("DB");
+  for (const filename of readdirSync(path.join(projectRoot,"drizzle")).filter(n=>n.endsWith(".sql")).sort()) {
+    const sql=readFileSync(path.join(projectRoot,"drizzle",filename),"utf8");
+    await db.batch(sql.split("--> statement-breakpoint").map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+    console.log("Applied local test migration: "+filename);
+  }
+} finally { await mf.dispose(); }

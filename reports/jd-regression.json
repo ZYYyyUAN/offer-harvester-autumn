@@ -1,0 +1,5519 @@
+{
+  "syntheticOnly": true,
+  "owner": "jd-regression-1794216143032",
+  "createdAt": "2026-11-09T09:22:23.032Z",
+  "cases": [
+    {
+      "id": "java-01",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 532,
+      "elapsedMs": 8600,
+      "input": "必须掌握Java。\n优先考虑掌握MySQL。\n加分项：Redis。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "MySQL",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Redis",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Java。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-78b563a5-e409-4377-9dd7-ed970a31a96b:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握MySQL。",
+                "start": 10,
+                "end": 22
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "mysql",
+            "skillName": "MySQL",
+            "parentSkillId": null,
+            "requirementId": "extract-78b563a5-e409-4377-9dd7-ed970a31a96b:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Redis。",
+                "start": 23,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "redis",
+            "skillName": "Redis",
+            "parentSkillId": null,
+            "requirementId": "extract-78b563a5-e409-4377-9dd7-ed970a31a96b:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-78b563a5-e409-4377-9dd7-ed970a31a96b",
+        "snapshotId": "40d96897-9b5d-430c-9eb4-77d8e09c7e09",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "MySQL",
+              "proposedName": "MySQL",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握MySQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Redis",
+              "proposedName": "Redis",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Redis。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 8406
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-02",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 544,
+      "elapsedMs": 6014,
+      "input": "必须掌握Spring Boot。\n优先考虑掌握RocketMQ。\n加分项：Docker。",
+      "expectedRequirements": [
+        {
+          "name": "Spring Boot",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "RocketMQ",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Docker",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Spring Boot",
+            "proposedName": "Spring Boot",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Spring Boot。",
+                "start": 0,
+                "end": 16
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "spring-boot",
+            "skillName": "Spring Boot",
+            "parentSkillId": null,
+            "requirementId": "extract-579f531d-3193-4f19-8f5a-5da0ca92b7fa:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "RocketMQ",
+            "proposedName": "RocketMQ",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握RocketMQ。",
+                "start": 17,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "rocketmq",
+            "skillName": "RocketMQ",
+            "parentSkillId": "mq",
+            "requirementId": "extract-579f531d-3193-4f19-8f5a-5da0ca92b7fa:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Docker",
+            "proposedName": "Docker",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Docker。",
+                "start": 33,
+                "end": 44
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "docker",
+            "skillName": "Docker",
+            "parentSkillId": null,
+            "requirementId": "extract-579f531d-3193-4f19-8f5a-5da0ca92b7fa:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-579f531d-3193-4f19-8f5a-5da0ca92b7fa",
+        "snapshotId": "4b837c69-c093-4b7b-a777-7591d600d0ed",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Spring Boot",
+              "proposedName": "Spring Boot",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Spring Boot。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "RocketMQ",
+              "proposedName": "RocketMQ",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握RocketMQ。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Docker",
+              "proposedName": "Docker",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Docker。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5943
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-03",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 529,
+      "elapsedMs": 6415,
+      "input": "Required: Java.\nPreferred: Kubernetes.\nNice to have: Git.",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Kubernetes",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: Java.",
+                "start": 0,
+                "end": 15
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-4f1cf92c-a403-4c0d-83e2-ce97da39a4ee:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Kubernetes",
+            "proposedName": "Kubernetes",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Kubernetes.",
+                "start": 16,
+                "end": 38
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kubernetes",
+            "skillName": "Kubernetes",
+            "parentSkillId": null,
+            "requirementId": "extract-4f1cf92c-a403-4c0d-83e2-ce97da39a4ee:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: Git.",
+                "start": 39,
+                "end": 57
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-4f1cf92c-a403-4c0d-83e2-ce97da39a4ee:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-4f1cf92c-a403-4c0d-83e2-ce97da39a4ee",
+        "snapshotId": "4de7d354-be96-4cdd-bb5a-ae2b39fb1647",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: Java."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Kubernetes",
+              "proposedName": "Kubernetes",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Kubernetes."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: Git."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6350
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-04",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 526,
+      "elapsedMs": 6145,
+      "input": "Required: MySQL.\nPreferred: Redis.\nNice to have: Linux.",
+      "expectedRequirements": [
+        {
+          "name": "MySQL",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Redis",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Linux",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: MySQL.",
+                "start": 0,
+                "end": 16
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "mysql",
+            "skillName": "MySQL",
+            "parentSkillId": null,
+            "requirementId": "extract-df4626c0-295a-4697-8408-b942a583951a:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Redis.",
+                "start": 17,
+                "end": 34
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "redis",
+            "skillName": "Redis",
+            "parentSkillId": null,
+            "requirementId": "extract-df4626c0-295a-4697-8408-b942a583951a:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Linux",
+            "proposedName": "Linux",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: Linux.",
+                "start": 35,
+                "end": 55
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "linux",
+            "skillName": "Linux",
+            "parentSkillId": null,
+            "requirementId": "extract-df4626c0-295a-4697-8408-b942a583951a:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-df4626c0-295a-4697-8408-b942a583951a",
+        "snapshotId": "de4ef28e-4174-401e-9274-e1d95cb2793e",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "MySQL",
+              "proposedName": "MySQL",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: MySQL."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Redis",
+              "proposedName": "Redis",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Redis."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Linux",
+              "proposedName": "Linux",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: Linux."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6087
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-05",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 547,
+      "elapsedMs": 6272,
+      "input": "必须掌握Spring Cloud Alibaba。\n优先考虑掌握Nacos。\n加分项：Sentinel。",
+      "expectedRequirements": [
+        {
+          "name": "Spring Cloud Alibaba",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Nacos",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Sentinel",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Spring Cloud Alibaba",
+            "proposedName": "Spring Cloud Alibaba",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Spring Cloud Alibaba。",
+                "start": 0,
+                "end": 25
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "spring-cloud-alibaba",
+            "skillName": "Spring Cloud Alibaba",
+            "parentSkillId": null,
+            "requirementId": "extract-d313bcda-3f6e-44c2-b451-594c5a0158b7:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Nacos",
+            "proposedName": "Nacos",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握Nacos。",
+                "start": 26,
+                "end": 38
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "nacos",
+            "skillName": "Nacos",
+            "parentSkillId": null,
+            "requirementId": "extract-d313bcda-3f6e-44c2-b451-594c5a0158b7:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Sentinel",
+            "proposedName": "Sentinel",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Sentinel。",
+                "start": 39,
+                "end": 52
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "sentinel",
+            "skillName": "Sentinel",
+            "parentSkillId": null,
+            "requirementId": "extract-d313bcda-3f6e-44c2-b451-594c5a0158b7:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-d313bcda-3f6e-44c2-b451-594c5a0158b7",
+        "snapshotId": "594e5504-28ac-405d-906a-039a71296fbd",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Spring Cloud Alibaba",
+              "proposedName": "Spring Cloud Alibaba",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Spring Cloud Alibaba。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Nacos",
+              "proposedName": "Nacos",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握Nacos。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Sentinel",
+              "proposedName": "Sentinel",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Sentinel。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6214
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-06",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 548,
+      "elapsedMs": 6306,
+      "input": "必须掌握Java。\n优先考虑掌握RabbitMQ。\n加分项：Elasticsearch。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "RabbitMQ",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Elasticsearch",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Java。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-9c663c7b-a736-4f1f-9eba-61c2fd1f38c3:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "RabbitMQ",
+            "proposedName": "RabbitMQ",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握RabbitMQ。",
+                "start": 10,
+                "end": 25
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "rabbitmq",
+            "skillName": "RabbitMQ",
+            "parentSkillId": "mq",
+            "requirementId": "extract-9c663c7b-a736-4f1f-9eba-61c2fd1f38c3:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Elasticsearch",
+            "proposedName": "Elasticsearch",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Elasticsearch。",
+                "start": 26,
+                "end": 44
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "elasticsearch",
+            "skillName": "Elasticsearch",
+            "parentSkillId": null,
+            "requirementId": "extract-9c663c7b-a736-4f1f-9eba-61c2fd1f38c3:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-9c663c7b-a736-4f1f-9eba-61c2fd1f38c3",
+        "snapshotId": "cb6b1392-0458-4324-b5be-12861f6d7d7f",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "RabbitMQ",
+              "proposedName": "RabbitMQ",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握RabbitMQ。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Elasticsearch",
+              "proposedName": "Elasticsearch",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Elasticsearch。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6243
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-07",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 531,
+      "elapsedMs": 6196,
+      "input": "Required: Java.\nPreferred: Kafka.\nNice to have: Docker.",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Kafka",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Docker",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: Java.",
+                "start": 0,
+                "end": 15
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-1918db40-25b9-4b6c-8ea0-213e693d6696:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Kafka",
+            "proposedName": "Kafka",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Kafka.",
+                "start": 16,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kafka",
+            "skillName": "Kafka",
+            "parentSkillId": "mq",
+            "requirementId": "extract-1918db40-25b9-4b6c-8ea0-213e693d6696:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Docker",
+            "proposedName": "Docker",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: Docker.",
+                "start": 34,
+                "end": 55
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "docker",
+            "skillName": "Docker",
+            "parentSkillId": null,
+            "requirementId": "extract-1918db40-25b9-4b6c-8ea0-213e693d6696:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-1918db40-25b9-4b6c-8ea0-213e693d6696",
+        "snapshotId": "c60faf35-dab4-434d-8f60-795646b4006f",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: Java."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Kafka",
+              "proposedName": "Kafka",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Kafka."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Docker",
+              "proposedName": "Docker",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: Docker."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6137
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-08",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 536,
+      "elapsedMs": 6346,
+      "input": "必须掌握Spring Boot。\n优先考虑掌握MySQL。\n加分项：Git。",
+      "expectedRequirements": [
+        {
+          "name": "Spring Boot",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "MySQL",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Spring Boot",
+            "proposedName": "Spring Boot",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Spring Boot。",
+                "start": 0,
+                "end": 16
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "spring-boot",
+            "skillName": "Spring Boot",
+            "parentSkillId": null,
+            "requirementId": "extract-ef70edc2-24bb-4506-973b-c1a9f364663a:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握MySQL。",
+                "start": 17,
+                "end": 29
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "mysql",
+            "skillName": "MySQL",
+            "parentSkillId": null,
+            "requirementId": "extract-ef70edc2-24bb-4506-973b-c1a9f364663a:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Git。",
+                "start": 30,
+                "end": 38
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-ef70edc2-24bb-4506-973b-c1a9f364663a:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-ef70edc2-24bb-4506-973b-c1a9f364663a",
+        "snapshotId": "90d60155-ee24-46d9-a859-09801fa6cfe5",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Spring Boot",
+              "proposedName": "Spring Boot",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Spring Boot。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "MySQL",
+              "proposedName": "MySQL",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握MySQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Git。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6290
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-09",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 538,
+      "elapsedMs": 6175,
+      "input": "必须掌握Java。\n优先考虑掌握Redis。\n加分项：K8s。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Redis",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "K8s",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Java。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-25598b76-e230-40d9-b08d-a1c2b23d58df:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握Redis。",
+                "start": 10,
+                "end": 22
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "redis",
+            "skillName": "Redis",
+            "parentSkillId": null,
+            "requirementId": "extract-25598b76-e230-40d9-b08d-a1c2b23d58df:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "K8s",
+            "proposedName": "Kubernetes",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：K8s。",
+                "start": 23,
+                "end": 31
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kubernetes",
+            "skillName": "Kubernetes",
+            "parentSkillId": null,
+            "requirementId": "extract-25598b76-e230-40d9-b08d-a1c2b23d58df:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-25598b76-e230-40d9-b08d-a1c2b23d58df",
+        "snapshotId": "bcb017d2-365f-4483-8c9d-b3d05032b4e9",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Redis",
+              "proposedName": "Redis",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握Redis。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "K8s",
+              "proposedName": "Kubernetes",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：K8s。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6113
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-10",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 535,
+      "elapsedMs": 4669,
+      "input": "必须掌握MySQL。\n优先考虑掌握RocketMQ。\n加分项：Linux。",
+      "expectedRequirements": [
+        {
+          "name": "MySQL",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "RocketMQ",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Linux",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握MySQL。",
+                "start": 0,
+                "end": 10
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "mysql",
+            "skillName": "MySQL",
+            "parentSkillId": null,
+            "requirementId": "extract-4107b687-4f67-42cb-aadc-3bb9842068d4:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "RocketMQ",
+            "proposedName": "RocketMQ",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握RocketMQ。",
+                "start": 11,
+                "end": 26
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "rocketmq",
+            "skillName": "RocketMQ",
+            "parentSkillId": "mq",
+            "requirementId": "extract-4107b687-4f67-42cb-aadc-3bb9842068d4:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Linux",
+            "proposedName": "Linux",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Linux。",
+                "start": 27,
+                "end": 37
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "linux",
+            "skillName": "Linux",
+            "parentSkillId": null,
+            "requirementId": "extract-4107b687-4f67-42cb-aadc-3bb9842068d4:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-4107b687-4f67-42cb-aadc-3bb9842068d4",
+        "snapshotId": "4439a609-b4a9-4d64-af8a-c46fc216263e",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "MySQL",
+              "proposedName": "MySQL",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握MySQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "RocketMQ",
+              "proposedName": "RocketMQ",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握RocketMQ。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Linux",
+              "proposedName": "Linux",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Linux。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4617
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-11",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 533,
+      "elapsedMs": 6226,
+      "input": "Required: Java.\nPreferred: Spring Boot.\nNice to have: Kubernetes.",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Spring Boot",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Kubernetes",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: Java.",
+                "start": 0,
+                "end": 15
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-e92d95f3-cac0-4448-af88-6a9ca1b20778:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Spring Boot",
+            "proposedName": "Spring Boot",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Spring Boot.",
+                "start": 16,
+                "end": 39
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "spring-boot",
+            "skillName": "Spring Boot",
+            "parentSkillId": null,
+            "requirementId": "extract-e92d95f3-cac0-4448-af88-6a9ca1b20778:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Kubernetes",
+            "proposedName": "Kubernetes",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: Kubernetes.",
+                "start": 40,
+                "end": 65
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kubernetes",
+            "skillName": "Kubernetes",
+            "parentSkillId": null,
+            "requirementId": "extract-e92d95f3-cac0-4448-af88-6a9ca1b20778:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-e92d95f3-cac0-4448-af88-6a9ca1b20778",
+        "snapshotId": "1699f585-216c-4b8b-8dd0-f90a328425da",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: Java."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Spring Boot",
+              "proposedName": "Spring Boot",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Spring Boot."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Kubernetes",
+              "proposedName": "Kubernetes",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: Kubernetes."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 6167
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "java-12",
+      "category": "java",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 532,
+      "elapsedMs": 5014,
+      "input": "必须掌握Java。\n优先考虑掌握SQL。\n加分项：Git。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "SQL",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Java。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-b3d6bda7-3a8c-40c7-bbce-f09a2cd8705a:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "SQL",
+            "proposedName": "SQL",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握SQL。",
+                "start": 10,
+                "end": 20
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "sql",
+            "skillName": "SQL",
+            "parentSkillId": null,
+            "requirementId": "extract-b3d6bda7-3a8c-40c7-bbce-f09a2cd8705a:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Git。",
+                "start": 21,
+                "end": 29
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-b3d6bda7-3a8c-40c7-bbce-f09a2cd8705a:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-b3d6bda7-3a8c-40c7-bbce-f09a2cd8705a",
+        "snapshotId": "09d4a337-7587-4cb7-81c4-32b20b851c7c",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "SQL",
+              "proposedName": "SQL",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握SQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Git。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4953
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-01",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 532,
+      "elapsedMs": 4948,
+      "input": "必须掌握Python。\n优先考虑掌握SQL。\n加分项：Linux。",
+      "expectedRequirements": [
+        {
+          "name": "Python",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "SQL",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Linux",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Python",
+            "proposedName": "Python",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Python。",
+                "start": 0,
+                "end": 11
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "python",
+            "skillName": "Python",
+            "parentSkillId": null,
+            "requirementId": "extract-b8ee3c20-c3c2-4b36-b46e-d781206a0332:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "SQL",
+            "proposedName": "SQL",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握SQL。",
+                "start": 12,
+                "end": 22
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "sql",
+            "skillName": "SQL",
+            "parentSkillId": null,
+            "requirementId": "extract-b8ee3c20-c3c2-4b36-b46e-d781206a0332:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Linux",
+            "proposedName": "Linux",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Linux。",
+                "start": 23,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "linux",
+            "skillName": "Linux",
+            "parentSkillId": null,
+            "requirementId": "extract-b8ee3c20-c3c2-4b36-b46e-d781206a0332:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-b8ee3c20-c3c2-4b36-b46e-d781206a0332",
+        "snapshotId": "e8349804-91e3-486d-8d90-a349efb2f3ce",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Python",
+              "proposedName": "Python",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Python。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "SQL",
+              "proposedName": "SQL",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握SQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Linux",
+              "proposedName": "Linux",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Linux。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4893
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-02",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 531,
+      "elapsedMs": 4727,
+      "input": "Required: Go.\nPreferred: Docker.\nNice to have: Kubernetes.",
+      "expectedRequirements": [
+        {
+          "name": "Go",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Docker",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Kubernetes",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Go",
+            "proposedName": "Go",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: Go.",
+                "start": 0,
+                "end": 13
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "go",
+            "skillName": "Go",
+            "parentSkillId": null,
+            "requirementId": "extract-dab3da1c-bc35-4215-85f0-c6c13f6ab90a:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Docker",
+            "proposedName": "Docker",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Docker.",
+                "start": 14,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "docker",
+            "skillName": "Docker",
+            "parentSkillId": null,
+            "requirementId": "extract-dab3da1c-bc35-4215-85f0-c6c13f6ab90a:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Kubernetes",
+            "proposedName": "Kubernetes",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: Kubernetes.",
+                "start": 33,
+                "end": 58
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kubernetes",
+            "skillName": "Kubernetes",
+            "parentSkillId": null,
+            "requirementId": "extract-dab3da1c-bc35-4215-85f0-c6c13f6ab90a:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-dab3da1c-bc35-4215-85f0-c6c13f6ab90a",
+        "snapshotId": "629213f6-161b-4ba4-a3f5-a00d3707b2ef",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Go",
+              "proposedName": "Go",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: Go."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Docker",
+              "proposedName": "Docker",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Docker."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Kubernetes",
+              "proposedName": "Kubernetes",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: Kubernetes."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4668
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-03",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 536,
+      "elapsedMs": 5202,
+      "input": "必须掌握JavaScript。\n优先考虑掌握TypeScript。\n加分项：Git。",
+      "expectedRequirements": [
+        {
+          "name": "JavaScript",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "TypeScript",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "JavaScript",
+            "proposedName": "JavaScript",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握JavaScript。",
+                "start": 0,
+                "end": 15
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "javascript",
+            "skillName": "JavaScript",
+            "parentSkillId": null,
+            "requirementId": "extract-d8b5b9c6-fc1a-4d1a-9c18-6836aa46692c:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "TypeScript",
+            "proposedName": "TypeScript",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握TypeScript。",
+                "start": 16,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "typescript",
+            "skillName": "TypeScript",
+            "parentSkillId": null,
+            "requirementId": "extract-d8b5b9c6-fc1a-4d1a-9c18-6836aa46692c:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Git。",
+                "start": 34,
+                "end": 42
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-d8b5b9c6-fc1a-4d1a-9c18-6836aa46692c:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-d8b5b9c6-fc1a-4d1a-9c18-6836aa46692c",
+        "snapshotId": "26ae622e-dccd-4128-b594-7c8c243ed1d4",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "JavaScript",
+              "proposedName": "JavaScript",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握JavaScript。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "TypeScript",
+              "proposedName": "TypeScript",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握TypeScript。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Git。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5144
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-04",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 527,
+      "elapsedMs": 4659,
+      "input": "Required: SQL.\nPreferred: Python.\nNice to have: MySQL.",
+      "expectedRequirements": [
+        {
+          "name": "SQL",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Python",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "MySQL",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "SQL",
+            "proposedName": "SQL",
+            "importance": "must",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "Required: SQL.",
+                "start": 0,
+                "end": 14
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "sql",
+            "skillName": "SQL",
+            "parentSkillId": null,
+            "requirementId": "extract-b15b18a8-3887-4f70-a20d-f2c24b28caaa:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Python",
+            "proposedName": "Python",
+            "importance": "important",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "Preferred: Python.",
+                "start": 15,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "python",
+            "skillName": "Python",
+            "parentSkillId": null,
+            "requirementId": "extract-b15b18a8-3887-4f70-a20d-f2c24b28caaa:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "Nice to have: MySQL.",
+                "start": 34,
+                "end": 54
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "mysql",
+            "skillName": "MySQL",
+            "parentSkillId": null,
+            "requirementId": "extract-b15b18a8-3887-4f70-a20d-f2c24b28caaa:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-b15b18a8-3887-4f70-a20d-f2c24b28caaa",
+        "snapshotId": "6547e067-a304-4e61-912c-c2ffbfc21230",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "SQL",
+              "proposedName": "SQL",
+              "importance": "must",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "Required: SQL."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Python",
+              "proposedName": "Python",
+              "importance": "important",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "Preferred: Python."
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "MySQL",
+              "proposedName": "MySQL",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "Nice to have: MySQL."
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4602
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-05",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 536,
+      "elapsedMs": 4875,
+      "input": "必须掌握Linux。\n优先考虑掌握Docker。\n加分项：Git。",
+      "expectedRequirements": [
+        {
+          "name": "Linux",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Docker",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Linux",
+            "proposedName": "Linux",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Linux。",
+                "start": 0,
+                "end": 10
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "linux",
+            "skillName": "Linux",
+            "parentSkillId": null,
+            "requirementId": "extract-0caeed96-3d6a-4f64-8047-c25177eb32d3:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Docker",
+            "proposedName": "Docker",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握Docker。",
+                "start": 11,
+                "end": 24
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "docker",
+            "skillName": "Docker",
+            "parentSkillId": null,
+            "requirementId": "extract-0caeed96-3d6a-4f64-8047-c25177eb32d3:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Git。",
+                "start": 25,
+                "end": 33
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-0caeed96-3d6a-4f64-8047-c25177eb32d3:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-0caeed96-3d6a-4f64-8047-c25177eb32d3",
+        "snapshotId": "dd954e94-5f9c-47c5-bcf5-1e9851258ffa",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Linux",
+              "proposedName": "Linux",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Linux。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Docker",
+              "proposedName": "Docker",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握Docker。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Git。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4802
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "tech-06",
+      "category": "other-tech",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 534,
+      "elapsedMs": 4682,
+      "input": "必须掌握Go。\n优先考虑掌握Redis。\n加分项：Kafka。",
+      "expectedRequirements": [
+        {
+          "name": "Go",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Redis",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Kafka",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Go",
+            "proposedName": "Go",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Go。",
+                "start": 0,
+                "end": 7
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "go",
+            "skillName": "Go",
+            "parentSkillId": null,
+            "requirementId": "extract-0cc1ba55-86d7-4580-9619-83099a9e67b7:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握Redis。",
+                "start": 8,
+                "end": 20
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "redis",
+            "skillName": "Redis",
+            "parentSkillId": null,
+            "requirementId": "extract-0cc1ba55-86d7-4580-9619-83099a9e67b7:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Kafka",
+            "proposedName": "Kafka",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Kafka。",
+                "start": 21,
+                "end": 31
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "kafka",
+            "skillName": "Kafka",
+            "parentSkillId": "mq",
+            "requirementId": "extract-0cc1ba55-86d7-4580-9619-83099a9e67b7:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-0cc1ba55-86d7-4580-9619-83099a9e67b7",
+        "snapshotId": "eb55cf8d-eddc-4ce8-86c3-81bdbc953d7b",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Go",
+              "proposedName": "Go",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Go。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Redis",
+              "proposedName": "Redis",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握Redis。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Kafka",
+              "proposedName": "Kafka",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Kafka。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4625
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-01",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 544,
+      "elapsedMs": 4970,
+      "input": "必须掌握需求分析。\n优先考虑掌握用户研究。\n加分项：Figma。",
+      "expectedRequirements": [
+        {
+          "name": "需求分析",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "用户研究",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Figma",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "需求分析",
+            "proposedName": "需求分析",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握需求分析。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:需求分析",
+            "skillName": "需求分析",
+            "parentSkillId": null,
+            "requirementId": "extract-71a370d7-b21c-4ba4-9d4f-ef82080bd668:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "用户研究",
+            "proposedName": "用户研究",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握用户研究。",
+                "start": 10,
+                "end": 21
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:用户研究",
+            "skillName": "用户研究",
+            "parentSkillId": null,
+            "requirementId": "extract-71a370d7-b21c-4ba4-9d4f-ef82080bd668:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Figma",
+            "proposedName": "Figma",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Figma。",
+                "start": 22,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "figma",
+            "skillName": "Figma",
+            "parentSkillId": null,
+            "requirementId": "extract-71a370d7-b21c-4ba4-9d4f-ef82080bd668:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-71a370d7-b21c-4ba4-9d4f-ef82080bd668",
+        "snapshotId": "773fe665-da1a-400f-a5df-8e0d5bb17471",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "需求分析",
+              "proposedName": "需求分析",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握需求分析。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "用户研究",
+              "proposedName": "用户研究",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握用户研究。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Figma",
+              "proposedName": "Figma",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Figma。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4908
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-02",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 531,
+      "elapsedMs": 5741,
+      "input": "必须掌握SQL。\n优先考虑掌握数据分析。\n加分项：Python。",
+      "expectedRequirements": [
+        {
+          "name": "SQL",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "数据分析",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Python",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "SQL",
+            "proposedName": "SQL",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握SQL。",
+                "start": 0,
+                "end": 8
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "sql",
+            "skillName": "SQL",
+            "parentSkillId": null,
+            "requirementId": "extract-23643d50-9761-4bf2-b60f-ef93d2aa1b7f:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "数据分析",
+            "proposedName": "数据分析",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握数据分析。",
+                "start": 9,
+                "end": 20
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:数据分析",
+            "skillName": "数据分析",
+            "parentSkillId": null,
+            "requirementId": "extract-23643d50-9761-4bf2-b60f-ef93d2aa1b7f:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Python",
+            "proposedName": "Python",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Python。",
+                "start": 21,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "python",
+            "skillName": "Python",
+            "parentSkillId": null,
+            "requirementId": "extract-23643d50-9761-4bf2-b60f-ef93d2aa1b7f:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-23643d50-9761-4bf2-b60f-ef93d2aa1b7f",
+        "snapshotId": "cd1912ee-ae6b-4049-ab27-b11fa48a4b26",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "SQL",
+              "proposedName": "SQL",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握SQL。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "数据分析",
+              "proposedName": "数据分析",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握数据分析。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Python",
+              "proposedName": "Python",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Python。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5684
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-03",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 544,
+      "elapsedMs": 5829,
+      "input": "必须掌握内容策划。\n优先考虑掌握文案写作。\n加分项：视频剪辑。",
+      "expectedRequirements": [
+        {
+          "name": "内容策划",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "文案写作",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "视频剪辑",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "内容策划",
+            "proposedName": "内容策划",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握内容策划。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:内容策划",
+            "skillName": "内容策划",
+            "parentSkillId": null,
+            "requirementId": "extract-59e40b08-7add-4c75-ab9c-fed7dc9076ab:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "文案写作",
+            "proposedName": "文案写作",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握文案写作。",
+                "start": 10,
+                "end": 21
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:文案写作",
+            "skillName": "文案写作",
+            "parentSkillId": null,
+            "requirementId": "extract-59e40b08-7add-4c75-ab9c-fed7dc9076ab:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "视频剪辑",
+            "proposedName": "视频剪辑",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：视频剪辑。",
+                "start": 22,
+                "end": 31
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:视频剪辑",
+            "skillName": "视频剪辑",
+            "parentSkillId": null,
+            "requirementId": "extract-59e40b08-7add-4c75-ab9c-fed7dc9076ab:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-59e40b08-7add-4c75-ab9c-fed7dc9076ab",
+        "snapshotId": "5077e198-a3ef-4c3f-83ae-416a656db2a4",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "内容策划",
+              "proposedName": "内容策划",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握内容策划。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "文案写作",
+              "proposedName": "文案写作",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握文案写作。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "视频剪辑",
+              "proposedName": "视频剪辑",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：视频剪辑。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5769
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-04",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 544,
+      "elapsedMs": 5803,
+      "input": "必须掌握Figma。\n优先考虑掌握交互设计。\n加分项：用户研究。",
+      "expectedRequirements": [
+        {
+          "name": "Figma",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "交互设计",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "用户研究",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Figma",
+            "proposedName": "Figma",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Figma。",
+                "start": 0,
+                "end": 10
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "figma",
+            "skillName": "Figma",
+            "parentSkillId": null,
+            "requirementId": "extract-a2ce7a0f-d995-4845-8a72-6591e1847e79:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "交互设计",
+            "proposedName": "交互设计",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握交互设计。",
+                "start": 11,
+                "end": 22
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:交互设计",
+            "skillName": "交互设计",
+            "parentSkillId": null,
+            "requirementId": "extract-a2ce7a0f-d995-4845-8a72-6591e1847e79:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "用户研究",
+            "proposedName": "用户研究",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：用户研究。",
+                "start": 23,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:用户研究",
+            "skillName": "用户研究",
+            "parentSkillId": null,
+            "requirementId": "extract-a2ce7a0f-d995-4845-8a72-6591e1847e79:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-a2ce7a0f-d995-4845-8a72-6591e1847e79",
+        "snapshotId": "e2a1a510-425e-4cf5-ae13-8baa6f751635",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Figma",
+              "proposedName": "Figma",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握Figma。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "交互设计",
+              "proposedName": "交互设计",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握交互设计。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "用户研究",
+              "proposedName": "用户研究",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：用户研究。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5737
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-05",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 536,
+      "elapsedMs": 4940,
+      "input": "必须掌握财务分析。\n优先考虑掌握Excel。\n加分项：英语。",
+      "expectedRequirements": [
+        {
+          "name": "财务分析",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Excel",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "英语",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "财务分析",
+            "proposedName": "财务分析",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握财务分析。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:财务分析",
+            "skillName": "财务分析",
+            "parentSkillId": null,
+            "requirementId": "extract-23072f91-104a-4772-b5d6-9cf7befc55e8:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Excel",
+            "proposedName": "Excel",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握Excel。",
+                "start": 10,
+                "end": 22
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:excel",
+            "skillName": "Excel",
+            "parentSkillId": null,
+            "requirementId": "extract-23072f91-104a-4772-b5d6-9cf7befc55e8:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "英语",
+            "proposedName": "英语",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：英语。",
+                "start": 23,
+                "end": 30
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:英语",
+            "skillName": "英语",
+            "parentSkillId": null,
+            "requirementId": "extract-23072f91-104a-4772-b5d6-9cf7befc55e8:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-23072f91-104a-4772-b5d6-9cf7befc55e8",
+        "snapshotId": "187831b4-5db3-41c3-9d70-a6406de0d7f1",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "财务分析",
+              "proposedName": "财务分析",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握财务分析。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Excel",
+              "proposedName": "Excel",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握Excel。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "英语",
+              "proposedName": "英语",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：英语。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4876
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "other-06",
+      "category": "non-dev",
+      "expected": 3,
+      "predicted": 3,
+      "matched": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 536,
+      "elapsedMs": 4905,
+      "input": "必须掌握项目管理。\n优先考虑掌握需求分析。\n加分项：Git。",
+      "expectedRequirements": [
+        {
+          "name": "项目管理",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "需求分析",
+          "importance": "important",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Git",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "项目管理",
+            "proposedName": "项目管理",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握项目管理。",
+                "start": 0,
+                "end": 9
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:项目管理",
+            "skillName": "项目管理",
+            "parentSkillId": null,
+            "requirementId": "extract-aa8c17d3-8d47-4007-8706-45043a919a0c:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "需求分析",
+            "proposedName": "需求分析",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握需求分析。",
+                "start": 10,
+                "end": 21
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:需求分析",
+            "skillName": "需求分析",
+            "parentSkillId": null,
+            "requirementId": "extract-aa8c17d3-8d47-4007-8706-45043a919a0c:r2",
+            "anyGroup": false
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Git",
+            "proposedName": "Git",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Git。",
+                "start": 22,
+                "end": 30
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "git",
+            "skillName": "Git",
+            "parentSkillId": null,
+            "requirementId": "extract-aa8c17d3-8d47-4007-8706-45043a919a0c:r3",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-aa8c17d3-8d47-4007-8706-45043a919a0c",
+        "snapshotId": "0cfc31af-ddfe-42a0-a86b-07d92f750f69",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "项目管理",
+              "proposedName": "项目管理",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握项目管理。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "需求分析",
+              "proposedName": "需求分析",
+              "importance": "important",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "优先考虑掌握需求分析。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r3",
+              "type": "technical_skill",
+              "rawName": "Git",
+              "proposedName": "Git",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Git。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4845
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "edge-or",
+      "category": "edge",
+      "expected": 2,
+      "predicted": 2,
+      "matched": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 506,
+      "elapsedMs": 5132,
+      "input": "必须掌握 Java 或 Go 中的至少一种语言。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": true
+        },
+        {
+          "name": "Go",
+          "importance": "must",
+          "polarity": "required",
+          "optional": true
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握 Java 或 Go 中的至少一种语言。",
+                "start": 0,
+                "end": 24
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-eb499a17-528d-4e37-87e6-8347d3208b5b:r1",
+            "anyGroup": true
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Go",
+            "proposedName": "Go",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握 Java 或 Go 中的至少一种语言。",
+                "start": 0,
+                "end": 24
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "go",
+            "skillName": "Go",
+            "parentSkillId": null,
+            "requirementId": "extract-eb499a17-528d-4e37-87e6-8347d3208b5b:r2",
+            "anyGroup": true
+          }
+        ],
+        "groups": [
+          {
+            "key": "g1",
+            "operator": "any",
+            "memberKeys": [
+              "r1",
+              "r2"
+            ],
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握 Java 或 Go 中的至少一种语言。",
+                "start": 0,
+                "end": 24
+              }
+            ]
+          }
+        ],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-eb499a17-528d-4e37-87e6-8347d3208b5b",
+        "snapshotId": "dd7dfcad-77f0-40b8-97c0-296b0288f986",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握 Java 或 Go 中的至少一种语言。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Go",
+              "proposedName": "Go",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握 Java 或 Go 中的至少一种语言。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [
+            {
+              "key": "g1",
+              "operator": "any",
+              "memberKeys": [
+                "r1",
+                "r2"
+              ],
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握 Java 或 Go 中的至少一种语言。"
+                }
+              ]
+            }
+          ],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 5074
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "edge-negative",
+      "category": "edge",
+      "expected": 2,
+      "predicted": 2,
+      "matched": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 457,
+      "elapsedMs": 3826,
+      "input": "不要求工作经验。\n必须掌握 Java。",
+      "expectedRequirements": [
+        {
+          "name": "工作经验",
+          "importance": "unspecified",
+          "polarity": "not_required",
+          "optional": false
+        },
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "必须掌握 Java。",
+                "start": 9,
+                "end": 19
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-3535ae08-f8d8-48a5-aee2-1c3d84344aa4:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "工作经验",
+            "proposedName": "工作经验",
+            "importance": "unspecified",
+            "depth": "",
+            "polarity": "not_required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "不要求工作经验。",
+                "start": 0,
+                "end": 8
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "custom:工作经验",
+            "skillName": "工作经验",
+            "parentSkillId": null,
+            "requirementId": "extract-3535ae08-f8d8-48a5-aee2-1c3d84344aa4:r2",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-3535ae08-f8d8-48a5-aee2-1c3d84344aa4",
+        "snapshotId": "f5f3d5f5-b820-4970-b089-5cbca6d79562",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p2",
+                  "quote": "必须掌握 Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "工作经验",
+              "proposedName": "工作经验",
+              "importance": "unspecified",
+              "depth": "",
+              "polarity": "not_required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "不要求工作经验。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 3761
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "edge-empty",
+      "category": "edge",
+      "expected": 0,
+      "predicted": 0,
+      "matched": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "emptyRejected": true,
+      "elapsedMs": 37
+    },
+    {
+      "id": "edge-no-job",
+      "category": "edge",
+      "expected": 0,
+      "predicted": 0,
+      "matched": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 334,
+      "elapsedMs": 1503,
+      "input": "欢迎访问本网站。联系方式请见页脚。",
+      "expectedRequirements": [],
+      "output": {
+        "complete": true,
+        "requirements": [],
+        "groups": [],
+        "warnings": [
+          "未检测到岗位要求"
+        ],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-f73cad3e-dc08-49a1-afa7-58cb58c2d9aa",
+        "snapshotId": "0f41ccff-8196-46a6-9bf2-cdda0fdd162a",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [],
+          "groups": [],
+          "warnings": [
+            "未检测到岗位要求"
+          ]
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 1443
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "edge-repeat",
+      "category": "edge",
+      "expected": 2,
+      "predicted": 2,
+      "matched": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 487,
+      "elapsedMs": 4092,
+      "input": "必须掌握 Java。\n必须掌握 Java。\n加分项：Redis。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Redis",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握 Java。",
+                "start": 0,
+                "end": 10
+              },
+              {
+                "blockId": "p2",
+                "quote": "必须掌握 Java。",
+                "start": 11,
+                "end": 21
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-fc11cd03-a616-4342-b6e4-86b030391f59:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Redis。",
+                "start": 22,
+                "end": 32
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "redis",
+            "skillName": "Redis",
+            "parentSkillId": null,
+            "requirementId": "extract-fc11cd03-a616-4342-b6e4-86b030391f59:r2",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-fc11cd03-a616-4342-b6e4-86b030391f59",
+        "snapshotId": "06cac1bd-7ff5-4d0e-b515-9cbc7fbad7e2",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p1",
+                  "quote": "必须掌握 Java。"
+                },
+                {
+                  "blockId": "p2",
+                  "quote": "必须掌握 Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Redis",
+              "proposedName": "Redis",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p3",
+                  "quote": "加分项：Redis。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 4033
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    },
+    {
+      "id": "edge-long",
+      "category": "edge",
+      "expected": 2,
+      "predicted": 2,
+      "matched": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "missing": [],
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "schemaValid": true,
+      "invalidReferences": 0,
+      "unsupportedCandidateFacts": 0,
+      "tokens": 6562,
+      "elapsedMs": 3987,
+      "input": "公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n公司介绍：我们致力于为客户提供可靠服务。\n必须掌握 Java。\n加分项：Docker。",
+      "expectedRequirements": [
+        {
+          "name": "Java",
+          "importance": "must",
+          "polarity": "required",
+          "optional": false
+        },
+        {
+          "name": "Docker",
+          "importance": "bonus",
+          "polarity": "required",
+          "optional": false
+        }
+      ],
+      "output": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p251",
+                "quote": "必须掌握 Java。",
+                "start": 5250,
+                "end": 5260
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "java",
+            "skillName": "Java",
+            "parentSkillId": null,
+            "requirementId": "extract-47688613-c230-47f1-b6fa-fdee4a89cfea:r1",
+            "anyGroup": false
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "Docker",
+            "proposedName": "Docker",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p252",
+                "quote": "加分项：Docker。",
+                "start": 5261,
+                "end": 5272
+              }
+            ],
+            "reviewReason": "",
+            "skillId": "docker",
+            "skillName": "Docker",
+            "parentSkillId": null,
+            "requirementId": "extract-47688613-c230-47f1-b6fa-fdee4a89cfea:r2",
+            "anyGroup": false
+          }
+        ],
+        "groups": [],
+        "warnings": [],
+        "dictionaryVersion": "skills-v1",
+        "extractionId": "extract-47688613-c230-47f1-b6fa-fdee4a89cfea",
+        "snapshotId": "caebd2f9-9f17-4562-88c0-2eeff379eaa2",
+        "rawOutput": {
+          "complete": true,
+          "requirements": [
+            {
+              "key": "r1",
+              "type": "technical_skill",
+              "rawName": "Java",
+              "proposedName": "Java",
+              "importance": "must",
+              "depth": "掌握",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p251",
+                  "quote": "必须掌握 Java。"
+                }
+              ],
+              "reviewReason": ""
+            },
+            {
+              "key": "r2",
+              "type": "technical_skill",
+              "rawName": "Docker",
+              "proposedName": "Docker",
+              "importance": "bonus",
+              "depth": "",
+              "polarity": "required",
+              "condition": "",
+              "citations": [
+                {
+                  "blockId": "p252",
+                  "quote": "加分项：Docker。"
+                }
+              ],
+              "reviewReason": ""
+            }
+          ],
+          "groups": [],
+          "warnings": []
+        },
+        "model": "qwen3.8-max",
+        "promptVersion": "jd-requirements-v2",
+        "elapsedMs": 3925
+      },
+      "firstAttemptSuccess": true,
+      "retried": false
+    }
+  ],
+  "gapCases": [
+    {
+      "category": "A",
+      "model": "qwen3.8-max",
+      "promptVersion": "resume-gap-v4",
+      "tokenUsage": [
+        {
+          "completion_tokens": 469,
+          "prompt_tokens": 945,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "text_tokens": 945
+          },
+          "total_tokens": 1414
+        }
+      ],
+      "elapsedMs": 10166,
+      "passed": true,
+      "unsupportedFactCount": 0,
+      "citationCoverage": 1,
+      "output": {
+        "suggestions": [
+          {
+            "key": "s1",
+            "category": "A",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r1"
+            ],
+            "evidenceRefs": [
+              "14433aa6-4065-467f-af20-f112e6997414"
+            ],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "已确认有Java课程项目经历（使用Java实现课程报名接口），但简历中未体现Java相关描述，建议补充。",
+            "suggestedExpression": null,
+            "action": "add_evidence",
+            "questions": [
+              "是否可以将'使用Java实现课程报名接口'的经历补充到简历的项目经验或技能列表中？"
+            ]
+          },
+          {
+            "key": "s2",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r2"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "岗位要求优先考虑掌握MySQL，当前资料中没有关于MySQL的确认信息，需确认是否具备该技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "你是否掌握MySQL？如果有相关学习或项目经历，请提供具体细节以便补充到简历中。"
+            ]
+          },
+          {
+            "key": "s3",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r3"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "岗位将Redis列为加分项，当前资料中没有关于Redis的确认信息，需确认是否具备该技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "你是否了解或使用过Redis？如有相关经历，请提供细节以便作为加分项补充到简历中。"
+            ]
+          }
+        ],
+        "warnings": [
+          "已确认的Java课程项目经历未在简历原文中体现，建议尽快补充以避免遗漏关键技能证据。",
+          "请勿在简历中添加未经确认的熟练程度描述（如'精通''熟练掌握'等），应如实反映实际使用情况。"
+        ],
+        "analysisId": "gap-0ff38641-0669-4f29-8b01-a53d93275fc5",
+        "model": "qwen3.8-max",
+        "promptVersion": "resume-gap-v4",
+        "elapsedMs": 10166
+      }
+    },
+    {
+      "category": "B",
+      "model": "qwen3.8-max",
+      "promptVersion": "resume-gap-v4",
+      "tokenUsage": [
+        {
+          "completion_tokens": 454,
+          "prompt_tokens": 861,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "text_tokens": 861
+          },
+          "total_tokens": 1315
+        }
+      ],
+      "elapsedMs": 9996,
+      "passed": true,
+      "unsupportedFactCount": 0,
+      "citationCoverage": 1,
+      "output": {
+        "suggestions": [
+          {
+            "key": "s1",
+            "category": "B",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r1"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [
+              {
+                "blockId": "p1",
+                "quote": "Java课程项目：使用Java实现课程报名接口。"
+              }
+            ],
+            "resumeLocation": "p1",
+            "issue": "简历提及了Java课程项目经验，但仅描述为课程项目，未体现对Java的掌握程度，建议补充项目中使用的具体Java技术点以增强说服力。",
+            "suggestedExpression": null,
+            "action": "add_evidence",
+            "questions": [
+              "该Java课程项目中使用了哪些具体的Java技术或框架？",
+              "是否有其他Java相关的项目或实践经验可以补充？"
+            ]
+          },
+          {
+            "key": "s2",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r2"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "JD优先考虑掌握MySQL，当前简历中未提及相关经验，需确认是否具备该技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "是否掌握MySQL？如有相关项目或使用经验，请提供具体细节以便补充到简历中。"
+            ]
+          },
+          {
+            "key": "s3",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r3"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "JD将Redis列为加分项，当前简历中未提及相关经验，需确认是否具备该技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "是否了解或使用过Redis？如有相关经验，请提供具体细节以便补充到简历中。"
+            ]
+          }
+        ],
+        "warnings": [
+          "所有输入资料中confirmedEvidence为空，建议基于实际事实补充证据后再进行简历修改。",
+          "请勿将JD中的技术要求直接作为个人经历写入简历，必须基于真实经验进行表述。"
+        ],
+        "analysisId": "gap-b9b883bb-80fd-457d-a33a-e20dd5b4f0de",
+        "model": "qwen3.8-max",
+        "promptVersion": "resume-gap-v4",
+        "elapsedMs": 9995
+      }
+    },
+    {
+      "category": "C",
+      "model": "qwen3.8-max",
+      "promptVersion": "resume-gap-v4",
+      "tokenUsage": [
+        {
+          "completion_tokens": 408,
+          "prompt_tokens": 856,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "text_tokens": 856
+          },
+          "total_tokens": 1264
+        }
+      ],
+      "elapsedMs": 8657,
+      "passed": true,
+      "unsupportedFactCount": 0,
+      "citationCoverage": 1,
+      "output": {
+        "suggestions": [
+          {
+            "key": "s1",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r1"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "简历中未提及Java相关经验，而该岗位要求必须掌握Java。需确认是否具备Java技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "您是否掌握Java？如有相关项目或学习经历，请补充到简历中。"
+            ]
+          },
+          {
+            "key": "s2",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r2"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "简历中未提及MySQL相关经验，该岗位优先考虑掌握MySQL的候选人。需确认是否具备MySQL技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "您是否掌握MySQL？如有相关使用经验，请补充到简历中。"
+            ]
+          },
+          {
+            "key": "s3",
+            "category": "C",
+            "requirementRefs": [
+              "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r3"
+            ],
+            "evidenceRefs": [],
+            "resumeQuotes": [],
+            "resumeLocation": null,
+            "issue": "简历中未提及Redis相关经验，该岗位将Redis列为加分项。需确认是否具备Redis技能。",
+            "suggestedExpression": null,
+            "action": "confirm_capability",
+            "questions": [
+              "您是否了解或使用过Redis？如有相关经验，建议补充到简历中以增加竞争力。"
+            ]
+          }
+        ],
+        "warnings": [
+          "当前简历内容极为简略，仅包含教育经历中的专业信息，缺少任何技术技能、项目经验或工作经历的描述，建议大幅补充相关内容以匹配岗位要求。"
+        ],
+        "analysisId": "gap-0402f8a7-a294-4c14-bc28-f3c613c79f68",
+        "model": "qwen3.8-max",
+        "promptVersion": "resume-gap-v4",
+        "elapsedMs": 8657
+      }
+    }
+  ],
+  "providerCalls": 4,
+  "passed": true,
+  "extractionRunAt": "2026-11-08T16:58:57.086Z",
+  "seedCase": {
+    "id": "java-01",
+    "category": "java",
+    "expected": 3,
+    "predicted": 3,
+    "matched": 3,
+    "precision": 1,
+    "recall": 1,
+    "f1": 1,
+    "missing": [],
+    "model": "qwen3.8-max",
+    "promptVersion": "jd-requirements-v2",
+    "schemaValid": true,
+    "invalidReferences": 0,
+    "unsupportedCandidateFacts": 0,
+    "tokens": 532,
+    "elapsedMs": 5034,
+    "input": "必须掌握Java。\n优先考虑掌握MySQL。\n加分项：Redis。",
+    "expectedRequirements": [
+      {
+        "name": "Java",
+        "importance": "must",
+        "polarity": "required",
+        "optional": false
+      },
+      {
+        "name": "MySQL",
+        "importance": "important",
+        "polarity": "required",
+        "optional": false
+      },
+      {
+        "name": "Redis",
+        "importance": "bonus",
+        "polarity": "required",
+        "optional": false
+      }
+    ],
+    "output": {
+      "complete": true,
+      "requirements": [
+        {
+          "key": "r1",
+          "type": "technical_skill",
+          "rawName": "Java",
+          "proposedName": "Java",
+          "importance": "must",
+          "depth": "掌握",
+          "polarity": "required",
+          "condition": "",
+          "citations": [
+            {
+              "blockId": "p1",
+              "quote": "必须掌握Java。",
+              "start": 0,
+              "end": 9
+            }
+          ],
+          "reviewReason": "",
+          "skillId": "java",
+          "skillName": "Java",
+          "parentSkillId": null,
+          "requirementId": "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r1",
+          "anyGroup": false
+        },
+        {
+          "key": "r2",
+          "type": "technical_skill",
+          "rawName": "MySQL",
+          "proposedName": "MySQL",
+          "importance": "important",
+          "depth": "掌握",
+          "polarity": "required",
+          "condition": "",
+          "citations": [
+            {
+              "blockId": "p2",
+              "quote": "优先考虑掌握MySQL。",
+              "start": 10,
+              "end": 22
+            }
+          ],
+          "reviewReason": "",
+          "skillId": "mysql",
+          "skillName": "MySQL",
+          "parentSkillId": null,
+          "requirementId": "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r2",
+          "anyGroup": false
+        },
+        {
+          "key": "r3",
+          "type": "technical_skill",
+          "rawName": "Redis",
+          "proposedName": "Redis",
+          "importance": "bonus",
+          "depth": "",
+          "polarity": "required",
+          "condition": "",
+          "citations": [
+            {
+              "blockId": "p3",
+              "quote": "加分项：Redis。",
+              "start": 23,
+              "end": 33
+            }
+          ],
+          "reviewReason": "",
+          "skillId": "redis",
+          "skillName": "Redis",
+          "parentSkillId": null,
+          "requirementId": "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038:r3",
+          "anyGroup": false
+        }
+      ],
+      "groups": [],
+      "warnings": [],
+      "dictionaryVersion": "skills-v1",
+      "extractionId": "extract-d28aa34a-39a2-436d-8ae0-7e49065aa038",
+      "snapshotId": "6fc83dfc-2927-49c5-ae66-3603c34b9d15",
+      "rawOutput": {
+        "complete": true,
+        "requirements": [
+          {
+            "key": "r1",
+            "type": "technical_skill",
+            "rawName": "Java",
+            "proposedName": "Java",
+            "importance": "must",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p1",
+                "quote": "必须掌握Java。"
+              }
+            ],
+            "reviewReason": ""
+          },
+          {
+            "key": "r2",
+            "type": "technical_skill",
+            "rawName": "MySQL",
+            "proposedName": "MySQL",
+            "importance": "important",
+            "depth": "掌握",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p2",
+                "quote": "优先考虑掌握MySQL。"
+              }
+            ],
+            "reviewReason": ""
+          },
+          {
+            "key": "r3",
+            "type": "technical_skill",
+            "rawName": "Redis",
+            "proposedName": "Redis",
+            "importance": "bonus",
+            "depth": "",
+            "polarity": "required",
+            "condition": "",
+            "citations": [
+              {
+                "blockId": "p3",
+                "quote": "加分项：Redis。"
+              }
+            ],
+            "reviewReason": ""
+          }
+        ],
+        "groups": [],
+        "warnings": []
+      },
+      "model": "qwen3.8-max",
+      "promptVersion": "jd-requirements-v2",
+      "elapsedMs": 4827
+    },
+    "firstAttemptSuccess": true,
+    "retried": false
+  },
+  "metrics": {
+    "precision": 1,
+    "recall": 1,
+    "f1": 1,
+    "succeeded": 30,
+    "total": 30,
+    "schemaPassRate": 1,
+    "candidateFactFabrication": "JD-only extraction receives no candidate facts; gap review is separately tested",
+    "totalTokens": 21208,
+    "p50Ms": 5014,
+    "p95Ms": 6415,
+    "firstAttemptSuccessRate": 1
+  }
+}
