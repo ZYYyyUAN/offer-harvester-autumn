@@ -83,6 +83,8 @@ export const aiJobs = sqliteTable(
     resultRecordId: text("result_record_id"),
     confidence: text("confidence"),
     elapsedMs: integer("elapsed_ms"),
+    captureKey: text("capture_key"),
+    phase: text("phase"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
     version: integer("version").notNull().default(1),
@@ -95,6 +97,7 @@ export const aiJobs = sqliteTable(
     index("idx_ai_jobs_owner_status_updated").on(table.ownerId, table.status, table.updatedAt),
     index("idx_ai_jobs_owner_type_updated").on(table.ownerId, table.type, table.updatedAt),
     index("idx_ai_jobs_owner_batch").on(table.ownerId, table.batchId),
+    uniqueIndex("uq_ai_capture_active").on(table.ownerId, table.captureKey).where(sql`${table.captureKey} IS NOT NULL AND ${table.status} IN ('queued','running')`),
   ],
 );
 
@@ -109,6 +112,7 @@ export const aiJobAttempts = sqliteTable(
     status: text("status").notNull(),
     tokenUsage: text("token_usage").notNull().default("{}"),
     responseSummary: text("response_summary"),
+    telemetry: text("telemetry").notNull().default("{}"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
     startedAt: text("started_at").notNull().default(sql`CURRENT_TIMESTAMP`),

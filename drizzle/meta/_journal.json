@@ -57,6 +57,13 @@
       "when": 1794228814395,
       "tag": "0007_giant_red_shift",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794290147185,
+      "tag": "0008_odd_captain_america",
+      "breakpoints": true
     }
   ]
 }

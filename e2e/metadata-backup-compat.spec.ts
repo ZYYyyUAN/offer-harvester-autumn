@@ -11,7 +11,7 @@ test("v5 metadata backup preserves classification, drafts and historical revisio
   const committed = await request.post(`/api/data/imports/${preview.importId}/commit`, { data: {} });
   expect(committed.ok(), await committed.text()).toBe(true);
   const exported = await (await request.get("/api/data/export?format=json")).json();
-  expect(exported.schemaVersion).toBe(5);
+  expect(exported.schemaVersion).toBe(6);
   const byId = new Map<string, any>(exported.records.map((r: any) => [r.id, r]));
   expect(byId.size).toBe(fixture.records.length);
   for (const record of fixture.records) {

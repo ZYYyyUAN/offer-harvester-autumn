@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApplicationClosureSchema } from "./application-closure.ts";
 import { ActionTaskSchema } from "./workflow-contracts.ts";
 import { jdDataSchemas } from "./jd-contracts.ts";
 import { JobMetadataSchema, metadataDataSchemas } from "./job-metadata.ts";
@@ -19,6 +20,7 @@ export const ProfileDataSchema = z.object({
 }).passthrough();
 
 export const ApplicationDataSchema = z.object({
+  closure: ApplicationClosureSchema.nullable().optional(),
   jobMetadata: JobMetadataSchema.optional(),
   company: z.string().trim().min(1).max(240), role: z.string().trim().min(1).max(240), direction: text(240),
   location: text(240), salary: text(240), sourceUrl: text(2000), jd: text(30000), notes: text(12000),
