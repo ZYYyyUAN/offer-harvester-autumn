@@ -207,7 +207,7 @@ export function feishuFieldsToApplication(fields: Record<string, unknown>) {
   const data: Record<string, unknown> = {};
   for (const [key, label] of Object.entries(applicationFieldMap)) {
     if (["localId", "localVersion", "localUpdatedAt"].includes(key)) continue;
-    data[key] = scalar(fields[label]);
+    if (Object.prototype.hasOwnProperty.call(fields, label)) data[key] = scalar(fields[label]);
   }
   data.checklist = Object.fromEntries(Object.entries(checklistFieldMap).map(([key, label]) => [key, Boolean(fields[label])]));
   return data;

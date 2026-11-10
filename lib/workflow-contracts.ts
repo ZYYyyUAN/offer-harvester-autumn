@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const JobCaptureDraftSchema = z.object({
+  classificationClues: z.array(z.object({ field: z.enum(["companyNature", "companyTags", "employmentType", "linkPlatform"]), value: z.string().max(240), quote: z.string().min(1).max(1200) }).strict()).max(20).default([]),
   company: z.string().max(240).default(""),
   role: z.string().max(240).default(""),
   location: z.string().max(240).default(""),
@@ -14,8 +15,9 @@ export const JobCaptureDraftSchema = z.object({
 
 export const jobCaptureJsonSchema = {
   type: "object", additionalProperties: false,
-  required: ["company", "role", "location", "salary", "deadline", "jd", "sourceUrl", "evidence", "warnings"],
+  required: ["company", "role", "location", "salary", "deadline", "jd", "sourceUrl", "evidence", "warnings", "classificationClues"],
   properties: {
+    classificationClues: { type: "array", maxItems: 20, items: { type: "object", additionalProperties: false, required: ["field", "value", "quote"], properties: { field: { type: "string", enum: ["companyNature", "companyTags", "employmentType", "linkPlatform"] }, value: { type: "string" }, quote: { type: "string" } } } },
     company: { type: "string" }, role: { type: "string" }, location: { type: "string" }, salary: { type: "string" }, deadline: { type: "string" }, jd: { type: "string" }, sourceUrl: { type: "string" },
     evidence: { type: "array", items: { type: "object", additionalProperties: false, required: ["field", "quote"], properties: { field: { type: "string" }, quote: { type: "string" } } } },
     warnings: { type: "array", items: { type: "string" } },
@@ -127,7 +129,7 @@ export function normalizeJobCapture(value: unknown, fallbackUrl = "") {
   }
   const warnings = Array.isArray(raw.warnings) ? raw.warnings.filter((item): item is string => typeof item === "string").map((item) => item.slice(0, 800)) : [];
   if (raw.extraction_status && String(raw.extraction_status).startsWith("failed") && !warnings.length) warnings.push("页面正文不可访问，请改用岗位截图或手动输入。");
-  return JobCaptureDraftSchema.parse({ company: text("company", "company_name"), role: text("role", "position_title", "job_title", "title"), location: text("location", "city"), salary: text("salary", "salary_range"), deadline: text("deadline", "application_deadline"), jd: text("jd", "job_description", "description"), sourceUrl: text("sourceUrl", "source_url") || fallbackUrl, evidence, warnings });
+  return JobCaptureDraftSchema.parse({ company: text("company", "company_name"), role: text("role", "position_title", "job_title", "title"), location: text("location", "city"), salary: text("salary", "salary_range"), deadline: text("deadline", "application_deadline"), jd: text("jd", "job_description", "description"), classificationClues: raw.classificationClues || [], sourceUrl: text("sourceUrl", "source_url") || fallbackUrl, evidence, warnings });
 }
 
 export function normalizeJobUrl(value: string) {

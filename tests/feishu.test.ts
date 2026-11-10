@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { applicationToFeishuFields, feishuBitableAppInfo, feishuBitableTableId, feishuFieldsToApplication, feishuOAuthScopeValue, isRemoteImportable } from "../lib/feishu-contracts.ts";
 import { buildSyncPreview } from "../lib/feishu-sync.ts";
 import { buildFeishuCapabilities, requiredCapabilitiesReady, validateResumeMagic } from "../lib/feishu-diagnostics.ts";
+import { JobMetadataSchema } from "../lib/job-metadata.ts";
 
 test("飞书字段转换对日期、复选框和稳定 ID 使用确定性规则", () => {
   const fields = applicationToFeishuFields({ id: "app-1", version: 3, updatedAt: "2026-09-19T00:00:00Z", data: { company: "示例公司", role: "产品经理", stage: "面试中", deadline: "2026-10-01", checklist: { submitted: { done: true }, analyzed: false } } });
@@ -17,6 +18,15 @@ test("飞书字段转换对日期、复选框和稳定 ID 使用确定性规则"
 test("飞书新增记录缺少公司或岗位时禁止导入", () => {
   assert.equal(isRemoteImportable({ company: "示例公司", role: "" }), false);
   assert.equal(isRemoteImportable({ company: "示例公司", role: "开发工程师" }), true);
+});
+test("飞书旧字段区分缺失与清空，不覆盖本地新增分类和实际渠道", () => {
+  const original = { company: "合成公司", role: "Java", channel: "原旧值", jobMetadata: JobMetadataSchema.parse({ companyNature: "foreign_invested", submissionChannel: "email", discoverySource: "xiaohongshu" }) };
+  const missing = feishuFieldsToApplication({ "公司": "合成公司", "岗位": "Java" });
+  assert.equal(Object.hasOwn(missing, "channel"), false);
+  const unchanged = { ...original, ...missing };
+  assert.equal(unchanged.channel, "原旧值"); assert.deepEqual(unchanged.jobMetadata, original.jobMetadata);
+  const cleared = { ...original, ...feishuFieldsToApplication({ "投递渠道": "" }) };
+  assert.equal(cleared.channel, ""); assert.equal(cleared.jobMetadata.submissionChannel, "email");
 });
 
 test("首次双向内容不同会生成冲突且默认保留本地", async () => {

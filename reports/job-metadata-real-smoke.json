@@ -1,0 +1,138 @@
+{
+  "startedAt": "2026-11-09T16:26:54.555Z",
+  "samples": [
+    {
+      "name": "explicit",
+      "expected": {
+        "companyNature": "private",
+        "employmentType": "direct_hire"
+      },
+      "actual": {
+        "companyNature": "private",
+        "employmentType": "direct_hire"
+      },
+      "pass": true,
+      "model": "qwen3.5-ocr",
+      "promptVersion": "job-capture-image-v4",
+      "elapsedMs": 4332,
+      "suggestions": [
+        {
+          "field": "companyNature",
+          "value": "private",
+          "status": "suggested",
+          "evidence": {
+            "sourceType": "ocr_explicit",
+            "sourceRef": "5379b09d-99c1-4dde-bb0f-be6757c95945",
+            "quote": "公司性质：民营企业",
+            "obtainedAt": "2026-11-09T16:26:59.788Z",
+            "version": "job-capture-image-v4",
+            "ruleVersion": "job-metadata-v1",
+            "contextKey": "[\"合成蓝桥科技有限公司\",\"\"]"
+          }
+        },
+        {
+          "field": "companyTags",
+          "value": [
+            "manufacturing"
+          ],
+          "status": "suggested",
+          "evidence": {
+            "sourceType": "ocr_explicit",
+            "sourceRef": "5379b09d-99c1-4dde-bb0f-be6757c95945",
+            "quote": "行业：制造业",
+            "obtainedAt": "2026-11-09T16:26:59.788Z",
+            "version": "job-capture-image-v4",
+            "ruleVersion": "job-metadata-v1",
+            "contextKey": "[\"合成蓝桥科技有限公司\",\"\"]"
+          }
+        },
+        {
+          "field": "employmentType",
+          "value": "direct_hire",
+          "status": "suggested",
+          "evidence": {
+            "sourceType": "ocr_explicit",
+            "sourceRef": "5379b09d-99c1-4dde-bb0f-be6757c95945",
+            "quote": "岗位用工：直接招聘，与公司直接签约",
+            "obtainedAt": "2026-11-09T16:26:59.788Z",
+            "version": "job-capture-image-v4",
+            "ruleVersion": "job-metadata-v1",
+            "contextKey": "[\"合成蓝桥科技有限公司\",\"\"]"
+          }
+        },
+        {
+          "field": "linkPlatform",
+          "value": "boss",
+          "status": "suggested",
+          "evidence": {
+            "sourceType": "ocr_explicit",
+            "sourceRef": "5379b09d-99c1-4dde-bb0f-be6757c95945",
+            "quote": "平台：BOSS直聘",
+            "obtainedAt": "2026-11-09T16:26:59.788Z",
+            "version": "job-capture-image-v4",
+            "ruleVersion": "job-metadata-v1",
+            "contextKey": "[\"合成蓝桥科技有限公司\",\"\"]"
+          }
+        }
+      ],
+      "rawClues": [
+        {
+          "field": "companyNature",
+          "value": "private",
+          "quote": "公司性质：民营企业"
+        },
+        {
+          "field": "companyTags",
+          "value": "manufacturing",
+          "quote": "行业：制造业"
+        },
+        {
+          "field": "employmentType",
+          "value": "direct_hire",
+          "quote": "岗位用工：直接招聘，与公司直接签约"
+        }
+      ],
+      "sourceValidated": true
+    },
+    {
+      "name": "unknown",
+      "expected": {
+        "companyNature": "unknown",
+        "employmentType": "unknown"
+      },
+      "actual": {
+        "companyNature": "unknown",
+        "employmentType": "unknown"
+      },
+      "pass": true,
+      "model": "qwen3.5-ocr",
+      "promptVersion": "job-capture-image-v4",
+      "elapsedMs": 13163,
+      "suggestions": [],
+      "rawClues": [
+        {
+          "field": "companyNature",
+          "value": "other",
+          "quote": "未披露企业性质及本职位签约方式。"
+        },
+        {
+          "field": "employmentType",
+          "value": "direct_hire",
+          "quote": "未披露企业性质及本职位签约方式。"
+        },
+        {
+          "field": "companyTags",
+          "value": "banking",
+          "quote": "Global Bank Java 合成有限公司"
+        }
+      ],
+      "sourceValidated": true
+    }
+  ],
+  "paidModels": [
+    "qwen3.5-ocr",
+    "qwen3.8-flash"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-09T16:27:13.032Z"
+}

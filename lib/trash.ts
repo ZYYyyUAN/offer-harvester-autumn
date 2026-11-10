@@ -1,6 +1,7 @@
 import { ApiError, getBindings } from "./server-data.ts";
-import { scrubJDJobs, eraseJDFileCopies } from "./jd-trash";
+import { scrubJDJobs, eraseJDFileCopies, retainDeletedSavedJobSource } from "./jd-trash";
 import { atomicBatch, versionGuard } from "./jd-store";
+import { detachDeletedCompanyProfile, detachDeletedResearchReport } from "./job-metadata-delete";
 
 export { trashRetention } from "./data-safety.ts";
 
@@ -20,8 +21,13 @@ export async function purgeExpiredTrash(ownerId: string) {
       failed.push({ id: String(row.id), error: error instanceof Error ? error.message : "R2_DELETE_FAILED" });
     }
   }
-  const expiredRecords = await db.prepare("SELECT id FROM records WHERE owner_id = ? AND deleted_at IS NOT NULL AND deleted_at <= datetime('now', '-30 days')").bind(ownerId).all<{ id: string }>();
+  const expiredRecords = await db.prepare("SELECT id, kind FROM records WHERE owner_id = ? AND deleted_at IS NOT NULL AND deleted_at <= datetime('now', '-30 days')").bind(ownerId).all<{ id: string; kind: string }>();
   const statements = expiredRecords.results.flatMap((r) => scrubJDJobs(ownerId, r.id));
+  for (const r of expiredRecords.results) {
+    if (r.kind === "company_profiles") statements.push(...await detachDeletedCompanyProfile(ownerId, r.id));
+    if (r.kind === "saved_jobs") statements.push(...await retainDeletedSavedJobSource(ownerId, r.id));
+    if (r.kind === "research") statements.push(...await detachDeletedResearchReport(ownerId, r.id));
+  }
   if (statements.length) await atomicBatch(statements);
   const records = await db.prepare("DELETE FROM records WHERE owner_id = ? AND deleted_at IS NOT NULL AND deleted_at <= datetime('now', '-30 days')").bind(ownerId).run();
   return { filesPurged, recordsPurged: Number(records.meta?.changes || 0), failed };
@@ -55,7 +61,7 @@ export async function permanentlyDeleteTrash(ownerId: string, targets: TrashTarg
   let deleted = 0;
   for (const target of targets) {
     const table = target.type === "file" ? "stored_files" : "records";
-    const row = await db.prepare(`SELECT version, deleted_at${target.type === "file" ? ", object_key" : ", data"} FROM ${table} WHERE id = ? AND owner_id = ?`).bind(target.id, ownerId).first<Record<string, unknown>>();
+    const row = await db.prepare(`SELECT version, deleted_at${target.type === "file" ? ", object_key" : ", data, kind"} FROM ${table} WHERE id = ? AND owner_id = ?`).bind(target.id, ownerId).first<Record<string, unknown>>();
     if (!row) continue;
     if (!row.deleted_at) throw new ApiError(409, "只能永久删除回收站中的项目", "NOT_IN_TRASH");
     if (Number(row.version) !== target.version) throw new ApiError(409, "回收站项目版本已变化", "VERSION_CONFLICT", false, { id: target.id, currentVersion: Number(row.version) });
@@ -64,7 +70,7 @@ export async function permanentlyDeleteTrash(ownerId: string, targets: TrashTarg
       if (target.type === "record") {
         const batchId = JSON.parse(String(row.data)).deletionBatchId;
         const members = batchId ? (await db.prepare("SELECT id FROM records WHERE owner_id = ? AND deleted_at IS NOT NULL AND json_extract(data, '$.deletionBatchId') = ?").bind(ownerId, batchId).all<{ id: string }>()).results : [{ id: target.id }];
-        await atomicBatch([versionGuard(ownerId, target.id, target.version, "records", "deleted"), ...members.flatMap((r) => [...scrubJDJobs(ownerId, r.id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ? AND deleted_at IS NOT NULL").bind(r.id, ownerId)])]);
+        await atomicBatch([versionGuard(ownerId, target.id, target.version, "records", "deleted"), ...(row.kind === "company_profiles" ? await detachDeletedCompanyProfile(ownerId, target.id) : []), ...(row.kind === "saved_jobs" ? await retainDeletedSavedJobSource(ownerId, target.id) : []), ...(row.kind === "research" ? await detachDeletedResearchReport(ownerId, target.id) : []), ...members.flatMap((r) => [...scrubJDJobs(ownerId, r.id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ? AND deleted_at IS NOT NULL").bind(r.id, ownerId)])]);
         deleted += members.length;
       } else {
         await atomicBatch([versionGuard(ownerId, target.id, target.version, "stored_files", "deleted"), ...(await eraseJDFileCopies(ownerId, target.id)), db.prepare("DELETE FROM stored_files WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NOT NULL").bind(target.id, ownerId, target.version)]);

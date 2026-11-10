@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { api, Field, PageHead } from "./shared";
 import type { StoredFile } from "./types";
+import { natureLabels } from "@/lib/job-metadata";
 
 async function post(path: string, body: unknown) {
   const result = await api<any>("/api/jd/" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -94,7 +95,7 @@ export function JDArchivePanel({ sourceId }: { sourceId: string }) {
   </section>;
 }
 
-const initialFilters = { scope: "applied", direction: "", city: "", companyType: "", stage: "", reached: "", from: "", to: "", resumeId: "", state: "", sort: "count" };
+const initialFilters = { scope: "applied", direction: "", city: "", companyType: "", companyNature: "", companyTags: "", stage: "", reached: "", from: "", to: "", resumeId: "", state: "", sort: "count" };
 export function SkillProfileView({ resumes }: { resumes: StoredFile[] }) {
   const [filters, setFilters] = useState(initialFilters), [tab, setTab] = useState("skills"), [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<any>(null), [gaps, setGaps] = useState<any>(null), [selected, setSelected] = useState(""), [resumeId, setResumeId] = useState("");
@@ -134,7 +135,9 @@ export function SkillProfileView({ resumes }: { resumes: StoredFile[] }) {
       <Field label="样本范围"><select value={filters.scope} onChange={(e) => setFilters({ ...filters, scope: e.target.value })}><option value="applied">实际投递</option><option value="saved">收藏岗位（独立样本）</option></select></Field>
       <Field label="岗位方向"><Input value={filters.direction} onChange={(e) => setFilters({ ...filters, direction: e.target.value })} /></Field>
       <Field label="城市"><Input value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} /></Field>
-      <Field label="公司类别"><select value={filters.companyType} onChange={(e) => setFilters({ ...filters, companyType: e.target.value })}><option value="">全部</option>{["unknown","large_tech","mid_size","startup","soe_bank","foreign","outsourcing","other"].map((v) => <option key={v} value={v}>{({ unknown: "未知", large_tech: "大厂", mid_size: "中厂", startup: "初创", soe_bank: "国企银行", foreign: "外企", outsourcing: "外包", other: "其他" } as any)[v]}</option>)}</select></Field>
+      <Field label="投递时公司性质"><select value={filters.companyNature} onChange={(e) => setFilters({ ...filters, companyNature: e.target.value })}><option value="">全部</option>{Object.entries(natureLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
+      <Field label="公司标签（逗号分隔）"><Input value={filters.companyTags} onChange={(e) => setFilters({ ...filters, companyTags: e.target.value })} placeholder="银行,制造" /></Field>
+      <Field label="旧公司类别（历史原值）"><select value={filters.companyType} onChange={(e) => setFilters({ ...filters, companyType: e.target.value })}><option value="">全部</option>{["unknown","large_tech","mid_size","startup","soe_bank","foreign","outsourcing","other"].map((v) => <option key={v} value={v}>{({ unknown: "未知", large_tech: "大厂", mid_size: "中厂", startup: "初创", soe_bank: "国企银行", foreign: "外企", outsourcing: "外包", other: "其他" } as any)[v]}</option>)}</select></Field>
       <Field label="当前阶段"><select value={filters.stage} onChange={(e) => setFilters({ ...filters, stage: e.target.value })}><option value="">全部</option>{["待投递","已投递","笔试中","面试中","OFFER","已结束"].map((s) => <option key={s}>{s}</option>)}</select></Field>
       <Field label="历史到达"><select value={filters.reached} onChange={(e) => setFilters({ ...filters, reached: e.target.value })}><option value="">全部（旧记录可能未知）</option>{["已投递","笔试中","面试中","OFFER"].map((s) => <option key={s}>{s}</option>)}</select></Field>
       <Field label="开始日期"><Input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} /></Field>

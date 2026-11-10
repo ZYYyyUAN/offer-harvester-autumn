@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ActionTaskSchema } from "./workflow-contracts.ts";
 import { jdDataSchemas } from "./jd-contracts.ts";
+import { JobMetadataSchema, metadataDataSchemas } from "./job-metadata.ts";
 
 const text = (max = 4000) => z.string().max(max).default("");
 const optionalDate = z.string().max(40).default("");
@@ -18,6 +19,7 @@ export const ProfileDataSchema = z.object({
 }).passthrough();
 
 export const ApplicationDataSchema = z.object({
+  jobMetadata: JobMetadataSchema.optional(),
   company: z.string().trim().min(1).max(240), role: z.string().trim().min(1).max(240), direction: text(240),
   location: text(240), salary: text(240), sourceUrl: text(2000), jd: text(30000), notes: text(12000),
   stage: z.enum(["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"]).default("待投递"),
@@ -29,11 +31,12 @@ export const ApplicationDataSchema = z.object({
 }).passthrough();
 
 export const SavedJobDataSchema = z.object({
-  company: z.string().trim().min(1).max(240), role: z.string().trim().min(1).max(240), location: text(240), salary: text(240), deadline: optionalDate,
+  jobMetadata: JobMetadataSchema.optional(),
+  company: z.string().trim().max(240).default(""), role: z.string().trim().max(240).default(""), location: text(240), salary: text(240), deadline: optionalDate,
   jd: text(30000), sourceUrl: text(2000), notes: text(12000), screenshotFileId: text(120),
   recruitmentMode: z.enum(["自动判断", "滚动招聘", "固定截止"]).default("自动判断"),
   priority: z.enum(["高", "普通", "低"]).default("普通"),
-}).passthrough();
+}).passthrough().refine((data) => [data.company, data.role, data.jd, data.sourceUrl, data.screenshotFileId].some((value) => Boolean(value.trim())), { message: "请至少保存岗位链接、截图或一项岗位信息" });
 
 export const EvidenceDataSchema = z.object({
   title: z.string().trim().min(1).max(240), source: text(500), status: z.enum(["confirmed", "draft"]).default("draft"),
@@ -61,6 +64,7 @@ export const ReminderDataSchema = z.object({
 }).passthrough();
 
 const schemas: Record<string, z.ZodTypeAny> = {
+  ...metadataDataSchemas,
   ...jdDataSchemas,
   applications: ApplicationDataSchema,
   saved_jobs: SavedJobDataSchema,

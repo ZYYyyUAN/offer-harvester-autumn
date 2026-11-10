@@ -1,6 +1,8 @@
 import { ApiError, getBindings, getDatabase, recordTitle } from "./server-data";
 import { sha256Hex } from "./data-safety";
 import { atomicBatch, insertRecord, listKind, ownedRecord, updateRecordStatement, versionGuard, type JDRecord } from "./jd-store";
+import { submissionMetadata } from "./job-metadata-store";
+import { applyMetadataSuggestions, metadataContext } from "./job-metadata";
 
 export async function hashText(value: string) { return sha256Hex(new TextEncoder().encode(value).buffer); }
 export async function resumeIdentity(ownerId: string, fileId: string | null) {
@@ -26,8 +28,11 @@ export async function snapshotData(ownerId: string, source: { id: string; data: 
     if (!file) throw new ApiError(404, "岗位截图不存在");
   }
   const appliedAt = options.isSaved ? null : (options.previous?.data.appliedAt ?? (d.appliedAt || null));
+  const savedJobId = options.isSaved ? source.id : String(options.previous?.data.savedJobId || d.savedJobId || "");
+  const deletedSourceIds = [...(options.previous?.data.deletedSourceIds || [])];
+  if (savedJobId && !await getDatabase().prepare("SELECT id FROM records WHERE owner_id = ? AND id = ? AND kind = 'saved_jobs'").bind(ownerId, savedJobId).first()) deletedSourceIds.push(savedJobId);
   return { ...payload, ...identity, sourceEntryId: String(options.previous?.data.sourceEntryId || (options.isSaved ? source.id : d.savedJobId || source.id)),
-    applicationId: options.isSaved ? "" : source.id, savedJobId: options.isSaved ? source.id : String(d.savedJobId || ""),
+    applicationId: options.isSaved ? "" : source.id, savedJobId, deletedSourceIds: [...new Set(deletedSourceIds)],
     submissionId: options.submissionId || "", revision: options.previous ? options.previous.data.revision + 1 : 1,
     previousSnapshotId: options.previous?.id ?? null, captureReason: options.reason,
     jdSha256: await hashText(jdText), snapshotPayloadSha256: await hashText(JSON.stringify(payload)), capturedAt: new Date().toISOString(),
@@ -39,6 +44,11 @@ export function isSubmitted(data: Record<string, any>) {
   return ["已投递", "笔试中", "面试中", "OFFER"].includes(String(data.stage)) || Boolean(data.appliedAt) || checked === true || checked?.done === true;
 }
 export async function applicationSaveStatements(ownerId: string, id: string, data: Record<string, any>, existing: JDRecord | null, operationId = "", lateEntry = false) {
+  if (data.jobMetadata) {
+    const metadata = applyMetadataSuggestions(data.jobMetadata, [], metadataContext(String(data.company || ""), String(data.sourceUrl || "")));
+    if (existing && existing.data.company !== data.company && metadata.companyProfileId === existing.data.jobMetadata?.companyProfileId) metadata.companyProfileId = null;
+    data = { ...data, jobMetadata: metadata };
+  }
   const db = getDatabase();
   const statements: D1PreparedStatement[] = [];
   if (existing) statements.push(versionGuard(ownerId, id, existing.version));
@@ -52,6 +62,7 @@ export async function applicationSaveStatements(ownerId: string, id: string, dat
     statements.push(insertRecord(ownerId, "job_submissions", data.company + " · 投递归档", {
       applicationId: id, sourceEntryId: snap.sourceEntryId, snapshotId, appliedAt: snap.appliedAt, operationId,
       resumeFileId: snap.resumeFileId, resumeSha256: snap.resumeSha256,
+      metadataSnapshot: submissionMetadata(data), metadataRecordedAt: new Date().toISOString(),
     }, submissionId));
   }
   statements.push(existing ? updateRecordStatement(ownerId, existing, data) : insertRecord(ownerId, "applications", recordTitle("applications", data), data, id));
@@ -63,6 +74,6 @@ export async function applicationSaveStatements(ownerId: string, id: string, dat
   return statements;
 }
 export async function saveApplication(ownerId: string, id: string, data: Record<string, any>, existing: JDRecord | null, operationId = "", extra: D1PreparedStatement[] = [], lateEntry = false) {
-  await atomicBatch([...(await applicationSaveStatements(ownerId, id, data, existing, operationId, lateEntry)), ...extra]);
+  await atomicBatch([...(await applicationSaveStatements(ownerId, id, data, existing, operationId, lateEntry)), ...extra], existing ? { ownerId, id } : undefined);
   return ownedRecord(ownerId, id, "applications");
 }

@@ -7,17 +7,21 @@ import { sha256Hex } from "./data-safety";
 import { canonicalSkill, EditDataSchema, GapOutputSchema, gapJsonSchema, JDExtractionSchema, jdExtractionJsonSchema, textBlocks, validateExtraction, validateGap, skillStatistics, type ProfileSample, type ValidRequirement } from "./jd-contracts";
 import { structuredChat, analyzeResumeFile } from "./qwen";
 import { ActionTaskSchema } from "./workflow-contracts";
+import { JobMetadataSchema } from "./job-metadata";
+import { historicalMetadata, matchesMetadata } from "./job-metadata-statistics";
 
 const Version = z.object({ version: z.number().int().positive() });
 const Filter = z.object({ scope: z.enum(["applied", "saved"]).default("applied"), direction: z.string().default(""), city: z.string().default(""),
+  companyNature: z.string().default(""), companyTags: z.string().default(""),
   companyType: z.string().default(""), stage: z.string().default(""), reached: z.string().default(""), from: z.string().default(""), to: z.string().default(""),
   resumeId: z.string().default(""), state: z.enum(["", "missing", "pending", "valid", "ignored", "failed"]).default(""), sort: z.enum(["count", "weight"]).default("count") }).strict();
 export async function featureProfile(ownerId: string, query: Record<string, unknown>) {
   const filters = Filter.parse(query);
-  const [snapshots, extractions, edits, applications, saved, submissions, events, jobs] = await Promise.all([
+  const [snapshots, extractions, edits, applications, saved, submissions, events, jobs, metadataRevisions] = await Promise.all([
     listKind(ownerId, "jd_snapshots"), listKind(ownerId, "jd_extractions"), listKind(ownerId, "jd_requirement_edits"),
     listKind(ownerId, "applications"), listKind(ownerId, "saved_jobs"), listKind(ownerId, "job_submissions"), listKind(ownerId, "application_events"),
     getDatabase().prepare("SELECT id,status,input_snapshot FROM ai_jobs WHERE owner_id = ? AND type = 'jd_requirements_extract' ORDER BY created_at DESC").bind(ownerId).all<Record<string, unknown>>(),
+    listKind(ownerId, "submission_metadata_revisions"),
   ]);
   const sources = filters.scope === "applied" ? applications.filter((r) => submissions.some((s) => s.data.applicationId === r.id)) : saved;
   const samples: ProfileSample[] = [];
@@ -27,6 +31,8 @@ export async function featureProfile(ownerId: string, query: Record<string, unkn
     const snap = candidates.sort((a, b) => b.data.revision - a.data.revision)[0];
     if (!snap) continue;
     const d = snap.data;
+    const classification = filters.scope === "applied" ? historicalMetadata(source.id, [...submissions, ...metadataRevisions]).metadata : JobMetadataSchema.parse(source.data.jobMetadata || {});
+    if (!matchesMetadata(classification, { companyNature: filters.companyNature, companyTags: filters.companyTags.split(",").filter(Boolean) })) continue;
     if (filters.direction && !String(d.direction).includes(filters.direction)) continue;
     if (filters.city && !String(d.location).includes(filters.city)) continue;
     if (filters.companyType && d.companyType !== filters.companyType) continue;

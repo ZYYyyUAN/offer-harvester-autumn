@@ -7,9 +7,18 @@ import { atomicBatch, insertRecord, versionGuard } from "@/lib/jd-store";
 import { executeJDJob } from "@/lib/jd-feature";
 import { publicAtsSource } from "@/lib/job-source-contracts";
 import { readPublicAtsJob } from "@/lib/job-source";
+import { ZodError } from "zod";
 
 type JobRow = Record<string, unknown>;
 type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: string; status?: string };
+function normalizeCaptureResponse(value: unknown, sourceUrl = "") {
+  try { return normalizeJobCapture(value, sourceUrl); }
+  catch (error) {
+    if (error instanceof ZodError) throw new ApiError(502, "岗位提取结果未通过结构校验，原输入已保留，请重试或手动填写", "SCHEMA_INVALID");
+    throw error;
+  }
+}
+const classificationInstructions = "classificationClues 应完整提取页面明确记载的公司性质、行业/发展阶段标签及本岗位用工形式，并逐项附原文 quote。companyNature 使用 state_owned/private/foreign_invested/public_institution/other；employmentType 使用 direct_hire/outsourced/labor_dispatch；companyTags 使用 banking（银行业）、internet（互联网）、manufacturing（制造业）、healthcare（医疗）、startup（初创）或其他原文标签。原文明示‘行业：制造业’时必须提取 manufacturing；明示‘公司性质：民营企业’时提取 private。不得根据公司名称、英文名、技术栈或印象补全；银行不等于国企，上市不等于大厂，提供外包服务不等于本岗位外包。没有明确记载则不输出该字段；未披露不是否定，也不能猜测。行业标签必须有明确行业原文，软件外包服务不能推断互联网；大厂、中厂只由用户确认，不输出。若截图明确写有“平台：BOSS直聘”等当前平台标识，可输出 linkPlatform（boss/xiaohongshu/maimai/nowcoder/liepin/zhaopin/51job/lagou/shixiseng/linkedin），引用该完整标识；正文提到的平台或转载来源不能证明当前平台。不得从平台推断用户最初发现来源、实际投递或内推。";
 
 const modelFor: Record<AIJobType, string> = {
   jd_requirements_extract: "qwen3.8-max", resume_text_extract: "qwen-doc-turbo", resume_gap_analysis: "qwen3.8-max",
@@ -23,7 +32,7 @@ const promptFor: Record<AIJobType, string> = {
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
   foreign_interview_review: "foreign-interview-review-v1",
-  job_capture_url: "job-capture-url-v2", job_capture_image: "job-capture-image-v1",
+  job_capture_url: "job-capture-url-v5", job_capture_image: "job-capture-image-v4",
 };
 
 export function mapAIJob(row: JobRow) {
@@ -108,11 +117,11 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     const publicSource = publicAtsSource(sourceUrl);
     if (publicSource) return { result: await readPublicAtsJob(publicSource, sourceUrl), usage: {}, confidence: "high", record: null };
     const response = await responsesSearch({
-      system: "你是严格的岗位信息提取器。只提取指定网页正文实际出现的信息；缺失字段返回空字符串。不得依据常识补全公司、薪资或截止日期。evidence 必须引用网页原文。",
+      system: "你是严格的岗位信息提取器。只提取指定页面正文，缺失字段为空，evidence 引用原文。" + classificationInstructions,
       prompt: `仅访问并抽取这个岗位页面：${sourceUrl}\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）、完整 JD。若网页要求登录、出现验证码或正文不可访问，在 warnings 中说明，不要改用其他职位。sourceUrl 原样返回。`,
       schemaName: "job_capture_url_v1", schema: jobCaptureJsonSchema,
     });
-    const normalized = normalizeJobCapture(response.data, sourceUrl);
+    const normalized = normalizeCaptureResponse(response.data, sourceUrl);
     if (!normalized.company && !normalized.role && !normalized.jd) throw new ApiError(422, "未能读取这个岗位链接的正文。请上传 JD 截图或粘贴岗位职责与任职要求；已经填写的信息会保留。", "PAGE_CONTENT_UNAVAILABLE");
     return { result: { ...normalized, sources: response.sources }, usage: response.usage, confidence: response.sources.length && normalized.company && normalized.role ? "medium" : "low", record: null };
   }
@@ -122,8 +131,8 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     if (!file) throw new ApiError(404, "岗位截图不存在");
     const object = await bucket.get(String(file.object_key)); if (!object) throw new ApiError(404, "岗位截图内容不存在");
     const ocr = await ocrImage({ bytes: await object.arrayBuffer(), mimeType: String(file.mime_type) });
-    const response = await structuredChat({ model: "qwen3.8-flash", system: "你是严格的岗位截图字段提取器。只能使用 OCR 原文；缺失字段返回空字符串，禁止推断。每个非空字段都要在 evidence 中提供 OCR 原文片段。", prompt: `截图 OCR 原文：\n${ocr.text}\n\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）和完整 JD。sourceUrl 返回空字符串。`, schemaName: "job_capture_image_v1", schema: jobCaptureJsonSchema, maxTokens: 4200 });
-    const normalized = normalizeJobCapture(response.data);
+    const response = await structuredChat({ model: "qwen3.8-flash", system: "你是严格的岗位截图字段提取器。只能使用 OCR 原文，缺失字段为空，evidence 必须提供原文。" + classificationInstructions, prompt: `截图 OCR 原文：\n${ocr.text}\n\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）和完整 JD。sourceUrl 返回空字符串。`, schemaName: "job_capture_image_v1", schema: jobCaptureJsonSchema, maxTokens: 4200 });
+    const normalized = normalizeCaptureResponse(response.data);
     return { result: { ...normalized, ocrText: ocr.text, screenshotFileId: fileId }, usage: response.usage, confidence: normalized.company && normalized.role ? "medium" : "low", record: null };
   }
   if (type === "job_analysis" || type === "evaluation_case") {

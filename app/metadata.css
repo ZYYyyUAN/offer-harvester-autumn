@@ -1,0 +1,11 @@
+.metadata-editor { border-top: 1px solid #dce3ef; margin-top: 1rem; padding-top: 1rem; min-width: 0; }
+.metadata-editor p, .metadata-editor small, .metadata-statistics p { overflow-wrap: anywhere; }
+.metadata-editor .muted { color: #526176; }
+.metadata-editor small { display: block; color: #526176; margin-top: .35rem; }
+.metadata-editor article { border-bottom: 1px solid #dce3ef; padding: .7rem 0; }
+.metadata-editor input, .metadata-editor select { min-width: 0; width: 100%; }
+.metadata-statistics { margin-block: 1.3rem; }
+.metadata-statistics .segment-grid article { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: space-between; }
+.metadata-migration-row { display: flex; gap: .65rem; padding-block: .8rem; border-bottom: 1px solid #dce3ef; }
+.metadata-migration-row small { display: block; margin-top: .4rem; }
+@media(max-width: 600px) { .metadata-editor .card-actions { flex-wrap: wrap; } .metadata-editor .editor-grid, .metadata-statistics .editor-grid { grid-template-columns: minmax(0, 1fr); } .metadata-editor button { white-space: normal; } }

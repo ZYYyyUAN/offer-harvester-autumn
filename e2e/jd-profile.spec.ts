@@ -70,7 +70,7 @@ test("真实管线配合模拟供应商：提取、差距、任务、修改稿�
   expect(await page.evaluate(()=>document.documentElement.scrollWidth > document.documentElement.clientWidth+1)).toBe(false);
   const axe=await new AxeBuilder({page}).analyze(); expect(axe.violations.filter(v=>["critical","serious"].includes(v.impact||""))).toEqual([]);
   await page.screenshot({path:"test-results/jd-profile-"+info.project.name+".png",fullPage:true});
-  const backup=await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(4);
+  const backup=await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(5);
   const index=await json(await request.get("/api/data/files/archive/index"));
   const packs:Buffer[]=[];for(const part of [...new Set(index.files.map((f:any)=>f.part))]) packs.push(await (await request.get("/api/data/files/archive?part="+part)).body());
   await json(await request.delete("/api/profile?confirm=DELETE"));

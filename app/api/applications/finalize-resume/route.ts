@@ -2,6 +2,8 @@ import { z } from "zod";
 import { ApiError, apiError, getDatabase, mapRecord, requireApiUser, safeJson } from "@/lib/server-data";
 import { applicationSaveStatements } from "@/lib/application-submission";
 import { atomicBatch, versionGuard } from "@/lib/jd-store";
+import { JobMetadataSchema } from "@/lib/job-metadata";
+import { validateJobMetadata } from "@/lib/job-metadata-store";
 
 const FinalizeSchema = z.object({
   applicationId: z.string().min(1),
@@ -9,6 +11,7 @@ const FinalizeSchema = z.object({
   fileId: z.string().min(1),
   fileVersions: z.record(z.string(), z.number().int().positive()),
   appliedAt: z.string().datetime(),
+  jobMetadata: JobMetadataSchema.optional(),
 }).strict();
 
 export async function POST(request: Request) {
@@ -28,6 +31,7 @@ export async function POST(request: Request) {
     if (selectedMetadata.libraryType !== "optimization") throw new ApiError(400, "请先在简历优化库创建岗位专用版本");
     if (selectedMetadata.applicationId && selectedMetadata.applicationId !== input.applicationId) throw new ApiError(409, "该简历属于其他岗位");
     const data = safeJson<Record<string, any>>(String(application.data), {});
+    if (input.jobMetadata) data.jobMetadata = (await validateJobMetadata(userId, { ...data, jobMetadata: input.jobMetadata }, data)).jobMetadata;
     const now = new Date().toISOString();
     const previousStage = String(data.stage || "待投递");
     data.stage = previousStage === "待投递" ? "已投递" : previousStage;

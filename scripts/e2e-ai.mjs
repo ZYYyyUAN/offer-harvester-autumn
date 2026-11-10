@@ -7,15 +7,16 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/responses") {
     if (!payload.text?.format?.json_schema?.schema) { res.writeHead(400,{"content-type":"application/json"});res.end(JSON.stringify({error:{message:"json_schema configuration is required"}}));return; }
     const blocked = payload.input.includes("/restricted");
-    const output = blocked ? {...capture,company:"",role:"",location:"",jd:"",evidence:[],warnings:["未取得网页正文"]} : {...capture,company:"合成链接科技"};
+    const output = blocked ? {...capture,company:"",role:"",location:"",jd:"",evidence:[],warnings:["未取得网页正文"]} : {...capture,company:"合成链接科技", ...(payload.input.includes("/malformed") ? { classificationClues: [{ field: "companyNature", value: "private", quote: "" }] } : {})};
     res.setHeader("content-type","application/json");res.end(JSON.stringify({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(output)}]}],usage:{total_tokens:50}}));return;
   }
   const content = payload.messages?.find((m) => m.role === "user")?.content || "{}";
   if (Array.isArray(content)) {
-    res.setHeader("content-type","application/json");res.end(JSON.stringify({choices:[{message:{content:"合成截图科技 Java 后端 杭州 使用 Java 开发接口 熟悉 MySQL"},finish_reason:"stop"}]}));return;
+    res.setHeader("content-type","application/json");res.end(JSON.stringify({choices:[{message:{content:"合成截图科技 Java 后端 杭州 使用 Java 开发接口 熟悉 MySQL 公司性质：民营企业"},finish_reason:"stop"}]}));return;
   }
   if (payload.response_format?.json_schema?.name === "job_capture_image_v1") {
-    res.setHeader("content-type","application/json");res.end(JSON.stringify({choices:[{message:{content:JSON.stringify(capture)},finish_reason:"stop"}],usage:{total_tokens:50}}));return;
+    const classified = { ...capture, classificationClues: [{ field: "companyNature", value: "private", quote: "公司性质：民营企业" }] };
+    res.setHeader("content-type","application/json");res.end(JSON.stringify({choices:[{message:{content:JSON.stringify(classified)},finish_reason:"stop"}],usage:{total_tokens:50}}));return;
   }
   const input = JSON.parse(content);
   let output;

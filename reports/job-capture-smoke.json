@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-11-09T12:09:55.380Z",
+  "createdAt": "2026-11-09T16:27:13.697Z",
   "syntheticCandidateDataOnly": true,
   "cases": [
     {
@@ -9,11 +9,11 @@
       "company": "Cloudflare",
       "role": "Software Engineer, FL",
       "location": "London",
-      "jdLength": 4173,
+      "jdLength": 7285,
       "model": "qwen3.8-max"
     },
     {
-      "name": "reported_feishu_url",
+      "name": "reported_application_url",
       "status": 201,
       "passed": true,
       "company": "北京趣拿软件科技有限公司",

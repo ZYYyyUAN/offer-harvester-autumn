@@ -34,6 +34,14 @@ test("可访问链接仅生成待核对结果，用户确认才收藏", async ({
   expect(confirmed.status()).toBe(201); expect((await confirmed.json()).record.data.jd).toContain("Java");
 });
 
+test("模型字段格式错误属于可见的提取失败，不会变成已保存岗位", async ({ request }) => {
+  const response = await request.post("/api/job-captures", { data: { sourceUrl: "https://example.test/malformed" } });
+  expect(response.status()).toBe(502); expect((await response.json()).code).toBe("SCHEMA_INVALID");
+  const jobs = (await (await request.get("/api/ai/jobs?type=job_capture_url")).json()).jobs;
+  expect(jobs[0].status).toBe("failed"); expect(jobs[0].errorCode).toBe("SCHEMA_INVALID");
+  expect((await (await request.get("/api/records?kind=saved_jobs")).json()).records).toHaveLength(0);
+});
+
 test("截图上传的文件 ID 能到达 OCR 并生成核对结果", async ({ request }) => {
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=", "base64");
   const upload = await request.post("/api/files?purpose=job_screenshot", { headers: { "content-type": "image/png", "x-file-name": "synthetic.png" }, data: png });
