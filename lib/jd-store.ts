@@ -1,5 +1,6 @@
 import { ApiError, getDatabase, mapRecord, type StoredRecord } from "./server-data";
 import { jdDataSchemas } from "./jd-contracts";
+import { metadataDataSchemas } from "./job-metadata";
 
 export type JDRecord = Omit<StoredRecord, "data"> & { data: Record<string, any> };
 export async function ownedRecord(ownerId: string, id: string, kind?: string): Promise<JDRecord> {
@@ -8,12 +9,12 @@ export async function ownedRecord(ownerId: string, id: string, kind?: string): P
   return mapRecord(row);
 }
 export function insertRecord(ownerId: string, kind: string, title: string, data: Record<string, unknown>, id = crypto.randomUUID()) {
-  const schema = jdDataSchemas[kind];
+  const schema = jdDataSchemas[kind] || metadataDataSchemas[kind];
   const parsed = schema ? schema.parse(data) : data;
   return getDatabase().prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, ?, ?, ?)").bind(id, ownerId, kind, title, JSON.stringify(parsed));
 }
 export function updateRecordStatement(ownerId: string, record: JDRecord, data: Record<string, unknown>) {
-  const parsed = jdDataSchemas[record.kind]?.parse(data) ?? data;
+  const parsed = (jdDataSchemas[record.kind] || metadataDataSchemas[record.kind])?.parse(data) ?? data;
   return getDatabase().prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NULL").bind(JSON.stringify(parsed), record.id, ownerId, record.version);
 }
 export function versionGuard(ownerId: string, id: string, version: number, table: "records" | "stored_files" | "ai_jobs" = "records", status?: string) {
@@ -22,10 +23,14 @@ export function versionGuard(ownerId: string, id: string, version: number, table
   // A failed CAS must abort the entire D1 batch, including its audit and snapshot inserts.
   return getDatabase().prepare("SELECT CASE WHEN EXISTS (SELECT 1 FROM " + table + " WHERE id = ? AND owner_id = ? AND version = ?" + where + ") THEN 1 ELSE abs(-9223372036854775808) END").bind(...values);
 }
-export async function atomicBatch(statements: D1PreparedStatement[]) {
+export async function atomicBatch(statements: D1PreparedStatement[], conflictTarget?: { ownerId: string; id: string; table?: "records" | "stored_files" | "ai_jobs" }) {
   try { return await getDatabase().batch(statements); }
   catch (error) {
-    if (error instanceof Error && error.message.includes("integer overflow")) throw new ApiError(409, "数据已更新或任务已取消，请刷新后重试", "VERSION_CONFLICT");
+    if (error instanceof Error && error.message.includes("integer overflow")) {
+      const latest = conflictTarget ? await getDatabase().prepare("SELECT version FROM " + (conflictTarget.table || "records") + " WHERE owner_id = ? AND id = ?").bind(conflictTarget.ownerId, conflictTarget.id).first<{ version: number }>() : null;
+      throw new ApiError(409, "数据已更新或任务已取消，请刷新后重试", "VERSION_CONFLICT", false, conflictTarget ? { currentVersion: latest?.version ?? null } : undefined);
+    }
+    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) throw new ApiError(409, "相同关联已存在，请刷新后查看已有记录", "DUPLICATE_ASSOCIATION");
     throw error;
   }
 }

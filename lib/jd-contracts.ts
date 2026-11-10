@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { JobMetadataSchema } from "./job-metadata.ts";
 
 export const jdKinds = ["job_submissions", "jd_snapshots", "jd_extractions", "jd_requirement_edits", "resume_text_snapshots", "resume_gap_analyses", "resume_improvement_items"] as const;
 export const importanceValues = ["must", "important", "bonus", "unspecified"] as const;
@@ -162,11 +163,11 @@ export const SnapshotDataSchema = z.object({
   appliedAtStatus: z.enum(["known", "unknown"]), resumeFileId: z.string().nullable(), resumeFileVersion: z.number().int().nullable(),
   resumeSha256: hash.nullable(), resumeDisplayName: z.string(), resumeReferenceStatus: z.enum(["available", "not_recorded", "deleted"]),
   contentStatus: z.enum(["available", "missing"]), correctionReason: z.string(), activeExtractionId: z.string().nullable(),
-  ignored: z.boolean(), deletionBatchId: z.string().optional(), deletedFileIds: z.array(z.string()).optional(),
+  ignored: z.boolean(), deletionBatchId: z.string().optional(), deletedFileIds: z.array(z.string()).optional(), deletedSourceIds: z.array(z.string()).optional(),
 }).strict();
-export const SubmissionDataSchema = z.object({ applicationId: id, sourceEntryId: id, snapshotId: id, appliedAt: iso.nullable(), operationId: z.string(), resumeFileId: z.string().nullable(), resumeSha256: hash.nullable(), deletionBatchId: z.string().optional() }).strict();
+export const SubmissionDataSchema = z.object({ applicationId: id, sourceEntryId: id, snapshotId: id, appliedAt: iso.nullable(), operationId: z.string(), resumeFileId: z.string().nullable(), resumeSha256: hash.nullable(), metadataSnapshot: JobMetadataSchema.optional(), metadataRecordedAt: iso.optional(), deletionBatchId: z.string().optional() }).strict();
 export const ExtractionDataSchema = z.object({ snapshotId: id, sourceEntryId: id, aiJobId: id, rawOutput: JDExtractionSchema,
-  output: z.object({ complete: z.literal(true), requirements: z.array(JDRequirementSchema.extend({ citations: z.array(CitationSchema.extend({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }).strict()) }).passthrough()), groups: z.array(z.record(z.unknown())), warnings: z.array(z.string()), dictionaryVersion: z.string() }).strict(),
+  output: z.object({ complete: z.literal(true), requirements: z.array(JDRequirementSchema.extend({ citations: z.array(CitationSchema.extend({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }).strict()) }).passthrough()), groups: z.array(z.record(z.string(), z.unknown())), warnings: z.array(z.string()), dictionaryVersion: z.string() }).strict(),
   deletionBatchId: z.string().optional(),
 }).strict();
 export const EditDataSchema = z.object({ extractionId: id, snapshotId: id, sourceEntryId: id, requirementKey: id, revision: z.number().int().positive(), patch: z.object({
@@ -179,7 +180,7 @@ export const ImprovementSchema = z.object({ analysisId: id, aiJobId: id, suggest
   status: z.enum(["pending", "accepted", "completed", "ignored"]), capabilityDecision: z.enum(["unknown", "has_evidence", "needs_practice"]),
   taskId: z.string().nullable(), resultResumeFileId: z.string().nullable(), resultResumeSha256: hash.nullable(), deletionBatchId: z.string().optional(),
 }).strict();
-export const GapAnalysisDataSchema = z.object({ aiJobId: id, input: z.record(z.unknown()), output: GapOutputSchema, deletionBatchId: z.string().optional() }).strict();
+export const GapAnalysisDataSchema = z.object({ aiJobId: id, input: z.record(z.string(), z.unknown()), output: GapOutputSchema, deletionBatchId: z.string().optional() }).strict();
 export const jdDataSchemas: Record<string, z.ZodTypeAny> = {
   job_submissions: SubmissionDataSchema, jd_snapshots: SnapshotDataSchema, jd_extractions: ExtractionDataSchema,
   jd_requirement_edits: EditDataSchema, resume_text_snapshots: TextSnapshotSchema, resume_gap_analyses: GapAnalysisDataSchema, resume_improvement_items: ImprovementSchema,

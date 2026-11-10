@@ -1,0 +1,731 @@
+{
+  "schemaVersion": 5,
+  "exportedAt": "2026-11-09T16:30:11.345Z",
+  "profile": null,
+  "records": [
+    {
+      "id": "dc599cad-d479-4d9b-bdc8-a131bc881ed0",
+      "kind": "activity_events",
+      "title": "确认公司主体资料",
+      "data": {
+        "entityType": "company_profiles",
+        "entityId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+        "action": "company_profile_confirmed"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "5d20aad1-aaf4-45f3-8a11-87ba456c587b",
+      "kind": "activity_events",
+      "title": "收藏转入待投递",
+      "data": {
+        "entityType": "applications",
+        "entityId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "savedJobId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "action": "saved_job_converted"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "fa99440a-1284-47ef-9a75-779378ac3bad",
+      "kind": "activity_events",
+      "title": "补录历史投递分类与渠道",
+      "data": {
+        "entityType": "applications",
+        "entityId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "action": "submission_metadata_corrected",
+        "revisionId": "4292b528-e2c6-4b96-a714-32a14f355e11",
+        "reason": "合成备份补录验收"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "721ea9e9-f4be-4410-b66a-d28245cf5036",
+      "kind": "application_events",
+      "title": "更新投递与 JD 归档",
+      "data": {
+        "applicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "entityId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "entityType": "applications",
+        "action": "application_updated",
+        "from": null,
+        "to": "待投递",
+        "appliedAt": null,
+        "operationId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "16236e47-7e3a-4d43-ac4a-991ddaa6aab6",
+      "kind": "application_events",
+      "title": "更新投递与 JD 归档",
+      "data": {
+        "applicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "entityId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "entityType": "applications",
+        "action": "application_updated",
+        "from": "待投递",
+        "to": "已投递",
+        "appliedAt": null,
+        "operationId": ""
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "b7a2e0d7-dbe0-4fbe-ac7c-97263cdf9767",
+      "kind": "application_events",
+      "title": "更新投递与 JD 归档",
+      "data": {
+        "applicationId": "5e6c26c9-27c1-447c-b4fc-3fc71917b2b3",
+        "entityId": "5e6c26c9-27c1-447c-b4fc-3fc71917b2b3",
+        "entityType": "applications",
+        "action": "application_updated",
+        "from": null,
+        "to": "待投递",
+        "appliedAt": null,
+        "operationId": ""
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+      "kind": "applications",
+      "title": "合成备份验收主体有限公司 Java 合成岗位",
+      "data": {
+        "jobMetadata": {
+          "schemaVersion": 1,
+          "companyProfileId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+          "companyProfileCandidate": null,
+          "profileRejections": [],
+          "companyNature": "private",
+          "companyTags": [],
+          "employmentType": "unknown",
+          "linkPlatform": "unknown",
+          "discoverySource": "xiaohongshu",
+          "submissionChannel": "boss",
+          "referralStatus": "unknown",
+          "referralCode": "",
+          "actualSubmission": {
+            "channel": "email",
+            "customLabel": "",
+            "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+            "confirmedAt": "2026-11-09T16:30:11.234Z"
+          },
+          "customLabels": {
+            "discoverySource": "",
+            "submissionChannel": ""
+          },
+          "fieldStates": {
+            "companyNature": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "private",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "discoverySource": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "xiaohongshu",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "submissionChannel": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "boss",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            }
+          },
+          "suggestions": [],
+          "legacy": {
+            "companyType": "",
+            "channel": ""
+          }
+        },
+        "company": "合成备份验收主体有限公司",
+        "role": "Java 合成岗位",
+        "direction": "",
+        "location": "",
+        "salary": "",
+        "sourceUrl": "",
+        "jd": "必须掌握 Java。",
+        "notes": "",
+        "stage": "已投递",
+        "priority": "普通",
+        "recruitmentMode": "自动判断",
+        "deadline": "",
+        "channel": "",
+        "contactName": "",
+        "contactRole": "",
+        "contactValue": "",
+        "lastContactAt": "",
+        "nextFollowUpAt": "",
+        "resumeId": "",
+        "resumeName": "",
+        "checklist": {},
+        "screenshotFileId": "",
+        "appliedAt": null,
+        "savedJobId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "conversionKey": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "conversionOperationId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af"
+      },
+      "version": 3,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "5e6c26c9-27c1-447c-b4fc-3fc71917b2b3",
+      "kind": "applications",
+      "title": "历史合成主体 Java",
+      "data": {
+        "company": "历史合成主体",
+        "role": "Java",
+        "direction": "",
+        "location": "",
+        "salary": "",
+        "sourceUrl": "",
+        "jd": "",
+        "notes": "",
+        "stage": "待投递",
+        "priority": "普通",
+        "recruitmentMode": "自动判断",
+        "deadline": "",
+        "channel": "内推＋网申",
+        "contactName": "",
+        "contactRole": "",
+        "contactValue": "",
+        "lastContactAt": "",
+        "nextFollowUpAt": "",
+        "resumeId": "",
+        "resumeName": "",
+        "checklist": {},
+        "companyType": "soe_bank"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+      "kind": "company_profiles",
+      "title": "合成备份验收主体有限公司",
+      "data": {
+        "legalName": "合成备份验收主体有限公司",
+        "registryId": "",
+        "confirmedAliases": [],
+        "companyNature": "private",
+        "companyTags": [
+          "manufacturing"
+        ],
+        "evidence": [],
+        "researchRecordId": "",
+        "confirmedAt": "2026-11-09T16:30:11.157Z"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "932dabd8-7e51-44a3-8697-d2c56b07ed5b",
+      "kind": "jd_snapshots",
+      "title": "合成备份验收主体有限公司 · Java 合成岗位",
+      "data": {
+        "sourceEntryId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "applicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "savedJobId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "submissionId": "c6b617aa-28db-4717-9002-d0e15f5e744e",
+        "revision": 1,
+        "previousSnapshotId": null,
+        "captureReason": "submitted",
+        "company": "合成备份验收主体有限公司",
+        "role": "Java 合成岗位",
+        "direction": "",
+        "location": "",
+        "companyType": "unknown",
+        "jdText": "必须掌握 Java。",
+        "sourceUrl": "",
+        "screenshotFileId": "",
+        "jdSha256": "33eed365b9f92b0866baa34110b01e15a3d6964c09211aba94db53e8ed5c2273",
+        "snapshotPayloadSha256": "992b06ad7981fb09b3a406bdfba6afd382c963087cb75736c78dc22e61925a35",
+        "capturedAt": "2026-11-09T16:30:11.238Z",
+        "appliedAt": null,
+        "appliedAtStatus": "unknown",
+        "resumeFileId": null,
+        "resumeFileVersion": null,
+        "resumeSha256": null,
+        "resumeDisplayName": "",
+        "resumeReferenceStatus": "not_recorded",
+        "contentStatus": "available",
+        "correctionReason": "",
+        "activeExtractionId": null,
+        "ignored": false,
+        "deletedSourceIds": []
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "6e7fac1c-5f46-4d36-b76b-52895b3c547c",
+      "kind": "job_capture_drafts",
+      "title": "岗位收集草稿",
+      "data": {
+        "values": {
+          "company": "合成备份验收主体有限公司",
+          "role": "尚未收藏的合成草稿"
+        },
+        "metadata": {
+          "schemaVersion": 1,
+          "companyProfileId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+          "companyProfileCandidate": null,
+          "profileRejections": [],
+          "companyNature": "private",
+          "companyTags": [],
+          "employmentType": "unknown",
+          "linkPlatform": "unknown",
+          "discoverySource": "xiaohongshu",
+          "submissionChannel": "boss",
+          "referralStatus": "unknown",
+          "referralCode": "",
+          "actualSubmission": {
+            "channel": "email",
+            "customLabel": "",
+            "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+            "confirmedAt": "2026-11-09T16:30:11.291Z"
+          },
+          "customLabels": {
+            "discoverySource": "",
+            "submissionChannel": ""
+          },
+          "fieldStates": {
+            "companyNature": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "private",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "discoverySource": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "xiaohongshu",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "submissionChannel": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "boss",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            }
+          },
+          "suggestions": [],
+          "legacy": {
+            "companyType": "",
+            "channel": ""
+          }
+        },
+        "extractionJobId": "",
+        "confirmedSavedJobId": null
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "c6b617aa-28db-4717-9002-d0e15f5e744e",
+      "kind": "job_submissions",
+      "title": "合成备份验收主体有限公司 · 投递归档",
+      "data": {
+        "applicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "sourceEntryId": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+        "snapshotId": "932dabd8-7e51-44a3-8697-d2c56b07ed5b",
+        "appliedAt": null,
+        "operationId": "",
+        "resumeFileId": null,
+        "resumeSha256": null,
+        "metadataSnapshot": {
+          "schemaVersion": 1,
+          "companyProfileId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+          "companyProfileCandidate": null,
+          "profileRejections": [],
+          "companyNature": "private",
+          "companyTags": [],
+          "employmentType": "unknown",
+          "linkPlatform": "unknown",
+          "discoverySource": "xiaohongshu",
+          "submissionChannel": "boss",
+          "referralStatus": "unknown",
+          "referralCode": "",
+          "actualSubmission": {
+            "channel": "email",
+            "customLabel": "",
+            "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+            "confirmedAt": "2026-11-09T16:30:11.234Z"
+          },
+          "customLabels": {
+            "discoverySource": "",
+            "submissionChannel": ""
+          },
+          "fieldStates": {
+            "companyNature": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "private",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "discoverySource": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "xiaohongshu",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "submissionChannel": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "boss",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            }
+          },
+          "suggestions": [],
+          "legacy": {
+            "companyType": "",
+            "channel": ""
+          }
+        },
+        "metadataRecordedAt": "2026-11-09T16:30:11.240Z"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "a98f32b3-5070-4b0e-9231-5be154c5d022",
+      "kind": "metadata_migrations",
+      "title": "旧公司分类与渠道迁移预览",
+      "data": {
+        "entries": [
+          {
+            "id": "5e6c26c9-27c1-447c-b4fc-3fc71917b2b3",
+            "kind": "applications",
+            "title": "历史合成主体 Java",
+            "version": 1,
+            "metadata": {
+              "schemaVersion": 1,
+              "companyProfileId": null,
+              "companyProfileCandidate": null,
+              "profileRejections": [],
+              "companyNature": "unknown",
+              "companyTags": [],
+              "employmentType": "unknown",
+              "linkPlatform": "unknown",
+              "discoverySource": "unknown",
+              "submissionChannel": "unknown",
+              "referralStatus": "unknown",
+              "referralCode": "",
+              "actualSubmission": null,
+              "customLabels": {
+                "discoverySource": "",
+                "submissionChannel": ""
+              },
+              "fieldStates": {},
+              "suggestions": [],
+              "legacy": {
+                "companyType": "soe_bank",
+                "channel": "内推＋网申"
+              }
+            },
+            "suggestions": [],
+            "warning": "旧值仅为待核对候选。国企银行、外企、外包均不推定工商性质或岗位用工形式；迁移不会改写历史 JD 或确认实际渠道。"
+          }
+        ],
+        "status": "preview",
+        "expiresAt": "2026-11-10T16:30:11.328Z"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "c24b2ae8-6171-4dd3-b1e2-b73d63e170af",
+      "kind": "saved_jobs",
+      "title": "合成备份验收主体有限公司 Java 合成岗位",
+      "data": {
+        "jobMetadata": {
+          "schemaVersion": 1,
+          "companyProfileId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+          "companyProfileCandidate": null,
+          "profileRejections": [],
+          "companyNature": "private",
+          "companyTags": [],
+          "employmentType": "unknown",
+          "linkPlatform": "unknown",
+          "discoverySource": "xiaohongshu",
+          "submissionChannel": "boss",
+          "referralStatus": "unknown",
+          "referralCode": "",
+          "actualSubmission": null,
+          "customLabels": {
+            "discoverySource": "",
+            "submissionChannel": ""
+          },
+          "fieldStates": {
+            "companyNature": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "private",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "discoverySource": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "xiaohongshu",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "submissionChannel": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "boss",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            }
+          },
+          "suggestions": [],
+          "legacy": {
+            "companyType": "",
+            "channel": ""
+          }
+        },
+        "company": "合成备份验收主体有限公司",
+        "role": "Java 合成岗位",
+        "location": "",
+        "salary": "",
+        "deadline": "",
+        "jd": "必须掌握 Java。",
+        "sourceUrl": "",
+        "notes": "",
+        "screenshotFileId": "",
+        "recruitmentMode": "自动判断",
+        "priority": "普通",
+        "converted": true,
+        "convertedAt": "2026-11-09T16:30:11.214Z",
+        "convertedApplicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e"
+      },
+      "version": 2,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    },
+    {
+      "id": "4292b528-e2c6-4b96-a714-32a14f355e11",
+      "kind": "submission_metadata_revisions",
+      "title": "投递分类与渠道补录",
+      "data": {
+        "applicationId": "01024f78-d24b-482c-ae96-c5e49f3b688e",
+        "submissionId": "c6b617aa-28db-4717-9002-d0e15f5e744e",
+        "revision": 1,
+        "previousRevisionId": null,
+        "metadata": {
+          "schemaVersion": 1,
+          "companyProfileId": "be376d2c-4df4-4b36-9862-da6f93fdcd28",
+          "companyProfileCandidate": null,
+          "profileRejections": [],
+          "companyNature": "private",
+          "companyTags": [],
+          "employmentType": "unknown",
+          "linkPlatform": "unknown",
+          "discoverySource": "xiaohongshu",
+          "submissionChannel": "boss",
+          "referralStatus": "unknown",
+          "referralCode": "",
+          "actualSubmission": {
+            "channel": "email",
+            "customLabel": "",
+            "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+            "confirmedAt": "2026-11-09T16:30:11.270Z"
+          },
+          "customLabels": {
+            "discoverySource": "",
+            "submissionChannel": ""
+          },
+          "fieldStates": {
+            "companyNature": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "private",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "discoverySource": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "xiaohongshu",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            },
+            "submissionChannel": {
+              "status": "manual",
+              "evidence": {
+                "sourceType": "manual",
+                "sourceRef": "user",
+                "quote": "boss",
+                "obtainedAt": "2026-11-09T16:30:11.119Z",
+                "version": "job-metadata-v1",
+                "contextKey": "[\"合成备份验收主体有限公司\",\"\"]"
+              },
+              "contextKey": "[\"合成备份验收主体有限公司\",\"\"]",
+              "rejectedValues": [],
+              "confirmedAt": "2026-11-09T16:30:11.119Z"
+            }
+          },
+          "suggestions": [],
+          "legacy": {
+            "companyType": "",
+            "channel": ""
+          }
+        },
+        "reason": "合成备份补录验收",
+        "recordedAt": "2026-11-09T16:30:11.272Z"
+      },
+      "version": 1,
+      "createdAt": "2026-11-09 16:30:11",
+      "updatedAt": "2026-11-09 16:30:11",
+      "deletedAt": null
+    }
+  ],
+  "files": [],
+  "aiJobs": [],
+  "aiJobAttempts": [],
+  "note": "请同时下载全部附件 TAR 分包；恢复时先导入此 JSON，再上传分包并确认提交。"
+}

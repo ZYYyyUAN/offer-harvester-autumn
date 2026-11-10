@@ -125,6 +125,7 @@ export function recordTitle(kind: string, data: Record<string, unknown>) {
 }
 
 export const allowedKinds = new Set([
+  "company_profiles", "job_capture_drafts", "submission_metadata_revisions", "metadata_migrations",
   "applications",
   "saved_jobs",
   "evidence",

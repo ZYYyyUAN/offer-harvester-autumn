@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { JobMetadataSchema } from "@/lib/job-metadata";
+import { validateJobMetadata } from "@/lib/job-metadata-store";
 import { applicationSaveStatements } from "@/lib/application-submission";
 import { atomicBatch, insertRecord, ownedRecord, updateRecordStatement, versionGuard } from "@/lib/jd-store";
 import { ActionTaskSchema } from "@/lib/workflow-contracts";
@@ -17,7 +19,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const { userId } = await requireApiUser();
-    const input = z.object({ id: z.string().min(1), version: z.number().int().positive(), data: z.record(z.unknown()) }).strict().parse(await request.json());
+    const input = z.object({ id: z.string().min(1), version: z.number().int().positive(), data: z.record(z.string(), z.unknown()), jobMetadata: JobMetadataSchema.optional(), applicationVersion: z.number().int().positive().optional() }).strict().parse(await request.json());
     const task = await ownedRecord(userId, input.id, "tasks");
     if (task.version !== input.version) throw new ApiError(409, "任务已更新", "VERSION_CONFLICT", false, { currentVersion: task.version });
     const edits = { ...input.data };
@@ -29,8 +31,10 @@ export async function PATCH(request: Request) {
       insertRecord(userId, "activity_events", "任务状态更新", { entityType: "tasks", entityId: task.id, applicationId: data.applicationId, action: "task_updated", status: data.status })];
     if (data.status === "done" && data.applicationId && data.checklistKey) {
       const app = await ownedRecord(userId, data.applicationId, "applications");
+      if (input.jobMetadata && app.version !== input.applicationVersion) throw new ApiError(409, "投递记录已更新，请刷新后重新确认");
       const appData: Record<string, any> = { ...app.data, checklist: { ...app.data.checklist, [data.checklistKey]: { done: true, at: new Date().toISOString() } } };
       if (data.checklistKey === "submitted" && appData.stage === "待投递") appData.stage = "已投递";
+      if (input.jobMetadata) appData.jobMetadata = (await validateJobMetadata(userId, { ...appData, jobMetadata: input.jobMetadata }, app.data)).jobMetadata;
       statements.push(...await applicationSaveStatements(userId, app.id, appData, app));
     }
     await atomicBatch(statements);

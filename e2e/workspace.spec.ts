@@ -30,7 +30,7 @@ test("资料、投递并发、回收站与备份 v3", async ({ request }) => {
   const backup = await request.get("/api/data/export?format=json");
   expect(backup.ok()).toBeTruthy();
   const payload = await backup.json();
-  expect(payload.schemaVersion).toBe(4);
+  expect(payload.schemaVersion).toBe(5);
   expect(payload.records.some((item: any) => item.id === record.id)).toBeTruthy();
   expect(Array.isArray(payload.aiJobs)).toBeTruthy();
   const legacy={...payload,schemaVersion:3,records:payload.records.map((item:any)=>item.id===record.id?{...item,data:{...item.data,notes:"v3 备份恢复"}}:item)};

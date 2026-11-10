@@ -3,6 +3,7 @@ import { atomicBatch } from "@/lib/jd-store";
 import { buildBackupFileEntries } from "@/lib/backup";
 import { ApiError, apiError, getBindings, requireApiUser, safeJson } from "@/lib/server-data";
 import { ProfileDataSchema, validateRecordData } from "@/lib/data-contracts";
+import { validateMetadataBackup } from "@/lib/job-metadata-backup";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   let cleanup: { userId: string; id: string; db: D1Database; bucket: R2Bucket; preview: Record<string, unknown>; objectKeys: string[] } | null = null;
@@ -13,7 +14,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     cleanup = { userId, id, db, bucket, preview, objectKeys: Object.values(uploads) };
     const missingFiles = files.filter((file) => !uploads[String(file.id)]); if (missingFiles.length) throw new ApiError(409, `仍有 ${missingFiles.length} 个附件未上传`, "FILES_REQUIRED", false, { missingFileIds: missingFiles.slice(0, 20).map((file) => file.id) });
     const decisions = body.decisions || {}; const [existingRows, existingFileRows] = await Promise.all([db.prepare("SELECT id, version FROM records WHERE owner_id = ?").bind(userId).all<Record<string, unknown>>(), db.prepare("SELECT id FROM stored_files WHERE owner_id = ?").bind(userId).all<Record<string, unknown>>()]); const existing = new Set(existingRows.results.map((item) => String(item.id))); const existingFiles = new Set(existingFileRows.results.map((item) => String(item.id))); const statements: D1PreparedStatement[] = []; const unusedObjectKeys: string[] = [];
-    if (Number(preview.schemaVersion) === 4) {
+    if (Number(preview.schemaVersion) >= 4) {
       const currentRows = await db.prepare("SELECT id, kind, data FROM records WHERE owner_id = ?").bind(userId).all<Record<string, unknown>>();
       const merged = new Map(currentRows.results.filter((r) => r.id !== id && r.kind !== "data_imports").map((r) => [String(r.id), { id: String(r.id), kind: String(r.kind), data: safeJson<Record<string, any>>(String(r.data), {}) }]));
       for (const item of incoming) if (!merged.has(String(item.id)) || decisions[String(item.id)] === "backup") { const current = merged.get(String(item.id)); if (current) validateJDMerge(current, item as any); merged.set(String(item.id), item as any); }
@@ -24,6 +25,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       }
       try { validateJDBackup([...merged.values()], [...new Map([...currentFiles, ...files].map((f) => [String(f.id), f])).values()] as any); }
       catch (error) { throw new ApiError(422, (error as Error).message); }
+    }
+    if (Number(preview.schemaVersion) < 4) {
+      const rows = await db.prepare("SELECT id, kind, data FROM records WHERE owner_id = ? AND kind != 'data_imports'").bind(userId).all<Record<string, unknown>>();
+      const merged = new Map(rows.results.map((r) => [String(r.id), { id: String(r.id), kind: String(r.kind), data: safeJson<Record<string, any>>(String(r.data), {}) }]));
+      for (const item of incoming) if (!merged.has(String(item.id)) || decisions[String(item.id)] === "backup") { const current = merged.get(String(item.id)); if (current) validateJDMerge(current, item as any); merged.set(String(item.id), item as any); }
+      try { validateMetadataBackup([...merged.values()]); } catch (error) { throw new ApiError(422, (error as Error).message); }
     }
     for (const item of incoming) { const recordId = String(item.id); if (recordId === id || String(item.kind) === "data_imports") continue; if (existing.has(recordId) && decisions[recordId] !== "backup") continue; const expectedVersion = Number((preview.currentVersions as Record<string, number>)?.[recordId]); if (existing.has(recordId)) { if (existingRows.results.find((r) => r.id === recordId)?.version !== expectedVersion) throw new ApiError(409, "导入预览后记录已变化，请重新生成", "VERSION_CONFLICT"); statements.push(db.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM records WHERE id = ? AND owner_id = ? AND version = ?) THEN 1 ELSE abs(-9223372036854775808) END").bind(recordId, userId, expectedVersion)); } const kind = String(item.kind); const data = validateRecordData(kind, item.data as Record<string, unknown>); const values = [kind, String(item.title || "导入记录"), JSON.stringify(data), Number(item.version || 1), String(item.createdAt || new Date().toISOString()), String(item.updatedAt || new Date().toISOString()), item.deletedAt ? String(item.deletedAt) : null, recordId, userId]; if (existing.has(recordId)) statements.push(db.prepare("UPDATE records SET kind = ?, title = ?, data = ?, version = ?, created_at = ?, updated_at = ?, deleted_at = ? WHERE id = ? AND owner_id = ?").bind(...values)); else statements.push(db.prepare("INSERT INTO records (kind, title, data, version, created_at, updated_at, deleted_at, id, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(...values)); }
     for (const file of files) { const fileId = String(file.id); const objectKey = uploads[fileId]; if (existingFiles.has(fileId)) { unusedObjectKeys.push(objectKey); continue; } statements.push(db.prepare("INSERT INTO stored_files (id, owner_id, record_id, purpose, filename, object_key, mime_type, size, metadata, version, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(fileId, userId, file.recordId ? String(file.recordId) : null, String(file.purpose), String(file.filename), objectKey, String(file.mimeType), Number(file.size), JSON.stringify(file.metadata || {}), Number(file.version || 1), String(file.createdAt || new Date().toISOString()), String(file.updatedAt || new Date().toISOString()), file.deletedAt ? String(file.deletedAt) : null)); }

@@ -1,6 +1,8 @@
 import { jdKinds, jdDataSchemas, validateExtraction, validateGap } from "./jd-contracts.ts";
+import { validateMetadataBackup } from "./job-metadata-backup.ts";
 type Entry = { id: string; kind: string; data: Record<string, any> };
 export function validateJDBackup(records: Entry[], files: Array<{ id: string; sha256?: string }>) {
+  validateMetadataBackup(records);
   const byId = new Map(records.map((r) => [r.id, r])); const fileIds = new Set(files.map((f) => f.id));
   if (byId.size !== records.length || fileIds.size !== files.length) throw new Error("备份记录或文件 ID 重复");
   const need = (id: string, kind?: string) => { const r = byId.get(id); if (!r || (kind && r.kind !== kind)) throw new Error("备份缺少关联记录：" + id); return r; };
@@ -10,7 +12,7 @@ export function validateJDBackup(records: Entry[], files: Array<{ id: string; sh
     if (r.kind === "job_submissions") { need(d.applicationId, "applications"); const snap = need(d.snapshotId, "jd_snapshots"); if (snap.data.applicationId !== d.applicationId || snap.data.submissionId !== r.id) throw new Error("投递身份与快照不一致"); }
     if (r.kind === "jd_snapshots") {
       if (d.applicationId) need(d.applicationId, "applications");
-      if (d.savedJobId) need(d.savedJobId, "saved_jobs");
+      if (d.savedJobId && !d.deletedSourceIds?.includes(d.savedJobId)) need(d.savedJobId, "saved_jobs");
       if (d.previousSnapshotId) { const previous = need(d.previousSnapshotId, "jd_snapshots"); if (previous.data.sourceEntryId !== d.sourceEntryId || previous.data.revision >= d.revision) throw new Error("快照修订链无效"); }
       if (d.activeExtractionId && need(d.activeExtractionId, "jd_extractions").data.snapshotId !== r.id) throw new Error("有效提取不属于此快照");
       if (d.screenshotFileId && !d.deletedFileIds?.includes(d.screenshotFileId) && !fileIds.has(d.screenshotFileId)) throw new Error("备份缺少岗位截图");
@@ -43,7 +45,8 @@ export function validateJDMerge(current: Entry, incoming: Entry) {
     jd_requirement_edits: ["extractionId", "requirementKey", "revision", "patch", "reason"],
     resume_text_snapshots: ["fileId", "fileSha256", "text"],
     resume_gap_analyses: ["aiJobId", "input", "output"],
-    job_submissions: ["applicationId", "sourceEntryId", "snapshotId", "resumeFileId", "resumeSha256"],
+    job_submissions: ["applicationId", "sourceEntryId", "snapshotId", "resumeFileId", "resumeSha256", "metadataSnapshot", "metadataRecordedAt"],
+    submission_metadata_revisions: ["applicationId", "submissionId", "revision", "previousRevisionId", "metadata", "reason", "recordedAt"],
   };
   if ((immutable[current.kind] || []).some((key) => JSON.stringify(current.data[key]) !== JSON.stringify(incoming.data[key]))) throw new Error("备份不能覆盖历史正文或证据，请保留当前版本并创建修订");
 }

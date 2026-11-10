@@ -1,6 +1,7 @@
 import { getDatabase, mapRecord } from "./server-data";
 import { atomicBatch, versionGuard, type JDRecord } from "./jd-store";
 import { jdKinds } from "./jd-contracts";
+import { detachDeletedCaptureEvidence } from "./job-metadata-delete";
 export async function relatedJDRecords(ownerId: string, root: JDRecord) {
   const rows = await getDatabase().prepare("SELECT * FROM records WHERE owner_id = ? AND deleted_at IS NULL").bind(ownerId).all<Record<string, unknown>>();
   const all = rows.results.map(mapRecord) as JDRecord[];
@@ -9,9 +10,10 @@ export async function relatedJDRecords(ownerId: string, root: JDRecord) {
   while (changed) {
     changed = false;
     for (const r of all) {
-      if (ids.has(r.id) || (!(jdKinds as readonly string[]).includes(r.kind) && r.kind !== "tasks")) continue;
+      if (ids.has(r.id) || (!(jdKinds as readonly string[]).includes(r.kind) && !["tasks", "submission_metadata_revisions", "job_capture_drafts"].includes(r.kind))) continue;
       const d = r.data;
-      if ([d.applicationId, d.savedJobId, d.submissionId, d.snapshotId, d.extractionId, d.analysisId, d.sourceSuggestionId, d.input?.textSnapshotId].some((id) => id && ids.has(id)) ||
+      if (root.kind === "saved_jobs" && r.kind === "jd_snapshots" && d.applicationId && all.some((a) => a.kind === "applications" && a.id === d.applicationId)) continue;
+      if ([d.applicationId, d.savedJobId, d.confirmedSavedJobId, d.submissionId, d.snapshotId, d.extractionId, d.analysisId, d.sourceSuggestionId, d.input?.textSnapshotId].some((id) => id && ids.has(id)) ||
           (d.input?.samples || []).some((s: { id: string }) => ids.has(s.id))) { ids.add(r.id); changed = true; }
     }
   }
@@ -36,6 +38,11 @@ export function scrubJDJobs(ownerId: string, recordId: string) {
     db.prepare("DELETE FROM ai_jobs WHERE owner_id = ? AND " + condition).bind(ownerId, ...Array(6).fill(recordId)),
   ];
 }
+export async function retainDeletedSavedJobSource(ownerId: string, savedJobId: string) {
+  const db = getDatabase();
+  const rows = await db.prepare("SELECT * FROM records WHERE owner_id = ? AND kind = 'jd_snapshots' AND json_extract(data, '$.savedJobId') = ?").bind(ownerId, savedJobId).all<Record<string, unknown>>();
+  return rows.results.map(mapRecord).filter((r) => !(r.data.deletedSourceIds as string[] | undefined)?.includes(savedJobId)).flatMap((r) => [versionGuard(ownerId, r.id, r.version, "records", r.deletedAt ? "deleted" : undefined), db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ? AND version = ?").bind(JSON.stringify({ ...r.data, deletedSourceIds: [...((r.data.deletedSourceIds as string[] | undefined) || []), savedJobId] }), r.id, ownerId, r.version)]);
+}
 export async function eraseJDFileCopies(ownerId: string, fileId: string) {
   const db = getDatabase();
   const rows = await db.prepare("SELECT * FROM records WHERE owner_id = ?").bind(ownerId).all<Record<string, unknown>>();
@@ -43,7 +50,7 @@ export async function eraseJDFileCopies(ownerId: string, fileId: string) {
   const ids = new Set(all.filter((r) => (r.kind === "resume_text_snapshots" && r.data.fileId === fileId) || (r.kind === "resume_gap_analyses" && r.data.input.resumeFileId === fileId)).map((r) => r.id));
   for (const r of all.filter((r) => r.kind === "resume_improvement_items" && ids.has(r.data.analysisId))) ids.add(r.id);
   for (const r of all.filter((r) => r.kind === "tasks" && ids.has(r.data.sourceSuggestionId))) ids.add(r.id);
-  const statements = [...scrubJDJobs(ownerId, fileId), ...[...ids].flatMap((id) => [...scrubJDJobs(ownerId, id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ?").bind(id, ownerId)])];
+  const statements = [...await detachDeletedCaptureEvidence(ownerId, fileId), ...scrubJDJobs(ownerId, fileId), ...[...ids].flatMap((id) => [...scrubJDJobs(ownerId, id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ?").bind(id, ownerId)])];
   for (const r of all.filter((r) => r.kind === "jd_snapshots" && (r.data.resumeFileId === fileId || r.data.screenshotFileId === fileId))) statements.push(db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(JSON.stringify({ ...r.data, ...(r.data.resumeFileId === fileId ? { resumeReferenceStatus: "deleted" } : {}), deletedFileIds: [...new Set([...(r.data.deletedFileIds || []), fileId])] }), r.id, ownerId));
   for (const r of all.filter((r) => !ids.has(r.id) && r.kind === "resume_improvement_items" && r.data.resultResumeFileId === fileId)) statements.push(db.prepare("UPDATE records SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?").bind(JSON.stringify({ ...r.data, resultResumeFileId: null, resultResumeSha256: null }), r.id, ownerId));
   return statements;
