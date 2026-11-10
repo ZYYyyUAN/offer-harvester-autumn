@@ -27,7 +27,7 @@ test("classification and channels survive conversion, submission, backfill, back
   await json(await request.post(`/api/applications/${app.id}/submission-metadata-revisions`, { data: { version: current.version, expectedRevision: 0, jobMetadata: revised, reason: "投递后核实实际为官网提交" } }));
   const stats = await json(await request.get("/api/job-metadata/statistics")); expect(stats.channel[0].key).toBe("company_portal"); expect(stats.discovery[0].key).toBe("xiaohongshu"); expect(stats.backfilledCount).toBe(1);
   const unchanged = await json(await request.get(`/api/applications/${app.id}/submission-metadata-revisions`)); expect(unchanged.submissions[0].data.metadataSnapshot.actualSubmission).toBeNull();
-  const backup = await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(5);
+  const backup = await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(6);
   await json(await request.delete("/api/profile?confirm=DELETE"));
   const preview = await json(await request.post("/api/data/imports", { data: { filename: "metadata-v5.json", content: JSON.stringify(backup) } }));
   await json(await request.post(`/api/data/imports/${preview.importId}/commit`, { data: {} }));
@@ -184,7 +184,7 @@ test("saved job concurrent edits fail atomically and submission-only choices are
   expect(responses.map((r) => r.status()).sort()).toEqual([200, 409]);
   const current = (await json(await request.get("/api/records?kind=saved_jobs"))).records[0]; expect(current.version).toBe(saved.version + 1);
   expect((await request.patch("/api/records", { data: { id: saved.id, version: current.version, data: { jobMetadata: { actualSubmission: { channel: "friend", contextKey: metadataContext("合成并发", ""), confirmedAt: new Date().toISOString() } } } } })).status()).toBe(400);
-  expect((await json(await request.get("/api/job-metadata/health"))).backupWriterVersion).toBe(5);
+  expect((await json(await request.get("/api/job-metadata/health"))).backupWriterVersion).toBe(6);
 });
 test("AI classification rejects invalid claims and preserves confirmed values after source removal", async ({ request }) => {
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=", "base64");

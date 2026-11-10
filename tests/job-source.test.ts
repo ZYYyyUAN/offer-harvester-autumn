@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { publicAtsSource, PublicAtsDetailSchema, publicAtsDraft } from "../lib/job-source-contracts.ts";
+import { publicAtsSource, PublicAtsDetailSchema, publicAtsDraft, greenhouseText } from "../lib/job-source-contracts.ts";
 
 test("网申公开数据读取仅支持已核实的 HTTPS 平台路径", () => {
   const source=publicAtsSource("https://sample.jobs.feishu.cn/campus/position/123456/detail?spread=ref");
@@ -15,4 +15,12 @@ test("网申字段取自公开数据，不把网站标题推断为公司或补�
   assert.equal(draft.company,"合成软件有限公司");assert.equal(draft.location,"北京");assert.equal(draft.salary,"");assert.equal(draft.deadline,"");assert.equal(draft.jd,payload.data.job_post_detail.description);
   assert.equal(publicAtsDraft("<title>不能推断的品牌</title>",payload,draft.sourceUrl).company,"");
   assert.equal(PublicAtsDetailSchema.safeParse({code:403,data:{}}).success,false);
+});
+
+test("Greenhouse uses only the exact public board detail path", () => {
+  assert.equal(publicAtsSource("https://job-boards.greenhouse.io/example/jobs/123?gh_src=share")?.detailUrl, "https://boards-api.greenhouse.io/v1/boards/example/jobs/123");
+  for (const url of ["https://job-boards.greenhouse.io.evil.test/example/jobs/123", "http://boards.greenhouse.io/example/jobs/123", "https://boards.greenhouse.io/example", "https://user:pass@boards.greenhouse.io/example/jobs/123"]) assert.equal(publicAtsSource(url), null);
+});
+test("public HTML decoding retains text, paragraphs and Java generic types", () => {
+  assert.equal(greenhouseText("&amp;lt;p&amp;gt;Java &amp;amp; Go&amp;lt;/p&amp;gt;&lt;p&gt;List&lt;T&gt; &#20013;&#x6587;&lt;/p&gt;<script>hidden()</script>"), "Java & Go\nList<T> 中文");
 });

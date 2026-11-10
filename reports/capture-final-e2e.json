@@ -1,0 +1,400 @@
+{
+  "stats": {
+    "startTime": "2026-11-10T07:22:18.251Z",
+    "duration": 111975.973,
+    "expected": 64,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "projects": [
+    "desktop",
+    "mobile"
+  ],
+  "cases": [
+    {
+      "title": "queued captures deduplicate, concurrent run claims once, cache is explicit and refresh creates a new task",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 588
+    },
+    {
+      "title": "queued captures deduplicate, concurrent run claims once, cache is explicit and refresh creates a new task",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 740
+    },
+    {
+      "title": "closure correction and reopening preserve submitted identity and historical reach",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 257
+    },
+    {
+      "title": "closure correction and reopening preserve submitted identity and historical reach",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 318
+    },
+    {
+      "title": "slow task survives refresh and cancel discards late results without clearing manual fields",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 6355
+    },
+    {
+      "title": "slow task survives refresh and cancel discards late results without clearing manual fields",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 6210
+    },
+    {
+      "title": "closure editor labels, date filter and shared source detachment work without deleting original files",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 2690
+    },
+    {
+      "title": "closure editor labels, date filter and shared source detachment work without deleting original files",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 2565
+    },
+    {
+      "title": "cancel followed by immediate retry cannot let an old response overwrite the new run",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 4735
+    },
+    {
+      "title": "cancel followed by immediate retry cannot let an old response overwrite the new run",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 4724
+    },
+    {
+      "title": "v6 backup preserves closure and capture telemetry through a compatible reader",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 145
+    },
+    {
+      "title": "v6 backup preserves closure and capture telemetry through a compatible reader",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 143
+    },
+    {
+      "title": "投递归档不可覆盖、各入口幂等、并发和所有权",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 492
+    },
+    {
+      "title": "投递归档不可覆盖、各入口幂等、并发和所有权",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 490
+    },
+    {
+      "title": "真实管线配合模拟供应商：提取、差距、任务、修改稿和备份往返",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 3557
+    },
+    {
+      "title": "真实管线配合模拟供应商：提取、差距、任务、修改稿和备份往返",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 3461
+    },
+    {
+      "title": "无效引用失败、取消丢弃结果、关联回收站恢复",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 1636
+    },
+    {
+      "title": "无效引用失败、取消丢弃结果、关联回收站恢复",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 1651
+    },
+    {
+      "title": "表单、任务与最终简历统一归档，备份冲突与整组永久删除",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 647
+    },
+    {
+      "title": "表单、任务与最终简历统一归档，备份冲突与整组永久删除",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 639
+    },
+    {
+      "title": "正文不可访问会明确失败，手填信息保留并可继续保存",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 3790
+    },
+    {
+      "title": "正文不可访问会明确失败，手填信息保留并可继续保存",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 3576
+    },
+    {
+      "title": "可访问链接仅生成待核对结果，用户确认才收藏",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 155
+    },
+    {
+      "title": "可访问链接仅生成待核对结果，用户确认才收藏",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 139
+    },
+    {
+      "title": "模型字段格式错误属于可见的提取失败，不会变成已保存岗位",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 171
+    },
+    {
+      "title": "模型字段格式错误属于可见的提取失败，不会变成已保存岗位",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 132
+    },
+    {
+      "title": "截图上传的文件 ID 能到达 OCR 并生成核对结果",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 180
+    },
+    {
+      "title": "截图上传的文件 ID 能到达 OCR 并生成核对结果",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 149
+    },
+    {
+      "title": "classification and channels survive conversion, submission, backfill, backup and trash",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 794
+    },
+    {
+      "title": "classification and channels survive conversion, submission, backfill, backup and trash",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 592
+    },
+    {
+      "title": "capture draft restores human choices and saves metadata on desktop and mobile",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 5316
+    },
+    {
+      "title": "capture draft restores human choices and saves metadata on desktop and mobile",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 4238
+    },
+    {
+      "title": "legacy migration preview is explicit, conflict-safe, and preserves raw values",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 173
+    },
+    {
+      "title": "legacy migration preview is explicit, conflict-safe, and preserves raw values",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 154
+    },
+    {
+      "title": "company profile identity, versioned corrections and removal preserve confirmed history",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 503
+    },
+    {
+      "title": "company profile identity, versioned corrections and removal preserve confirmed history",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 411
+    },
+    {
+      "title": "all submission entrypoints accept one explicit actual-channel decision",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 615
+    },
+    {
+      "title": "all submission entrypoints accept one explicit actual-channel decision",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 541
+    },
+    {
+      "title": "removing a converted bookmark preserves the application's frozen metadata and JD",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 424
+    },
+    {
+      "title": "removing a converted bookmark preserves the application's frozen metadata and JD",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 378
+    },
+    {
+      "title": "v4 reading and CSV metadata round trips validate references",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 464
+    },
+    {
+      "title": "v4 reading and CSV metadata round trips validate references",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 384
+    },
+    {
+      "title": "submission checklist uses one confirmation and keeps planned and actual channels separate",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 1914
+    },
+    {
+      "title": "submission checklist uses one confirmation and keeps planned and actual channels separate",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 1769
+    },
+    {
+      "title": "confirming a saved draft retains human fields and respects an intentionally removed screenshot",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 190
+    },
+    {
+      "title": "confirming a saved draft retains human fields and respects an intentionally removed screenshot",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 166
+    },
+    {
+      "title": "saved job concurrent edits fail atomically and submission-only choices are validated",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 183
+    },
+    {
+      "title": "saved job concurrent edits fail atomically and submission-only choices are validated",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 163
+    },
+    {
+      "title": "AI classification rejects invalid claims and preserves confirmed values after source removal",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 442
+    },
+    {
+      "title": "AI classification rejects invalid claims and preserves confirmed values after source removal",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 375
+    },
+    {
+      "title": "rejected and cleared suggestions survive refresh and repeated identification",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 5051
+    },
+    {
+      "title": "rejected and cleared suggestions survive refresh and repeated identification",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 3209
+    },
+    {
+      "title": "late identification cannot overwrite a manual selection or the next company",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 3258
+    },
+    {
+      "title": "late identification cannot overwrite a manual selection or the next company",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 2923
+    },
+    {
+      "title": "v5 metadata backup preserves classification, drafts and historical revisions through a compatible reader",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 184
+    },
+    {
+      "title": "v5 metadata backup preserves classification, drafts and historical revisions through a compatible reader",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 168
+    },
+    {
+      "title": "资料、投递并发、回收站与备份 v3",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 313
+    },
+    {
+      "title": "资料、投递并发、回收站与备份 v3",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 295
+    },
+    {
+      "title": "附件版本冲突、回收站恢复与哈希归档",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 256
+    },
+    {
+      "title": "附件版本冲突、回收站恢复与哈希归档",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 286
+    },
+    {
+      "title": "桌面和移动端导航、弹窗、按钮名称与横向溢出",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 1502
+    },
+    {
+      "title": "桌面和移动端导航、弹窗、按钮名称与横向溢出",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 1815
+    },
+    {
+      "title": "核心页面没有 serious 或 critical axe 违规",
+      "project": "desktop",
+      "status": "expected",
+      "durationMs": 1886
+    },
+    {
+      "title": "核心页面没有 serious 或 critical axe 违规",
+      "project": "mobile",
+      "status": "expected",
+      "durationMs": 1707
+    }
+  ]
+}

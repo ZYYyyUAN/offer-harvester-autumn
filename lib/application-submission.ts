@@ -1,4 +1,5 @@
 import { ApiError, getBindings, getDatabase, recordTitle } from "./server-data";
+import { closureTransition } from "./application-closure";
 import { sha256Hex } from "./data-safety";
 import { atomicBatch, insertRecord, listKind, ownedRecord, updateRecordStatement, versionGuard, type JDRecord } from "./jd-store";
 import { submissionMetadata } from "./job-metadata-store";
@@ -44,6 +45,8 @@ export function isSubmitted(data: Record<string, any>) {
   return ["已投递", "笔试中", "面试中", "OFFER"].includes(String(data.stage)) || Boolean(data.appliedAt) || checked === true || checked?.done === true;
 }
 export async function applicationSaveStatements(ownerId: string, id: string, data: Record<string, any>, existing: JDRecord | null, operationId = "", lateEntry = false) {
+  const transition = closureTransition(existing?.data || null, data, new Date().toISOString(), crypto.randomUUID());
+  data = transition.data;
   if (data.jobMetadata) {
     const metadata = applyMetadataSuggestions(data.jobMetadata, [], metadataContext(String(data.company || ""), String(data.sourceUrl || "")));
     if (existing && existing.data.company !== data.company && metadata.companyProfileId === existing.data.jobMetadata?.companyProfileId) metadata.companyProfileId = null;
@@ -51,6 +54,7 @@ export async function applicationSaveStatements(ownerId: string, id: string, dat
   }
   const db = getDatabase();
   const statements: D1PreparedStatement[] = [];
+  if (transition.event) statements.push(insertRecord(ownerId, "application_events", "更新机会结束状态", { applicationId: id, entityId: id, entityType: "applications", ...transition.event }));
   if (existing) statements.push(versionGuard(ownerId, id, existing.version));
   const submission = (await listKind(ownerId, "job_submissions")).find((s) => s.data.applicationId === id);
   if (!submission && (isSubmitted(data) || (lateEntry && existing))) {

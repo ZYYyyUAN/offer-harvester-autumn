@@ -1,0 +1,545 @@
+{
+  "runs": [
+    {
+      "variant": "baseline",
+      "startedAt": "2026-11-10T05:58:33.731Z",
+      "samples": [
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 0,
+          "elapsedMs": 1574.6629,
+          "firstFeedbackMs": 1574.6616000000001,
+          "correct": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v1",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 1,
+          "elapsedMs": 1066.0259000000003,
+          "firstFeedbackMs": 1066.0249000000001,
+          "correct": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v1",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 2,
+          "elapsedMs": 794.9769000000001,
+          "firstFeedbackMs": 794.9744000000001,
+          "correct": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v1",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 0,
+          "elapsedMs": 83310.877,
+          "firstFeedbackMs": 83310.8758,
+          "correct": true,
+          "model": "qwen3.8-max",
+          "promptVersion": "job-capture-url-v5",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 4840,
+          "sourceCount": 0,
+          "attempts": [
+            {
+              "model": "qwen3.8-max",
+              "tokenUsage": {
+                "input_tokens": 6743,
+                "input_tokens_details": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 3200
+                },
+                "output_tokens": 2504,
+                "output_tokens_details": {
+                  "reasoning_tokens": 865
+                },
+                "total_tokens": 9247,
+                "x_details": [
+                  {
+                    "input_tokens": 6743,
+                    "output_tokens": 2504,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 865
+                    },
+                    "plugins": {
+                      "web_extractor": {
+                        "count": 2
+                      }
+                    },
+                    "prompt_tokens_details": {
+                      "cached_tokens": 3200
+                    },
+                    "total_tokens": 9247,
+                    "x_billing_type": "response_api"
+                  }
+                ],
+                "x_tools": {
+                  "web_extractor": {
+                    "count": 2
+                  }
+                }
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 1,
+          "elapsedMs": 100701.99609999999,
+          "firstFeedbackMs": 100701.9927,
+          "correct": true,
+          "model": "qwen3.8-max",
+          "promptVersion": "job-capture-url-v5",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 4413,
+          "sourceCount": 11,
+          "attempts": [
+            {
+              "model": "qwen3.8-max",
+              "tokenUsage": {
+                "input_tokens": 8248,
+                "input_tokens_details": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4224
+                },
+                "output_tokens": 3140,
+                "output_tokens_details": {
+                  "reasoning_tokens": 1237
+                },
+                "total_tokens": 11388,
+                "x_details": [
+                  {
+                    "input_tokens": 8248,
+                    "output_tokens": 3140,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 1237
+                    },
+                    "plugins": {
+                      "web_extractor": {
+                        "count": 2
+                      },
+                      "web_search": {
+                        "count": 1
+                      }
+                    },
+                    "prompt_tokens_details": {
+                      "cached_tokens": 4224
+                    },
+                    "total_tokens": 11388,
+                    "x_billing_type": "response_api"
+                  }
+                ],
+                "x_tools": {
+                  "web_extractor": {
+                    "count": 2
+                  },
+                  "web_search": {
+                    "count": 1
+                  }
+                }
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 2,
+          "elapsedMs": 110333.08060000002,
+          "firstFeedbackMs": 110333.07860000004,
+          "correct": true,
+          "model": "qwen3.8-max",
+          "promptVersion": "job-capture-url-v5",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 5980,
+          "sourceCount": 0,
+          "attempts": [
+            {
+              "model": "qwen3.8-max",
+              "tokenUsage": {
+                "input_tokens": 8343,
+                "input_tokens_details": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4224
+                },
+                "output_tokens": 3621,
+                "output_tokens_details": {
+                  "reasoning_tokens": 1675
+                },
+                "total_tokens": 11964,
+                "x_details": [
+                  {
+                    "input_tokens": 8343,
+                    "output_tokens": 3621,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 1675
+                    },
+                    "plugins": {
+                      "web_extractor": {
+                        "count": 2
+                      }
+                    },
+                    "prompt_tokens_details": {
+                      "cached_tokens": 4224
+                    },
+                    "total_tokens": 11964,
+                    "x_billing_type": "response_api"
+                  }
+                ],
+                "x_tools": {
+                  "web_extractor": {
+                    "count": 2
+                  }
+                }
+              },
+              "status": "succeeded"
+            }
+          ]
+        }
+      ],
+      "cleaned": true,
+      "finishedAt": "2026-11-10T06:03:31.763Z"
+    },
+    {
+      "variant": "candidate-auto",
+      "startedAt": "2026-11-10T07:01:35.712Z",
+      "samples": [
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 0,
+          "elapsedMs": 1671.7068000000002,
+          "firstFeedbackMs": 227.38619999999997,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_feishu",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:35.968Z",
+                    "finishedAt": "2026-11-10T07:01:37.362Z",
+                    "elapsedMs": 1394
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:37.365Z",
+                    "finishedAt": "2026-11-10T07:01:37.367Z",
+                    "elapsedMs": 1
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 1,
+          "elapsedMs": 603.3304999999998,
+          "firstFeedbackMs": 34.61349999999993,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_feishu",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:37.472Z",
+                    "finishedAt": "2026-11-10T07:01:37.973Z",
+                    "elapsedMs": 501
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:37.975Z",
+                    "finishedAt": "2026-11-10T07:01:37.977Z",
+                    "elapsedMs": 2
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_feishu",
+          "url": "https://hf7l9aiqzx.jobs.feishu.cn/704852/position/7670073263825799451/detail",
+          "iteration": 2,
+          "elapsedMs": 554.9398000000001,
+          "firstFeedbackMs": 49.61889999999994,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "北京趣拿软件科技有限公司",
+          "role": "AI应用开发工程师（Java开发）",
+          "jdLength": 594,
+          "sourceCount": 2,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_feishu",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:38.160Z",
+                    "finishedAt": "2026-11-10T07:01:38.598Z",
+                    "elapsedMs": 438
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:38.600Z",
+                    "finishedAt": "2026-11-10T07:01:38.601Z",
+                    "elapsedMs": 0
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 0,
+          "elapsedMs": 2757.9335,
+          "firstFeedbackMs": 33.984100000000126,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 7360,
+          "sourceCount": 1,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_greenhouse",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:38.699Z",
+                    "finishedAt": "2026-11-10T07:01:41.382Z",
+                    "elapsedMs": 2683
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:41.384Z",
+                    "finishedAt": "2026-11-10T07:01:41.384Z",
+                    "elapsedMs": 0
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 1,
+          "elapsedMs": 332.8008,
+          "firstFeedbackMs": 23.870499999999993,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 7360,
+          "sourceCount": 1,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_greenhouse",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:41.458Z",
+                    "finishedAt": "2026-11-10T07:01:41.730Z",
+                    "elapsedMs": 272
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:41.732Z",
+                    "finishedAt": "2026-11-10T07:01:41.732Z",
+                    "elapsedMs": 0
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        },
+        {
+          "fixture": "public_greenhouse",
+          "url": "https://job-boards.greenhouse.io/cloudflare/jobs/8158920",
+          "iteration": 2,
+          "elapsedMs": 760.2417999999998,
+          "firstFeedbackMs": 25.053499999999985,
+          "basicFieldChecksPassed": true,
+          "model": "public-ats-parser",
+          "promptVersion": "public-ats-v2",
+          "captureMethod": "public_ats_api",
+          "company": "Cloudflare",
+          "role": "Software Engineer, FL",
+          "jdLength": 7360,
+          "sourceCount": 1,
+          "attempts": [
+            {
+              "model": "public-ats-parser",
+              "tokenUsage": {},
+              "telemetry": {
+                "profile": "capture-max-v1",
+                "route": "public_greenhouse",
+                "phases": [
+                  {
+                    "phase": "reading_page",
+                    "startedAt": "2026-11-10T07:01:41.813Z",
+                    "finishedAt": "2026-11-10T07:01:42.508Z",
+                    "elapsedMs": 695
+                  },
+                  {
+                    "phase": "saving_result",
+                    "startedAt": "2026-11-10T07:01:42.510Z",
+                    "finishedAt": "2026-11-10T07:01:42.512Z",
+                    "elapsedMs": 2
+                  }
+                ],
+                "usage": {}
+              },
+              "status": "succeeded"
+            }
+          ]
+        }
+      ],
+      "cleaned": true,
+      "finishedAt": "2026-11-10T07:01:42.571Z"
+    }
+  ],
+  "note": "Public pages, synthetic owners, three samples per path. First feedback measures API creation/response roundtrip, not browser draft saving or image upload. Basic field checks are not a complete semantic accuracy evaluation. P95 uses nearest rank and is descriptive only. No default model or company research prompt was changed.",
+  "summary": [
+    {
+      "variant": "baseline",
+      "path": "public_feishu",
+      "n": 3,
+      "sampleP50Ms": 1066,
+      "sampleP95Ms": 1575,
+      "firstFeedbackSampleP50Ms": 1066,
+      "basicFieldChecksPassed": 3
+    },
+    {
+      "variant": "baseline",
+      "path": "public_greenhouse",
+      "n": 3,
+      "sampleP50Ms": 100702,
+      "sampleP95Ms": 110333,
+      "firstFeedbackSampleP50Ms": 100702,
+      "basicFieldChecksPassed": 3
+    },
+    {
+      "variant": "candidate-auto",
+      "path": "public_feishu",
+      "n": 3,
+      "sampleP50Ms": 603,
+      "sampleP95Ms": 1672,
+      "firstFeedbackSampleP50Ms": 50,
+      "basicFieldChecksPassed": 3
+    },
+    {
+      "variant": "candidate-auto",
+      "path": "public_greenhouse",
+      "n": 3,
+      "sampleP50Ms": 760,
+      "sampleP95Ms": 2758,
+      "firstFeedbackSampleP50Ms": 25,
+      "basicFieldChecksPassed": 3
+    }
+  ]
+}

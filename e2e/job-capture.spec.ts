@@ -14,11 +14,12 @@ test("正文不可访问会明确失败，手填信息保留并可继续保存",
   await dialog.getByLabel("公司", { exact: true }).fill("手动填写保留");
   await dialog.getByLabel("岗位", { exact: true }).fill("手动岗位名称");
   await dialog.getByRole("button", { name: "提取链接", exact: true }).click();
-  await expect(dialog.getByRole("alert")).toContainText("未完成提取");
+  await expect(dialog.locator(".capture-warnings").filter({ hasText: "未完成提取" })).toBeVisible();
   await expect(dialog.getByLabel("公司", { exact: true })).toHaveValue("手动填写保留");
   await dialog.getByRole("button", { name: "粘贴 JD 正文" }).click();
   await expect(dialog.getByLabel("完整 JD", { exact: true })).toBeFocused();
   await dialog.getByLabel("完整 JD", { exact: true }).fill("用户从原岗位粘贴的职责与要求");
+  await dialog.getByRole("button", { name: "保留填写，改为手动保存" }).click();
   await dialog.getByRole("button", { name: "核对并保存" }).click();
   await expect(dialog).not.toBeVisible();
   const saved = (await (await request.get("/api/records?kind=saved_jobs")).json()).records;

@@ -1,0 +1,12 @@
+{
+  "baselineCommit": "57e38f1593a8c5294b53cdb9e92f2970a615d146",
+  "unitTests": 54,
+  "unitFailed": 0,
+  "typecheckExitCode": 0,
+  "lintExitCode": 0,
+  "productionBuildExitCode": 0,
+  "e2eReport": "capture-final-e2e.json",
+  "securityAudit": "capture-security-audit.json",
+  "secretScan": "capture-secret-scan.json",
+  "compatibilityReport": "capture-compatibility.json"
+}

@@ -1,0 +1,16 @@
+{
+  "commit": "cb2e93427de7ba2b42562711f0bfddf990049602",
+  "typecheckExitCode": 0,
+  "lintExitCode": 0,
+  "unitTests": 47,
+  "buildExitCode": 0,
+  "e2e": {
+    "startTime": "2026-11-10T07:28:00.266Z",
+    "duration": 11637.648,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "scope": "v5 and v6 synthetic backups, closure fields, AI audit and capture telemetry; desktop and mobile"
+}

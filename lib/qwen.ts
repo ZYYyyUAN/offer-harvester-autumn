@@ -186,12 +186,12 @@ export function aiErrorDetails(error: unknown) {
   return { code: "UNKNOWN_ERROR", message: error instanceof Error ? error.message : "未知错误", retryable: false };
 }
 
-export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType }) {
+export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType; model?: "qwen3.8-max" | "qwen3.8-flash" }) {
   const response = await qwenFetch("/responses", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      model: "qwen3.8-max",
+      model: options.model || "qwen3.8-max",
       input: `${options.system}\n\n${options.prompt}\n只返回符合以下 JSON Schema 的 JSON，不要添加 Markdown：${JSON.stringify(options.schema)}`,
       tools: [{ type: "web_search" }, { type: "web_extractor" }],
       enable_thinking: true,

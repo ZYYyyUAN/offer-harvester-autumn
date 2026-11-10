@@ -44,5 +44,6 @@ export function useCaptureDraft(open: boolean, values: Record<string, any>, jobI
   }, [open, values, jobId, ready, flush]);
   function clear() { record.current = null; lastSaved.current = ""; failedSignature.current = ""; const url = new URL(window.location.href); url.searchParams.delete("captureDraft"); window.history.replaceState(null, "", url); setStatus(""); }
   async function retry(asCopy = false) { if (asCopy) { record.current = null; lastSaved.current = ""; } failedSignature.current = ""; try { await flush(); } catch (error) { setStatus(`草稿未保存：${(error as Error).message}`); } }
-  return { flush, clear, retry, status, ready };
+  async function attachJob(id: string, screenshotFileId?: string) { latest.current = { values: screenshotFileId === undefined ? latest.current.values : { ...latest.current.values, screenshotFileId }, jobId: id }; return flush(); }
+  return { flush, attachJob, clear, retry, status, ready };
 }

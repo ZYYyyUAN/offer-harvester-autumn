@@ -8,6 +8,7 @@ import { executeJDJob } from "@/lib/jd-feature";
 import { publicAtsSource } from "@/lib/job-source-contracts";
 import { readPublicAtsJob } from "@/lib/job-source";
 import { ZodError } from "zod";
+import { CaptureProfileSchema, type CaptureTrace } from "./capture-contracts";
 
 type JobRow = Record<string, unknown>;
 type Evidence = { id: string; title?: string; sourceQuote?: string; detail?: string; status?: string };
@@ -38,6 +39,7 @@ const promptFor: Record<AIJobType, string> = {
 export function mapAIJob(row: JobRow) {
   return {
     id: String(row.id), batchId: row.batch_id ? String(row.batch_id) : null, type: String(row.type), status: String(row.status),
+    phase: row.phase ? String(row.phase) : null,
     inputSnapshot: safeJson(String(row.input_snapshot ?? "{}"), {}), sourceRefs: safeJson(String(row.source_refs ?? "[]"), []),
     model: String(row.model), promptVersion: String(row.prompt_version), result: safeJson(String(row.result ?? "null"), null),
     resultRecordId: row.result_record_id ? String(row.result_record_id) : null, confidence: row.confidence ? String(row.confidence) : null,
@@ -49,14 +51,20 @@ export function mapAIJob(row: JobRow) {
 }
 
 export function mapAttempt(row: JobRow) {
-  return { id: String(row.id), jobId: String(row.job_id), attemptNumber: Number(row.attempt_number), model: String(row.model), status: String(row.status), tokenUsage: safeJson(String(row.token_usage ?? "{}"), {}), responseSummary: row.response_summary ? String(row.response_summary) : null, errorCode: row.error_code ? String(row.error_code) : null, errorMessage: row.error_message ? String(row.error_message) : null, startedAt: String(row.started_at), finishedAt: row.finished_at ? String(row.finished_at) : null };
+  return { id: String(row.id), jobId: String(row.job_id), attemptNumber: Number(row.attempt_number), model: String(row.model), status: String(row.status), telemetry: safeJson(String(row.telemetry ?? "{}"), {}), tokenUsage: safeJson(String(row.token_usage ?? "{}"), {}), responseSummary: row.response_summary ? String(row.response_summary) : null, errorCode: row.error_code ? String(row.error_code) : null, errorMessage: row.error_message ? String(row.error_message) : null, startedAt: String(row.started_at), finishedAt: row.finished_at ? String(row.finished_at) : null };
 }
 
-export async function createAIJob(ownerId: string, type: AIJobType, input: Record<string, unknown>, options: { batchId?: string; sourceRefs?: unknown[] } = {}) {
+export async function createAIJob(ownerId: string, type: AIJobType, input: Record<string, unknown>, options: { batchId?: string; sourceRefs?: unknown[]; captureKey?: string } = {}) {
   const id = crypto.randomUUID();
-  const publicSource = type === "job_capture_url" && publicAtsSource(String(input.sourceUrl || ""));
-  await getDatabase().prepare("INSERT INTO ai_jobs (id, owner_id, batch_id, type, status, input_snapshot, source_refs, model, prompt_version) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?)")
-    .bind(id, ownerId, options.batchId ?? null, type, JSON.stringify(input), JSON.stringify(options.sourceRefs ?? []), publicSource ? "public-ats-parser" : modelFor[type], publicSource ? "public-ats-v1" : promptFor[type]).run();
+  const publicSource = type === "job_capture_url" && input.readStrategy !== "model" && publicAtsSource(String(input.sourceUrl || ""));
+  const model = publicSource ? "public-ats-parser" : type === "job_capture_url" && input.executionProfile === "capture-flash-v1" ? "qwen3.8-flash" : modelFor[type];
+  const inserted = await getDatabase().prepare("INSERT INTO ai_jobs (id, owner_id, batch_id, type, status, input_snapshot, source_refs, model, prompt_version, capture_key, phase) SELECT ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ? WHERE ? IS NULL OR NOT EXISTS (SELECT 1 FROM ai_jobs WHERE owner_id = ? AND capture_key = ? AND status IN ('queued','running'))")
+    .bind(id, ownerId, options.batchId ?? null, type, JSON.stringify(input), JSON.stringify(options.sourceRefs ?? []), model, publicSource ? "public-ats-v2" : promptFor[type], options.captureKey ?? null, options.captureKey ? "queued" : null, options.captureKey ?? null, ownerId, options.captureKey ?? null).run();
+  if (!inserted.meta.changes) {
+    const existing = await getDatabase().prepare("SELECT id FROM ai_jobs WHERE owner_id = ? AND capture_key = ? AND status IN ('queued','running')").bind(ownerId, options.captureKey!).first<{ id: string }>();
+    if (!existing) throw new ApiError(409, "同一岗位任务状态已改变，请重新读取任务列表");
+    return getAIJob(ownerId, existing.id);
+  }
   return getAIJob(ownerId, id);
 }
 
@@ -64,7 +72,7 @@ export async function getAIJob(ownerId: string, id: string) {
   const row = await getDatabase().prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
   if (!row) throw new ApiError(404, "AI 任务不存在");
   const attempts = await getDatabase().prepare("SELECT * FROM ai_job_attempts WHERE job_id = ? AND owner_id = ? ORDER BY attempt_number ASC").bind(id, ownerId).all<JobRow>();
-  return { job: mapAIJob(row), attempts: attempts.results.map(mapAttempt) };
+  return { job: mapAIJob(row), attempts: attempts.results.map(mapAttempt), serverNow: new Date().toISOString() };
 }
 
 function cleanAnalysis(data: Record<string, unknown>, evidence: Evidence[]) {
@@ -110,18 +118,22 @@ function evaluationMetrics(result: Record<string, unknown>, caseId: string) {
   };
 }
 
-async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>) {
+async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>, trace: CaptureTrace) {
   if (type === "job_capture_url") {
     const sourceUrl = String(input.sourceUrl || "").trim();
     try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { throw new ApiError(400, "请输入有效的公开岗位链接"); }
-    const publicSource = publicAtsSource(sourceUrl);
-    if (publicSource) return { result: await readPublicAtsJob(publicSource, sourceUrl), usage: {}, confidence: "high", record: null };
-    const response = await responsesSearch({
+    const publicSource = input.readStrategy !== "model" && publicAtsSource(sourceUrl);
+    trace.telemetry.route = publicSource ? "public_" + publicSource.kind : "model_url";
+    if (publicSource) return { result: await trace.measure("reading_page", () => readPublicAtsJob(publicSource, sourceUrl)), usage: {}, confidence: "high", record: null };
+    const profile = CaptureProfileSchema.parse(input.executionProfile);
+    const response = await trace.measure("extracting", () => responsesSearch({
+      model: profile === "capture-flash-v1" ? "qwen3.8-flash" : "qwen3.8-max",
       system: "你是严格的岗位信息提取器。只提取指定页面正文，缺失字段为空，evidence 引用原文。" + classificationInstructions,
       prompt: `仅访问并抽取这个岗位页面：${sourceUrl}\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）、完整 JD。若网页要求登录、出现验证码或正文不可访问，在 warnings 中说明，不要改用其他职位。sourceUrl 原样返回。`,
       schemaName: "job_capture_url_v1", schema: jobCaptureJsonSchema,
-    });
-    const normalized = normalizeCaptureResponse(response.data, sourceUrl);
+    }));
+    trace.telemetry.usage.structured = response.raw.usage ?? null;
+    const normalized = await trace.measure("validating", async () => normalizeCaptureResponse(response.data, sourceUrl));
     if (!normalized.company && !normalized.role && !normalized.jd) throw new ApiError(422, "未能读取这个岗位链接的正文。请上传 JD 截图或粘贴岗位职责与任职要求；已经填写的信息会保留。", "PAGE_CONTENT_UNAVAILABLE");
     return { result: { ...normalized, sources: response.sources }, usage: response.usage, confidence: response.sources.length && normalized.company && normalized.role ? "medium" : "low", record: null };
   }
@@ -130,9 +142,12 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     const file = await db.prepare("SELECT object_key, mime_type FROM stored_files WHERE id = ? AND owner_id = ? AND purpose = 'job_screenshot' AND deleted_at IS NULL").bind(fileId, ownerId).first<JobRow>();
     if (!file) throw new ApiError(404, "岗位截图不存在");
     const object = await bucket.get(String(file.object_key)); if (!object) throw new ApiError(404, "岗位截图内容不存在");
-    const ocr = await ocrImage({ bytes: await object.arrayBuffer(), mimeType: String(file.mime_type) });
-    const response = await structuredChat({ model: "qwen3.8-flash", system: "你是严格的岗位截图字段提取器。只能使用 OCR 原文，缺失字段为空，evidence 必须提供原文。" + classificationInstructions, prompt: `截图 OCR 原文：\n${ocr.text}\n\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）和完整 JD。sourceUrl 返回空字符串。`, schemaName: "job_capture_image_v1", schema: jobCaptureJsonSchema, maxTokens: 4200 });
-    const normalized = normalizeCaptureResponse(response.data);
+    trace.telemetry.route = "ocr_image";
+    const ocr = await trace.measure("reading_image", async () => ocrImage({ bytes: await object.arrayBuffer(), mimeType: String(file.mime_type) }));
+    trace.telemetry.usage.ocr = ocr.raw.usage ?? null;
+    const response = await trace.measure("extracting", () => structuredChat({ model: "qwen3.8-flash", system: "你是严格的岗位截图字段提取器。只能使用 OCR 原文，缺失字段为空，evidence 必须提供原文。" + classificationInstructions, prompt: `截图 OCR 原文：\n${ocr.text}\n\n提取公司、岗位、地点、薪资、截止日期（YYYY-MM-DD）和完整 JD。sourceUrl 返回空字符串。`, schemaName: "job_capture_image_v1", schema: jobCaptureJsonSchema, maxTokens: 4200 }));
+    trace.telemetry.usage.structured = response.raw.usage ?? null;
+    const normalized = await trace.measure("validating", async () => normalizeCaptureResponse(response.data));
     return { result: { ...normalized, ocrText: ocr.text, screenshotFileId: fileId }, usage: response.usage, confidence: normalized.company && normalized.role ? "medium" : "low", record: null };
   }
   if (type === "job_analysis" || type === "evaluation_case") {
@@ -221,8 +236,9 @@ export async function runAIJob(ownerId: string, id: string) {
   if (row.status === "cancelled") throw new ApiError(409, "任务已取消");
   if (row.status === "succeeded") return getAIJob(ownerId, id);
   if (row.status === "running") return getAIJob(ownerId, id);
-  if (row.type === "job_capture_url" && publicAtsSource(String(safeJson<Record<string, unknown>>(String(row.input_snapshot), {}).sourceUrl || ""))) {
-    row.model = "public-ats-parser"; row.prompt_version = "public-ats-v1";
+  const jobInput = safeJson<Record<string, unknown>>(String(row.input_snapshot), {});
+  if (row.type === "job_capture_url" && jobInput.readStrategy !== "model" && publicAtsSource(String(jobInput.sourceUrl || ""))) {
+    row.model = "public-ats-parser"; row.prompt_version = "public-ats-v2";
   }
   const started = Date.now();
   const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', model = ?, prompt_version = ?, started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(String(row.model), String(row.prompt_version), id, ownerId, Number(row.version)).run();
@@ -231,14 +247,26 @@ export async function runAIJob(ownerId: string, id: string) {
   const countRow = await db.prepare("SELECT COUNT(*) AS count FROM ai_job_attempts WHERE job_id = ?").bind(id).first<JobRow>();
   let nextAttempt = Number(countRow?.count || 0) + 1;
   for (let automaticAttempt = 0; automaticAttempt < 3; automaticAttempt++, nextAttempt++) {
+    if (automaticAttempt > 0) {
+      const active = await db.prepare("SELECT status, version FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
+      if (active?.status !== "running" || Number(active.version) !== runVersion) return getAIJob(ownerId, id);
+    }
+    const isCapture = ["job_capture_url", "job_capture_image"].includes(String(row.type));
+    const trace: CaptureTrace = { telemetry: { profile: String(jobInput.executionProfile || "legacy"), route: "", phases: [], usage: {} },
+      async measure<T>(phase: string, action: () => Promise<T>): Promise<T> {
+        const start = Date.now();
+        await db.prepare("UPDATE ai_jobs SET phase = ?, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND id = ? AND status = 'running' AND version = ?").bind(phase, ownerId, id, runVersion).run();
+        try { return await action(); }
+        finally { trace.telemetry.phases.push({ phase, startedAt: new Date(start).toISOString(), finishedAt: new Date().toISOString(), elapsedMs: Date.now() - start }); }
+      } };
     const attemptId = crypto.randomUUID();
     await db.prepare("INSERT INTO ai_job_attempts (id, job_id, owner_id, attempt_number, model, status) VALUES (?, ?, ?, ?, ?, 'running')").bind(attemptId, id, ownerId, nextAttempt, String(row.model)).run();
     try {
       const featureType = ["jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"].includes(String(row.type));
-      const output = featureType ? await executeJDJob(ownerId, id, String(row.type), safeJson(String(row.input_snapshot), {})) : await execute(ownerId, String(row.type) as AIJobType, safeJson(String(row.input_snapshot), {}));
-      const current = await db.prepare("SELECT status FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
-      if (current?.status === "cancelled") {
-        await db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, response_summary = ? WHERE id = ?").bind("结果在取消后返回，已丢弃", attemptId).run();
+      const output = featureType ? await executeJDJob(ownerId, id, String(row.type), jobInput) : await execute(ownerId, String(row.type) as AIJobType, jobInput, trace);
+      const current = await db.prepare("SELECT status, version FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
+      if (current?.status !== "running" || Number(current.version) !== runVersion) {
+        await db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, response_summary = ?, telemetry = ? WHERE id = ?").bind("本次执行已取消或失效，迟到结果已丢弃", JSON.stringify(trace.telemetry), attemptId).run();
         return getAIJob(ownerId, id);
       }
       let resultRecordId: string | null = null;
@@ -247,17 +275,25 @@ export async function runAIJob(ownerId: string, id: string) {
       if ("resultId" in output) resultRecordId = output.resultId;
       if (output.record) { resultRecordId = crypto.randomUUID(); resultWrites.push(insertRecord(ownerId, output.record.kind, output.record.title, payload, resultRecordId)); }
       const sourceRefs = [...safeJson<unknown[]>(String(row.source_refs), []), ...(Array.isArray((output.result as Record<string, unknown>).sources) ? (output.result as Record<string, unknown>).sources as unknown[] : [])];
-      await atomicBatch([
+      const savingStartedAt = new Date().toISOString();
+      const persist = () => atomicBatch([
         versionGuard(ownerId, id, runVersion, "ai_jobs", "running"), ...resultWrites,
-        db.prepare("UPDATE ai_job_attempts SET status = 'succeeded', token_usage = ?, response_summary = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(JSON.stringify(output.usage || {}), JSON.stringify(payload).slice(0, 1000), attemptId),
-        db.prepare("UPDATE ai_jobs SET status = 'succeeded', result = ?, result_record_id = ?, source_refs = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, JSON.stringify(sourceRefs), output.confidence, Date.now() - started, id, ownerId),
+        db.prepare("UPDATE ai_job_attempts SET status = 'succeeded', token_usage = ?, response_summary = ?, telemetry = json_insert(?, '$.phases[#]', json_object('phase', 'saving_result', 'startedAt', ?, 'finishedAt', strftime('%Y-%m-%dT%H:%M:%fZ','now'), 'elapsedMs', max(0, CAST((julianday('now') - julianday(?)) * 86400000 AS INTEGER)))), finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(JSON.stringify(output.usage || {}), JSON.stringify(payload).slice(0, 1000), JSON.stringify(trace.telemetry), savingStartedAt, savingStartedAt, attemptId),
+        db.prepare("UPDATE ai_jobs SET status = 'succeeded', phase = 'completed', result = ?, result_record_id = ?, source_refs = ?, confidence = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running'").bind(JSON.stringify(payload), resultRecordId, JSON.stringify(sourceRefs), output.confidence, Date.now() - started, id, ownerId),
       ]);
+      await persist();
       return getAIJob(ownerId, id);
     } catch (error) {
+      const current = await db.prepare("SELECT status, version FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
+      if (current?.status !== "running" || Number(current.version) !== runVersion) {
+        await db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, response_summary = ?, telemetry = ? WHERE id = ? AND owner_id = ? AND status = 'running'").bind("本次执行已取消或失效，未修改新一轮任务", JSON.stringify(trace.telemetry), attemptId, ownerId).run();
+        return getAIJob(ownerId, id);
+      }
       const detail = aiErrorDetails(error);
+      if (isCapture) await db.batch([db.prepare("UPDATE ai_job_attempts SET telemetry = ? WHERE id = ? AND owner_id = ?").bind(JSON.stringify(trace.telemetry), attemptId, ownerId), db.prepare("UPDATE ai_jobs SET phase = 'failed' WHERE id = ? AND owner_id = ? AND status = 'running' AND version = ?").bind(id, ownerId, runVersion)]);
       await db.prepare("UPDATE ai_job_attempts SET status = 'failed', error_code = ?, error_message = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(detail.code, detail.message, attemptId).run();
       if (detail.retryable && automaticAttempt < 2) continue;
-      await db.prepare("UPDATE ai_jobs SET status = 'failed', error_code = ?, error_message = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status != 'cancelled'").bind(detail.code, detail.message, Date.now() - started, id, ownerId).run();
+      await db.prepare("UPDATE ai_jobs SET status = 'failed', error_code = ?, error_message = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running' AND version = ?").bind(detail.code, detail.message, Date.now() - started, id, ownerId, runVersion).run();
       throw error;
     }
   }
@@ -265,14 +301,14 @@ export async function runAIJob(ownerId: string, id: string) {
 }
 
 export async function cancelAIJob(ownerId: string, id: string) {
-  const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('queued','running','failed')").bind(id, ownerId).run();
+  const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'cancelled', phase = 'cancelled', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('queued','running','failed')").bind(id, ownerId).run();
   if (!result.meta.changes) throw new ApiError(409, "任务无法取消或不存在");
   return getAIJob(ownerId, id);
 }
 
 export async function retryAIJob(ownerId: string, id: string) {
-  const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'queued', result = NULL, result_record_id = NULL, error_code = NULL, error_message = NULL, finished_at = NULL, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('failed','cancelled')").bind(id, ownerId).run();
-  if (!result.meta.changes) throw new ApiError(409, "只有失败或已取消任务可以重试");
+  const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'queued', result = NULL, result_record_id = NULL, error_code = NULL, error_message = NULL, finished_at = NULL, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('failed','cancelled') AND (capture_key IS NULL OR NOT EXISTS (SELECT 1 FROM ai_jobs AS active WHERE active.owner_id = ai_jobs.owner_id AND active.capture_key = ai_jobs.capture_key AND active.status IN ('queued','running')))").bind(id, ownerId).run();
+  if (!result.meta.changes) throw new ApiError(409, "仅失败或已取消任务可重试；同一岗位已有运行任务时请先查看该任务");
   return runAIJob(ownerId, id);
 }
 
