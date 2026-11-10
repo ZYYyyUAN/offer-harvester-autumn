@@ -1,0 +1,17 @@
+{
+  "syntheticDataOnly": true,
+  "stats": {
+    "startTime": "2026-11-10T04:46:41.178Z",
+    "duration": 34927.878,
+    "expected": 24,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "readerVersions": [
+    3,
+    4,
+    5
+  ],
+  "writerVersion": 5
+}
