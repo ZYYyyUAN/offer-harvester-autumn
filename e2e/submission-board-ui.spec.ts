@@ -43,7 +43,7 @@ test("daily board and review share complete counts, unknown stages, URL state an
   await expect(page.getByRole("combobox", { name: "投递阶段筛选" })).toHaveValue("unknown");
   await expect(page.locator(".submission-list .submission-card")).toHaveCount(1);
   await page.getByRole("button", { name: "投递复盘", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "机会结束分析" })).toBeVisible(); await expect(page).toHaveURL(/tab=review/);
+  await expect(page.getByRole("heading", { name: "历史到达阶段" })).toBeVisible(); await expect(page).toHaveURL(/tab=review/);
   await page.goBack(); await expect(page.locator(".submission-list .submission-card")).toHaveCount(1);
   await page.getByRole("button", { name: "查看详情", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("待核对（准备简历）"); await page.reload();
