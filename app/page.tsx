@@ -1,5 +1,5 @@
 import { requireChatGPTUser } from "./chatgpt-auth";
-import { OfferWorkspace } from "./rollback-workspace";
+import { OfferWorkspace } from "./workspace";
 
 export const dynamic = "force-dynamic";
 
