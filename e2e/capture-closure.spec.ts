@@ -52,7 +52,7 @@ test("closure correction and reopening preserve submitted identity and historica
 
 test("slow task survives refresh and cancel discards late results without clearing manual fields", async ({ page, request }) => {
   await page.goto("/?view=savedJobs");
-  await page.getByRole("main").getByRole("button", { name: "收藏岗位", exact: true }).click();
+  await page.getByRole("main").getByRole("button", { name: "记录已投岗位", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await dialog.getByLabel("岗位链接", { exact: true }).fill("https://example.test/slow-capture");
   await dialog.getByLabel("公司", { exact: true }).fill("手动公司");
@@ -77,6 +77,7 @@ test("closure editor labels, date filter and shared source detachment work witho
   const conversion = await json(await request.post(`/api/saved-jobs/${saved.id}/convert`, { data: { version: saved.version, idempotencyKey: saved.id } }));
   expect(conversion).toBeTruthy();
   await page.goto("/?view=applications");
+  await page.locator(".kanban article").filter({ hasText: "合成共享公司" }).locator("summary").click();
   await page.locator(".kanban article").filter({ hasText: "合成共享公司" }).getByRole("button", { name: "编辑", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("combobox", { name: "当前阶段", exact: true }).selectOption("已结束");
@@ -87,8 +88,9 @@ test("closure editor labels, date filter and shared source detachment work witho
   await expect(dialog).toBeHidden();
   await expect(page.locator(".kanban article").filter({ hasText: "合成共享公司" })).toContainText("被拒 · 二面");
   await page.getByRole("button", { name: "列表视图", exact: true }).click();
-  await expect(page.locator(".application-row").filter({ hasText: "合成共享公司" })).toContainText("被拒 · 二面");
+  await expect(page.locator(".submission-list .submission-card").filter({ hasText: "合成共享公司" })).toContainText("被拒 · 二面");
   await page.goto("/?view=savedJobs");
+  await page.getByText(/已转入投递的来源记录（/).click();
   await expect(page.locator(".job-source-attachment")).not.toHaveAttribute("open", "");
   await page.getByRole("button", { name: "编辑收藏", exact: true }).click();
   await dialog.getByText("可选来源附件", { exact: true }).click();

@@ -1,3 +1,4 @@
+import { submissionStageBucket } from "@/lib/submission-workspace";
 import { z } from "zod";
 import { JobMetadataSchema } from "@/lib/job-metadata";
 import { validateJobMetadata } from "@/lib/job-metadata-store";
@@ -33,7 +34,7 @@ export async function PATCH(request: Request) {
       const app = await ownedRecord(userId, data.applicationId, "applications");
       if (input.jobMetadata && app.version !== input.applicationVersion) throw new ApiError(409, "投递记录已更新，请刷新后重新确认");
       const appData: Record<string, any> = { ...app.data, checklist: { ...app.data.checklist, [data.checklistKey]: { done: true, at: new Date().toISOString() } } };
-      if (data.checklistKey === "submitted" && appData.stage === "待投递") appData.stage = "已投递";
+      if (data.checklistKey === "submitted" && (appData.stage === "待投递" || submissionStageBucket(appData.stage)==="unknown")) appData.stage = "已投递";
       if (input.jobMetadata) appData.jobMetadata = (await validateJobMetadata(userId, { ...appData, jobMetadata: input.jobMetadata }, app.data)).jobMetadata;
       statements.push(...await applicationSaveStatements(userId, app.id, appData, app));
     }

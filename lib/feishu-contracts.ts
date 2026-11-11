@@ -1,3 +1,4 @@
+import { applyMetadataSuggestions, channelLabels, metadataContext, JobMetadataSchema, legacyMetadata } from "./job-metadata.ts";
 import { z } from "zod";
 
 export const FEISHU_PROVIDER = "feishu" as const;
@@ -169,7 +170,8 @@ export function normalizeApplicationData(data: Record<string, unknown>) {
   const normalized: Record<string, unknown> = {};
   for (const key of Object.keys(applicationFieldMap)) {
     if (["localId", "localVersion", "localUpdatedAt"].includes(key)) continue;
-    const value = data[key];
+    const actual = (data.jobMetadata as Record<string,any>|undefined)?.actualSubmission;
+    const value = key === "channel" && actual?.confirmedAt ? actual.channel === "other" ? actual.customLabel || "其他" : channelLabels[actual.channel as keyof typeof channelLabels] || "未知" : data[key];
     normalized[key] = value == null ? "" : value;
   }
   const rawChecklist = data.checklist && typeof data.checklist === "object" ? data.checklist as Record<string, unknown> : {};
@@ -220,4 +222,14 @@ export function remoteLocalId(fields: Record<string, unknown>) {
 
 export function isRemoteImportable(data: Record<string, unknown>) {
   return Boolean(String(data.company ?? "").trim() && String(data.role ?? "").trim());
+}
+
+export function mergeFeishuApplication(current: Record<string,any> | null, incoming: Record<string,unknown>, now: string) {
+  const merged: Record<string,any> = {...current,...incoming,checklist:{...current?.checklist,...incoming.checklist as object}};
+  const previous = current?.jobMetadata ? JobMetadataSchema.parse(current.jobMetadata) : JobMetadataSchema.parse({});
+  const channel = String(incoming.channel || "");
+  if (!channel || channel === String(current?.channel || "")) return {...merged,...(current?.jobMetadata?{jobMetadata:previous}:{})};
+  const candidate=legacyMetadata({channel},String(merged.company||""),String(merged.sourceUrl||""),now);
+  const suggestions=candidate.suggestions.map(s=>({...s,evidence:{...s.evidence,sourceRef:"feishu_legacy_channel"}}));
+  return {...merged,jobMetadata:applyMetadataSuggestions(previous,suggestions,metadataContext(String(merged.company||""),String(merged.sourceUrl||"")))};
 }

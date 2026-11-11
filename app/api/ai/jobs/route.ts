@@ -1,3 +1,4 @@
+import { CompanyVerificationInputSchema } from "@/lib/company-verification";
 import { z } from "zod";
 import { AIJobTypeSchema } from "@/lib/ai-contracts";
 import { createAIJob, expireStaleJobs, mapAIJob } from "@/lib/ai-jobs";
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     const { userId } = await requireApiUser();
     const parsed = CreateSchema.safeParse(await request.json());
     if (!parsed.success) throw new ApiError(400, "AI 任务参数不完整");
-    const input = { ...parsed.data.input };
+    const input: Record<string,unknown> = parsed.data.type === "company_metadata_verify" ? CompanyVerificationInputSchema.parse(parsed.data.input) : { ...parsed.data.input };
     const sourceRefs = [...(parsed.data.sourceRefs || [])];
     if (parsed.data.type === "job_analysis") {
       const evidenceRows = await getDatabase().prepare("SELECT id, data FROM records WHERE owner_id = ? AND kind = 'evidence' AND deleted_at IS NULL").bind(userId).all<Record<string, unknown>>();

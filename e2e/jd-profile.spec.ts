@@ -70,7 +70,7 @@ test("真实管线配合模拟供应商：提取、差距、任务、修改稿�
   expect(await page.evaluate(()=>document.documentElement.scrollWidth > document.documentElement.clientWidth+1)).toBe(false);
   const axe=await new AxeBuilder({page}).analyze(); expect(axe.violations.filter(v=>["critical","serious"].includes(v.impact||""))).toEqual([]);
   await page.screenshot({path:"test-results/jd-profile-"+info.project.name+".png",fullPage:true});
-  const backup=await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(6);
+  const backup=await json(await request.get("/api/data/export?format=json")); expect(backup.schemaVersion).toBe(7);
   const index=await json(await request.get("/api/data/files/archive/index"));
   const packs:Buffer[]=[];for(const part of [...new Set(index.files.map((f:any)=>f.part))]) packs.push(await (await request.get("/api/data/files/archive?part="+part)).body());
   await json(await request.delete("/api/profile?confirm=DELETE"));
@@ -132,5 +132,19 @@ test("表单、任务与最终简历统一归档，备份冲突与整组永久�
   await json(await request.delete("/api/trash",{data:{items:[{type:"record",id:root.id,version:root.version}]}}));
   expect((await json(await request.get("/api/trash"))).items.some((r:any)=>r.id===snapshot.id)).toBe(false);
   expect((await request.get("/api/files/content?id="+file.id)).ok()).toBe(true);
+});
+
+test("final resume confirmation permits unknown dates and never records a false interview regression",async({request})=>{
+ for(const stage of ["待投递","面试中"]){
+  const app=(await json(await request.post("/api/records",{data:{kind:"applications",data:{company:"合成最终简历"+stage,role:"Java",stage,jd:"熟悉Java"}}}))).record;
+  const before=await archive(request,app.id),file=await upload(request);
+  await json(await request.patch("/api/files",{data:{id:file.id,version:file.version,metadata:{libraryType:"optimization",applicationId:app.id}}}));
+  const result=await json(await request.post("/api/applications/finalize-resume",{data:{applicationId:app.id,applicationVersion:app.version,fileId:file.id,fileVersions:{[file.id]:file.version+1},appliedAt:null}}));
+  expect(result.application.data.stage).toBe(stage==="待投递"?"已投递":"面试中");expect(result.application.data.appliedAt).toBeNull();expect(result.application.data.appliedAtStatus).toBe("unknown");
+  const snapshots=await archive(request,app.id);expect(snapshots).toHaveLength(1);expect(snapshots[0].data.appliedAt).toBeNull();
+  if(before.length)expect(snapshots[0]).toEqual(before[0]);else expect(snapshots[0].data.resumeFileId).toBe(file.id);
+  const events=(await json(await request.get(`/api/activity?entityType=applications&entityId=${app.id}`))).events;
+  expect(events.find((e:any)=>e.data.action==="application_submitted").data.to).toBe(result.application.data.stage);
+ }
 });
 

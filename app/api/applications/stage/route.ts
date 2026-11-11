@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const { userId } = await requireApiUser(); const input = Input.parse(await request.json());
     const current = await ownedRecord(userId, input.id, "applications");
     if (current.version !== input.version) throw new ApiError(409, "投递记录已更新", "VERSION_CONFLICT", false, { currentVersion: current.version });
-    const data = { ...current.data, stage: input.stage, ...(input.closure ? { closure: input.closure } : {}), ...(input.appliedAt !== undefined ? { appliedAt: input.appliedAt } : {}), ...(input.jobMetadata ? { jobMetadata: input.jobMetadata } : {}) }; const record = await saveApplication(userId, current.id, input.jobMetadata ? await validateJobMetadata(userId, data, current.data) : data, current);
+    const data = { ...current.data, stage: input.stage, ...(input.closure ? { closure: input.closure } : {}), ...(input.appliedAt !== undefined ? { appliedAt: input.appliedAt, appliedAtStatus:input.appliedAt?"known":"unknown" } : {}), ...(input.jobMetadata ? { jobMetadata: input.jobMetadata } : {}) }; const record = await saveApplication(userId, current.id, input.jobMetadata ? await validateJobMetadata(userId, data, current.data) : data, current);
     return Response.json({ ok: true, stage: record.data.stage });
   } catch (error) { return apiError(error); }
 }

@@ -8,8 +8,8 @@ test("正文不可访问会明确失败，手填信息保留并可继续保存",
   expect(response.status()).toBe(422); expect((await response.json()).code).toBe("PAGE_CONTENT_UNAVAILABLE");
   const jobs = (await (await request.get("/api/ai/jobs?type=job_capture_url")).json()).jobs;
   expect(jobs[0].status).toBe("failed");
-  await page.goto("/?view=savedJobs"); await page.getByRole("main").getByRole("button", { name: "收藏岗位", exact: true }).click();
-  const dialog = page.getByRole("dialog");
+  await page.goto("/?view=savedJobs"); await page.getByRole("main").getByRole("button", { name: "记录已投岗位", exact: true }).click();
+  const dialog = page.getByRole("dialog",{name:"记录已投岗位",exact:true});
   await dialog.getByLabel("岗位链接", { exact: true }).fill("https://example.test/restricted");
   await dialog.getByLabel("公司", { exact: true }).fill("手动填写保留");
   await dialog.getByLabel("岗位", { exact: true }).fill("手动岗位名称");
@@ -20,7 +20,7 @@ test("正文不可访问会明确失败，手填信息保留并可继续保存",
   await expect(dialog.getByLabel("完整 JD", { exact: true })).toBeFocused();
   await dialog.getByLabel("完整 JD", { exact: true }).fill("用户从原岗位粘贴的职责与要求");
   await dialog.getByRole("button", { name: "保留填写，改为手动保存" }).click();
-  await dialog.getByRole("button", { name: "核对并保存" }).click();
+  await dialog.getByRole("button", { name: "保存已投记录" }).click();
   await expect(dialog).not.toBeVisible();
   const saved = (await (await request.get("/api/records?kind=saved_jobs")).json()).records;
   expect(saved[0].data.company).toBe("手动填写保留");

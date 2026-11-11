@@ -35,6 +35,7 @@ export const records = sqliteTable(
     uniqueIndex("uq_jd_edit_revision").on(table.ownerId, sql`json_extract(${table.data}, '$.extractionId')`, sql`json_extract(${table.data}, '$.requirementKey')`, sql`json_extract(${table.data}, '$.revision')`).where(sql`${table.kind} = 'jd_requirement_edits'`),
     uniqueIndex("uq_jd_suggestion_task").on(table.ownerId, sql`json_extract(${table.data}, '$.sourceSuggestionId')`).where(sql`${table.kind} = 'tasks' AND json_extract(${table.data}, '$.sourceSuggestionId') IS NOT NULL`),
     index("idx_jd_source").on(table.ownerId, table.kind, sql`json_extract(${table.data}, '$.sourceEntryId')`),
+    uniqueIndex("uq_submission_intake_draft").on(table.ownerId, sql`json_extract(${table.data}, '$.intakeDraftId')`).where(sql`${table.kind} = 'applications' AND json_extract(${table.data}, '$.intakeDraftId') IS NOT NULL`),
     uniqueIndex("uq_metadata_conversion").on(table.ownerId, sql`json_extract(${table.data}, '$.conversionKey')`).where(sql`${table.kind} = 'applications' AND ${table.deletedAt} IS NULL AND json_extract(${table.data}, '$.conversionKey') IS NOT NULL`),
     uniqueIndex("uq_metadata_revision").on(table.ownerId, sql`json_extract(${table.data}, '$.submissionId')`, sql`json_extract(${table.data}, '$.revision')`).where(sql`${table.kind} = 'submission_metadata_revisions'`),
     uniqueIndex("uq_company_registry").on(table.ownerId, sql`json_extract(${table.data}, '$.registryId')`).where(sql`${table.kind} = 'company_profiles' AND ${table.deletedAt} IS NULL AND json_extract(${table.data}, '$.registryId') <> ''`),

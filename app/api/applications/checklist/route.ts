@@ -1,3 +1,4 @@
+import { submissionStageBucket } from "@/lib/submission-workspace";
 import { z } from "zod";
 import { checklistKeys } from "@/lib/workflow-contracts";
 import { ApiError, apiError, requireApiUser } from "@/lib/server-data";
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
     const current = await ownedRecord(userId, input.id, "applications");
     if (current.version !== input.version) throw new ApiError(409, "投递记录已更新", "VERSION_CONFLICT", false, { currentVersion: current.version });
     const data: Record<string, any> = { ...current.data, checklist: { ...current.data.checklist, [input.key]: { done: input.done, at: new Date().toISOString() } } };
-    if (input.key === "submitted" && input.done && data.stage === "待投递") data.stage = "已投递";
+    if (input.key === "submitted" && input.done && (data.stage === "待投递" || submissionStageBucket(data.stage)==="unknown")) data.stage = "已投递";
     if (input.jobMetadata) data.jobMetadata = (await validateJobMetadata(userId, { ...data, jobMetadata: input.jobMetadata }, current.data)).jobMetadata;
     const record = await saveApplication(userId, current.id, data, current);
     return Response.json({ ok: true, checklist: record.data.checklist, stage: record.data.stage });

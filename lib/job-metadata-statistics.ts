@@ -1,3 +1,4 @@
+import { hasReachedSubmissionStage, hasSubmittedEvidence } from "./submission-workspace.ts";
 import { canonicalCompanyTag, channelLabels, discoveryLabels, JobMetadataSchema, type JobMetadata } from "./job-metadata.ts";
 
 type RecordEntry = { id: string; kind: string; data: Record<string, any> };
@@ -18,13 +19,8 @@ export function matchesMetadata(metadata: JobMetadata, filters: MetadataFilters)
   return true;
 }
 export function metadataStatistics(records: RecordEntry[], minimumSample: number, filters: MetadataFilters = {}) {
-  const events = records.filter((r) => ["application_events", "activity_events"].includes(r.kind));
-  const submissions = records.filter((r) => r.kind === "job_submissions");
-  const reached = (id: string, stage: string, current: unknown) => {
-    const stages = ["待投递", "已投递", "笔试中", "面试中", "OFFER"];
-    return stages.indexOf(String(current)) >= stages.indexOf(stage) || events.some((e) => e.data.applicationId === id && stages.indexOf(String(e.data.to)) >= stages.indexOf(stage));
-  };
-  const applied = [...new Map(records.filter((r) => r.kind === "applications" && (submissions.some((s) => s.data.applicationId === r.id) || reached(r.id, "已投递", r.data.stage) || Boolean(r.data.appliedAt))).map((r) => [r.id, r])).values()];
+  const reached = (id: string, stage: string, current: unknown) => hasReachedSubmissionStage({id,kind:"applications",data:{stage:current}},stage,records);
+  const applied = [...new Map(records.filter(r=>r.kind==="applications" && hasSubmittedEvidence(r,records)).map(r=>[r.id,r])).values()];
   const samples = applied.map((r) => ({ ...r, ...historicalMetadata(r.id, records) })).filter((r) => matchesMetadata(r.metadata, filters));
   const group = (field: "submissionChannel" | "discoverySource" | "referralStatus") => {
     const groups = new Map<string, typeof samples>();

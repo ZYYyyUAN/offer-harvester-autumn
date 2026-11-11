@@ -47,6 +47,13 @@ export function validateJDMerge(current: Entry, incoming: Entry) {
     resume_gap_analyses: ["aiJobId", "input", "output"],
     job_submissions: ["applicationId", "sourceEntryId", "snapshotId", "resumeFileId", "resumeSha256", "metadataSnapshot", "metadataRecordedAt"],
     submission_metadata_revisions: ["applicationId", "submissionId", "revision", "previousRevisionId", "metadata", "reason", "recordedAt"],
+
+    applications: current.data.intakeDraftId ? ["intakeDraftId", "savedJobId"] : [],
   };
+  if (current.kind === "job_capture_drafts" && current.data.confirmation) {
+    const { deletedResultIds: _currentDeleted, ...original } = current.data.confirmation;
+    const { deletedResultIds: _incomingDeleted, ...restored } = incoming.data.confirmation || {};
+    if (JSON.stringify(original) !== JSON.stringify(restored)) throw new Error("备份不能改写已确认的录入凭据");
+  }
   if ((immutable[current.kind] || []).some((key) => JSON.stringify(current.data[key]) !== JSON.stringify(incoming.data[key]))) throw new Error("备份不能覆盖历史正文或证据，请保留当前版本并创建修订");
 }

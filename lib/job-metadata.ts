@@ -7,7 +7,7 @@ export const tagLabels = { banking: "银行", internet: "互联网", manufacturi
 export const discoveryLabels = { ...channelLabels, company_portal: "企业官网", campus_portal: "学校就业网", offline_event: "宣讲会 / 招聘会" } as const;
 export const platformLabels: Record<string, string> = { greenhouse_ats: "企业网申托管系统（Greenhouse）", feishu_ats: "企业网申托管系统（飞书招聘，与飞书同步连接无关）", moka_ats: "企业网申托管系统（Moka）", ...channelLabels };
 const screenshotBrands: Record<string, string> = { boss: "BOSS直聘", xiaohongshu: "小红书", maimai: "脉脉", nowcoder: "牛客", liepin: "猎聘", zhaopin: "智联招聘", "51job": "前程无忧", lagou: "拉勾", shixiseng: "实习僧", linkedin: "LinkedIn" };
-export const metadataRuleVersion = "job-metadata-v2";
+export const metadataRuleVersion = "job-metadata-v3";
 export const metadataFields = ["companyNature", "companyTags", "employmentType", "linkPlatform", "discoverySource", "submissionChannel", "referralStatus", "referralCode"] as const;
 export type MetadataField = typeof metadataFields[number];
 const NatureSchema = z.enum(Object.keys(natureLabels) as [keyof typeof natureLabels, ...Array<keyof typeof natureLabels>]);
@@ -36,6 +36,7 @@ export const FieldStateSchema = z.object({
   if (["manual", "cleared"].includes(state.status) && state.evidence?.sourceType !== "manual") context.addIssue({ code: "custom", message: "人工填写或清空必须记录为人工来源", path: ["evidence", "sourceType"] });
 });
 export const JobMetadataSchema = z.object({
+  companyVerificationJobId: z.string().uuid().optional(),
   schemaVersion: z.literal(1).default(1), companyProfileId: z.string().max(200).nullable().default(null),
   companyProfileCandidate: z.object({ id: z.string().uuid(), version: z.number().int().positive(), legalName: z.string().max(240), identityBasis: z.enum(["exact_name", "confirmed_alias"]), contextKey: MetadataContextSchema }).nullable().default(null),
   profileRejections: z.array(z.object({ id: z.string().uuid(), contextKey: MetadataContextSchema }).strict()).max(100).default([]),
@@ -61,9 +62,15 @@ export const MetadataRevisionSchema = z.object({
   applicationId: z.string().min(1), submissionId: z.string().min(1), revision: z.number().int().positive(), previousRevisionId: z.string().nullable(),
   metadata: JobMetadataSchema, reason: z.string().trim().min(1).max(1000), recordedAt: z.string().datetime(), deletionBatchId: z.string().optional(),
 }).strict();
+export const IntakeConfirmationReceiptSchema = z.object({
+  deletedResultIds: z.array(z.string().uuid()).max(2).optional(),
+  intent: z.enum(["submitted", "saved_only"]), operationKey: z.string().uuid(), inputSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  savedJobId: z.string().uuid(), applicationId: z.string().uuid().nullable(), confirmedAt: z.string().datetime(),
+}).strict();
 export const CaptureDraftSchema = z.object({
   values: z.record(z.string(), z.unknown()), metadata: JobMetadataSchema, extractionJobId: z.string().uuid().or(z.literal("")).default(""),
-  confirmedSavedJobId: z.string().nullable().default(null), deletionBatchId: z.string().optional(),
+  confirmedSavedJobId: z.string().nullable().default(null),
+  confirmation: IntakeConfirmationReceiptSchema.optional(), deletionBatchId: z.string().optional(),
 }).strict();
 export const metadataKinds = ["company_profiles", "job_capture_drafts", "submission_metadata_revisions", "metadata_migrations"] as const;
 const MetadataMigrationSchema = z.object({
@@ -84,7 +91,7 @@ function hasPositivePhrase(text: string, expression: RegExp) {
 export function explicitClassificationClue(clue: { field: string; value: string; quote: string }, company: string) {
   if (!clue.quote.trim() || clue.quote.trim() === company.trim()) return false;
   const nature: Record<string, RegExp> = {
-    state_owned: /国有企业|国企|国有独资|国有控股|state[- ]owned/i,
+    state_owned: /国有企业|国企|国有独资|国有控股|国有(?:大型)?(?:商业)?银行|state[- ]owned/i,
     private: /民营企业|私营企业|民营公司|私营公司|privately[- ]owned|private company/i,
     foreign_invested: /外商投资|外商独资|外资企业|外资公司|外资银行|中外合资|foreign[- ](?:invested|owned)/i,
     public_institution: /事业单位|public institution/i,
@@ -100,7 +107,7 @@ export function explicitClassificationClue(clue: { field: string; value: string;
   if (clue.field !== "companyTags") return false;
   // Industry and size are separate claims: a genuine quote must also support its label.
   const tags: Record<string, RegExp> = {
-    banking: /银行业|银行机构|外资银行|商业银行|银行(?:公司)?性质|行业[：: ]*银行|banking industry/i,
+    banking: /银行业(?!务)|银行机构|外资银行|商业银行|银行(?:公司)?性质|行业[：: ]*银行|banking industry/i,
     internet: /互联网(?:行业|企业|公司|平台)|行业[：: ]*互联网|internet (?:company|industry|platform)/i,
     manufacturing: /制造业|制造企业|制造行业|manufacturing/i,
     healthcare: /医疗健康|医疗行业|医疗企业|行业[：: ]*(?:医疗|医药)|healthcare/i,
@@ -130,7 +137,7 @@ export function manualMetadataEdit(metadata: JobMetadata, field: MetadataField, 
 export function applyMetadataSuggestions(metadata: JobMetadata, suggestions: MetadataSuggestion[], contextKey: string) {
   const next: JobMetadata = structuredClone(metadata);
   if (next.companyProfileCandidate && next.companyProfileCandidate.contextKey !== contextKey) next.companyProfileCandidate = null;
-  if (next.actualSubmission && next.actualSubmission.contextKey !== contextKey) next.actualSubmission = null;
+  // A corrected source link invalidates suggestions, not the user's actual submission.
   for (const field of metadataFields) {
     const state = next.fieldStates[field];
     if (state && state.contextKey !== contextKey) {
@@ -224,6 +231,5 @@ export function freezeSubmissionMetadata(metadata: JobMetadata | undefined, comp
       (next as Record<string, unknown>)[field] = field === "companyTags" ? [] : field === "referralCode" ? "" : "unknown";
     }
   }
-  if (next.actualSubmission?.contextKey !== contextKey) next.actualSubmission = null;
   return next;
 }

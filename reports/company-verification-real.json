@@ -1,0 +1,750 @@
+{
+  "startedAt": "2026-11-11T09:19:49.151Z",
+  "privateJobDataUsed": false,
+  "syntheticAccount": true,
+  "publicCompanyLookup": true,
+  "cases": [
+    {
+      "name": "fictitious",
+      "pass": true,
+      "referencesValid": true,
+      "expectedNature": null,
+      "model": "qwen3.8-max",
+      "promptVersion": "company-metadata-v5",
+      "elapsedMs": 24317,
+      "attempts": [
+        {
+          "status": "succeeded",
+          "tokenUsage": {
+            "input_tokens": 3691,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 330,
+            "output_tokens_details": {
+              "reasoning_tokens": 161
+            },
+            "total_tokens": 4021,
+            "x_details": [
+              {
+                "input_tokens": 3691,
+                "output_tokens": 330,
+                "output_tokens_details": {
+                  "reasoning_tokens": 161
+                },
+                "plugins": {
+                  "web_search": {
+                    "count": 1
+                  }
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 0
+                },
+                "total_tokens": 4021,
+                "x_billing_type": "response_api"
+              }
+            ],
+            "x_tools": {
+              "web_search": {
+                "count": 1
+              }
+            }
+          }
+        }
+      ],
+      "result": {
+        "legalName": "",
+        "registryId": "",
+        "entityStatus": "not_found",
+        "claims": [],
+        "conflicts": [],
+        "notes": [
+          "输入主体名称为“OFFER验收虚构蓝桥科技有限公司（合成不存在主体）”，经搜索未找到与该完整名称一致的法人主体，未在任何官网、政府公告或监管资料中检索到“蓝桥科技有限公司”这一独立法人。",
+          "搜索结果中出现的“国信蓝桥教育科技股份有限公司”“上海兰桥生物科技有限公司”等均为名称相近但不同的主体，不能与目标主体互换，故不作为匹配依据。",
+          "无法核实公司性质与行业标签，claims 留空。",
+          "来源链接由联网接口校验；引文仍由模型摘录，未独立抓取全文核对。请打开来源核对主体与原文后采用。"
+        ],
+        "rawOutput": {
+          "legalName": "",
+          "registryId": "",
+          "entityStatus": "not_found",
+          "claims": [],
+          "conflicts": [],
+          "notes": [
+            "输入主体名称为“OFFER验收虚构蓝桥科技有限公司（合成不存在主体）”，经搜索未找到与该完整名称一致的法人主体，未在任何官网、政府公告或监管资料中检索到“蓝桥科技有限公司”这一独立法人。",
+            "搜索结果中出现的“国信蓝桥教育科技股份有限公司”“上海兰桥生物科技有限公司”等均为名称相近但不同的主体，不能与目标主体互换，故不作为匹配依据。",
+            "无法核实公司性质与行业标签，claims 留空。"
+          ]
+        },
+        "company": "OFFER验收虚构蓝桥科技有限公司（合成不存在主体）",
+        "sourceUrl": "",
+        "sources": [
+          {
+            "title": "dasai.lanqiao.cn",
+            "url": "https://dasai.lanqiao.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.lanqiao.cn",
+            "url": "https://www.lanqiao.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.guoxinlanqiao.com",
+            "url": "https://www.guoxinlanqiao.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "baike.baidu.com",
+            "url": "https://baike.baidu.com/item/%E5%9B%BD%E4%BF%A1%E8%93%9D%E6%A1%A5%E6%95%99%E8%82%B2%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/67235442",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.tianyancha.com",
+            "url": "https://www.tianyancha.com/company/3044259558",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.lanqiao.cn",
+            "url": "https://www.lanqiao.cn/mall/?code=83",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.qcc.com",
+            "url": "https://www.qcc.com/firm/60bf4df0a773b818cc65381c2c994f33.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "dasai.lanqiao.cn",
+            "url": "https://dasai.lanqiao.cn/pages/v7/dasai/competition/ability_test.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.stacbio.com",
+            "url": "https://www.stacbio.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "cn.linkedin.com",
+            "url": "https://cn.linkedin.com/company/%E5%9B%BD%E4%BF%A1%E8%93%9D%E6%A1%A5%E6%95%99%E8%82%B2%E7%A7%91%E6%8A%80-%E5%8C%97%E4%BA%AC-%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.4t.wiki",
+            "url": "https://www.4t.wiki/lanqiao",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.lanqiao.cn",
+            "url": "https://www.lanqiao.cn/bootcamp-payment-agreement/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.laioffer.com",
+            "url": "https://www.laioffer.com/zh/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.bluebridgeadvisors.com",
+            "url": "https://www.bluebridgeadvisors.com/lqst",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.dotcpp.com",
+            "url": "https://www.dotcpp.com/oj/lanqiao/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "github.com",
+            "url": "https://github.com/Pengxin-Guo/lanqiao",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "www.luogu.com.cn",
+            "url": "https://www.luogu.com.cn/problem/P12214",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "zhuanlan.zhihu.com",
+            "url": "https://zhuanlan.zhihu.com/p/1954586327401099410",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          },
+          {
+            "title": "mianshizhushou.com",
+            "url": "https://mianshizhushou.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:13.630Z"
+          }
+        ],
+        "rejectedClaimCount": 0,
+        "quoteVerification": "model_only",
+        "classificationClues": [],
+        "evidence": [],
+        "model": "qwen3.8-max",
+        "promptVersion": "company-metadata-v5",
+        "elapsedMs": 24275
+      }
+    },
+    {
+      "name": "ambiguous_brand",
+      "pass": true,
+      "referencesValid": true,
+      "expectedNature": null,
+      "model": "qwen3.8-max",
+      "promptVersion": "company-metadata-v5",
+      "elapsedMs": 13260,
+      "attempts": [
+        {
+          "status": "succeeded",
+          "tokenUsage": {
+            "input_tokens": 2473,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 338,
+            "output_tokens_details": {
+              "reasoning_tokens": 154
+            },
+            "total_tokens": 2811,
+            "x_details": [
+              {
+                "input_tokens": 2473,
+                "output_tokens": 338,
+                "output_tokens_details": {
+                  "reasoning_tokens": 154
+                },
+                "plugins": {
+                  "web_search": {
+                    "count": 1
+                  }
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 0
+                },
+                "total_tokens": 2811,
+                "x_billing_type": "response_api"
+              }
+            ],
+            "x_tools": {
+              "web_search": {
+                "count": 1
+              }
+            }
+          }
+        }
+      ],
+      "result": {
+        "legalName": "",
+        "registryId": "",
+        "entityStatus": "ambiguous",
+        "claims": [],
+        "conflicts": [
+          "检索结果显示存在多个名为 Global Bank 的不同主体（如美国纽约州立宪章商业银行 Global Bank NY、LinkedIn 上的 Global Bank Group 等），无法确定输入所指的具体法人。"
+        ],
+        "notes": [
+          "输入未提供法人主体名称，仅有品牌/描述性文字（OFFER合成验收、Global Bank、银行外包），无法定位唯一法人实体。",
+          "依据任务要求，不得从英文名、品牌或外包业务描述推断公司性质或行业，也不得套用其他同名公司资料，故 claims 保持为空。",
+          "如提供具体法人全称（如营业执照名称或注册地），可重新核实。",
+          "来源链接由联网接口校验；引文仍由模型摘录，未独立抓取全文核对。请打开来源核对主体与原文后采用。"
+        ],
+        "rawOutput": {
+          "legalName": "",
+          "registryId": "",
+          "entityStatus": "ambiguous",
+          "claims": [],
+          "conflicts": [
+            "检索结果显示存在多个名为 Global Bank 的不同主体（如美国纽约州立宪章商业银行 Global Bank NY、LinkedIn 上的 Global Bank Group 等），无法确定输入所指的具体法人。"
+          ],
+          "notes": [
+            "输入未提供法人主体名称，仅有品牌/描述性文字（OFFER合成验收、Global Bank、银行外包），无法定位唯一法人实体。",
+            "依据任务要求，不得从英文名、品牌或外包业务描述推断公司性质或行业，也不得套用其他同名公司资料，故 claims 保持为空。",
+            "如提供具体法人全称（如营业执照名称或注册地），可重新核实。"
+          ]
+        },
+        "company": "OFFER合成验收 Global Bank 银行外包（未给法人主体，不得套用其他公司）",
+        "sourceUrl": "",
+        "sources": [
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/en-us/careers/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "www.worldbank.org",
+            "url": "https://www.worldbank.org/ext/en/careers/hiring-process",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/en-us/news-2/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "www.usbank.com",
+            "url": "https://www.usbank.com/corporate-and-commercial-banking/solutions/international-banking/global-trade-financing-services.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/zh-hant/about/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "www.linkedin.com",
+            "url": "https://www.linkedin.com/company/globalbankgroup",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "gibank.com",
+            "url": "https://gibank.com/terms-of-use/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "www.globalonebank.com",
+            "url": "https://www.globalonebank.com/disclosures/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/en-us/commercial-lending/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:20:26.937Z"
+          }
+        ],
+        "rejectedClaimCount": 0,
+        "quoteVerification": "model_only",
+        "classificationClues": [],
+        "evidence": [],
+        "model": "qwen3.8-max",
+        "promptVersion": "company-metadata-v5",
+        "elapsedMs": 13225
+      }
+    },
+    {
+      "name": "public_entity",
+      "pass": true,
+      "referencesValid": true,
+      "expectedNature": "state_owned",
+      "model": "qwen3.8-max",
+      "promptVersion": "company-metadata-v5",
+      "elapsedMs": 57247,
+      "attempts": [
+        {
+          "status": "succeeded",
+          "tokenUsage": {
+            "input_tokens": 9417,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 2176
+            },
+            "output_tokens": 1718,
+            "output_tokens_details": {
+              "reasoning_tokens": 1075
+            },
+            "total_tokens": 11135,
+            "x_details": [
+              {
+                "input_tokens": 9417,
+                "output_tokens": 1718,
+                "output_tokens_details": {
+                  "reasoning_tokens": 1075
+                },
+                "plugins": {
+                  "web_search": {
+                    "count": 2
+                  }
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 2176
+                },
+                "total_tokens": 11135,
+                "x_billing_type": "response_api"
+              }
+            ],
+            "x_tools": {
+              "web_search": {
+                "count": 2
+              }
+            }
+          }
+        }
+      ],
+      "result": {
+        "legalName": "中国工商银行股份有限公司",
+        "registryId": "91100000100003962T",
+        "entityStatus": "matched",
+        "claims": [
+          {
+            "field": "companyNature",
+            "value": "state_owned",
+            "subject": "中国工商银行股份有限公司",
+            "quote": "公司是国有大型商业银行之一，是全球系统重要性银行和国内系统重要性银行，截至2025年末，资产规模在国内商业银行中位居首位，网点及客户数量众多，市场地位显著",
+            "sourceUrl": "https://www.chinamoney.com.cn/dqs/cm-s-notice-query/fileDownLoad.do?contentId=3339216&priority=0&mode=save"
+          },
+          {
+            "field": "companyNature",
+            "value": "state_owned",
+            "subject": "中国工商银行股份有限公司",
+            "quote": "目前，中国工商银行、中国建设银行、中国农业银行、中国银行、交通银行以及中国邮政储蓄银行统称为国有大型商业银行，均属于中国的中央金融企业。",
+            "sourceUrl": "https://zh.wikipedia.org/zh-hans/%E5%9B%BD%E6%9C%89%E5%A4%A7%E5%9E%8B%E5%95%86%E4%B8%9A%E9%93%B6%E8%A1%8C"
+          },
+          {
+            "field": "companyTags",
+            "value": "banking",
+            "subject": "中国工商银行股份有限公司",
+            "quote": "中国工商银行（亚洲）有限公司（“中国工商银行（亚洲）”）是一家在香港注册成立的持牌银行，为目前全中国最大商业银行——中国工商银行股份有限公司（“中国工商银行”）在港子公司",
+            "sourceUrl": "https://www.icbcasia.com/hk/sc/about-us/profile/introduction/default.html"
+          }
+        ],
+        "conflicts": [],
+        "notes": [
+          "1 条模型建议未通过主体、来源或明确表述校验，未写入分类候选。",
+          "统一社会信用代码 91100000100003962T 来自维基百科与百度百科词条摘要，未直接访问工商登记机关原文，使用前建议以官方登记信息复核。",
+          "公司官网（icbc-ltd.com）确认主体全称为“中国工商银行股份有限公司”，1984年成立，2005年整体改制为股份有限公司，2006年在上交所和港交所上市。",
+          "来源链接由联网接口校验；引文仍由模型摘录，未独立抓取全文核对。请打开来源核对主体与原文后采用。"
+        ],
+        "rawOutput": {
+          "legalName": "中国工商银行股份有限公司",
+          "registryId": "91100000100003962T",
+          "entityStatus": "matched",
+          "claims": [
+            {
+              "field": "companyNature",
+              "value": "state_owned",
+              "subject": "中国工商银行股份有限公司",
+              "quote": "公司是国有大型商业银行之一，是全球系统重要性银行和国内系统重要性银行，截至2025年末，资产规模在国内商业银行中位居首位，网点及客户数量众多，市场地位显著",
+              "sourceUrl": "https://www.chinamoney.com.cn/dqs/cm-s-notice-query/fileDownLoad.do?contentId=3339216&priority=0&mode=save"
+            },
+            {
+              "field": "companyNature",
+              "value": "state_owned",
+              "subject": "中国工商银行股份有限公司",
+              "quote": "目前，中国工商银行、中国建设银行、中国农业银行、中国银行、交通银行以及中国邮政储蓄银行统称为国有大型商业银行，均属于中国的中央金融企业。",
+              "sourceUrl": "https://zh.wikipedia.org/zh-hans/%E5%9B%BD%E6%9C%89%E5%A4%A7%E5%9E%8B%E5%95%86%E4%B8%9A%E9%93%B6%E8%A1%8C"
+            },
+            {
+              "field": "companyTags",
+              "value": "banking",
+              "subject": "中国工商银行股份有限公司",
+              "quote": "中国工商银行（亚洲）有限公司（“中国工商银行（亚洲）”）是一家在香港注册成立的持牌银行，为目前全中国最大商业银行——中国工商银行股份有限公司（“中国工商银行”）在港子公司",
+              "sourceUrl": "https://www.icbcasia.com/hk/sc/about-us/profile/introduction/default.html"
+            },
+            {
+              "field": "companyTags",
+              "value": "banking",
+              "subject": "中国工商银行股份有限公司",
+              "quote": "中国工商银行股份有限公司（以下简称“工商银行”），上交所和香港联交所挂牌上市企业，全球资产规模最大的上市银行。业务跨越世界六大洲，境外网络扩展至41个国家和地区。",
+              "sourceUrl": "https://www.icbc-us.com/cn/column/1438058492253847610.html"
+            }
+          ],
+          "conflicts": [],
+          "notes": [
+            "统一社会信用代码 91100000100003962T 来自维基百科与百度百科词条摘要，未直接访问工商登记机关原文，使用前建议以官方登记信息复核。",
+            "公司官网（icbc-ltd.com）确认主体全称为“中国工商银行股份有限公司”，1984年成立，2005年整体改制为股份有限公司，2006年在上交所和港交所上市。"
+          ]
+        },
+        "company": "中国工商银行股份有限公司",
+        "sourceUrl": "",
+        "sources": [
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "zh.wikipedia.org",
+            "url": "https://zh.wikipedia.org/zh-hans/%E4%B8%AD%E5%9B%BD%E5%B7%A5%E5%95%86%E9%93%B6%E8%A1%8C",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "big5.icbc.com.cn",
+            "url": "https://big5.icbc.com.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/column/1438058319784067120.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "baike.baidu.com",
+            "url": "https://baike.baidu.com/item/%E4%B8%AD%E5%9B%BD%E5%B7%A5%E5%95%86%E9%93%B6%E8%A1%8C%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/8260654",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-us.com",
+            "url": "https://www.icbc-us.com/cn/column/1438058492253847610.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/column/1438058319524020227.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/icbc/sy/default.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbcasia.com",
+            "url": "https://www.icbcasia.com/hk/sc/about-us/profile/introduction/default.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.cods.org.cn",
+            "url": "https://www.cods.org.cn/gscx/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "v.icbc.com.cn",
+            "url": "https://v.icbc.com.cn/userfiles/Resources/ICBCLTD/download/2019/2018ndbgA20190329.pdf",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.ndrc.gov.cn",
+            "url": "https://www.ndrc.gov.cn/xxgk/zcfb/tz/201803/t20180308_962677.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/column/1438058387111034896.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/icbc/html/branches/beijing/guanggao/wh_040831/whgg/whhk061218.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.cods.org.cn",
+            "url": "https://www.cods.org.cn/cods/fgbz/index.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "cwc.ecnu.edu.cn",
+            "url": "https://cwc.ecnu.edu.cn/28497/list.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "lhnb.mofcom.gov.cn",
+            "url": "https://lhnb.mofcom.gov.cn/search/list",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.nfra.gov.cn",
+            "url": "https://www.nfra.gov.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "zh.wikipedia.org",
+            "url": "https://zh.wikipedia.org/zh-hans/%E5%9B%BD%E6%9C%89%E5%A4%A7%E5%9E%8B%E5%95%86%E4%B8%9A%E9%93%B6%E8%A1%8C",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/page/1285533897962835968.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/page/1166376889993596928.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "baike.baidu.com",
+            "url": "https://baike.baidu.com/item/%E5%9B%BD%E6%9C%89%E5%95%86%E4%B8%9A%E9%93%B6%E8%A1%8C/2499842",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.chinamoney.com.cn",
+            "url": "https://www.chinamoney.com.cn/dqs/cm-s-notice-query/fileDownLoad.do?contentId=3339216&priority=0&mode=save",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.gdjr.gov.cn",
+            "url": "https://www.gdjr.gov.cn/gdjr/jrzx/jryw/content/post_18732.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.nfra.gov.cn",
+            "url": "https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?docId=1113176&itemId=4099&generaltype=0",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/column/1438058326864052377.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc.com.cn",
+            "url": "https://www.icbc.com.cn/column/1438058779622391894.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/icbcltd/%E5%85%B3%E4%BA%8E%E6%88%91%E8%A1%8C/%E5%B7%A5%E8%A1%8C%E6%96%B0%E9%97%BB/%E4%B8%AD%E5%9B%BD%E5%B7%A5%E5%95%86%E9%93%B6%E8%A1%8C%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%E5%9C%A8%E5%8C%97%E4%BA%AC%E6%88%90%E7%AB%8B.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/column/1438058326864052312.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/column/1438058343720960039.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/ICBCLtd/%E6%8A%95%E8%B5%84%E8%80%85%E5%85%B3%E7%B3%BB/%E5%85%AC%E5%8F%B8%E5%85%AC%E5%91%8A/%E4%B8%80%E8%88%AC%E5%85%AC%E5%91%8A/%E5%85%B3%E4%BA%8E%E4%B8%AD%E5%8D%8E%E4%BA%BA%E6%B0%91%E5%85%B1%E5%92%8C%E5%9B%BD%E8%B4%A2%E6%94%BF%E9%83%A8%E5%92%8C%E4%B8%AD%E5%A4%AE%E6%B1%87%E9%87%91%E6%8A%95%E8%B5%84%E6%9C%89%E9%99%90%E8%B4%A3%E4%BB%BB%E5%85%AC%E5%8F%B8%E6%89%BF%E8%AF%BA%E8%AE%A4%E8%B4%AD%E4%BE%9B%E8%82%A1%E8%82%A1%E4%BB%BD%E7%9A%84%E5%85%AC%E5%91%8A.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/page/721853760459800606.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "big5.icbc-ltd.com",
+            "url": "https://big5.icbc-ltd.com/column/1438058326864052312.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/icbcltd/%E5%85%B3%E4%BA%8E%E6%88%91%E8%A1%8C/%E5%B7%A5%E8%A1%8C%E6%96%B0%E9%97%BB/%E4%B8%AD%E5%9B%BD%E5%B7%A5%E5%95%86%E9%93%B6%E8%A1%8C%E8%82%A1%E4%BB%BD%E5%88%B6%E6%94%B9%E9%9D%A9%E6%9C%89%E5%85%B3%E8%83%8C%E6%99%AF%E8%B5%84%E6%96%99.htm",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.209Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/SiteCollectionDocuments/ICBC/Resources/ICBCLTD/%E4%B8%8B%E8%BD%BD/2012/%E5%85%B3%E4%BA%8E%E8%82%A1%E4%BB%BD%E5%8F%98%E5%8A%A8%E6%83%85%E5%86%B5%E7%9A%84%E5%85%AC%E5%91%8AA%E8%82%A1_20121008.pdf",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.210Z"
+          },
+          {
+            "title": "www.icbc-ltd.com",
+            "url": "https://www.icbc-ltd.com/SiteCollectionDocuments/ICBC/Resources/ICBCLTD/%E4%B8%8B%E8%BD%BD/2013/%E5%B9%B4%E6%8A%A5%E6%91%98%E8%A6%81H%E8%82%A1%E6%B5%B7%E5%A4%96%E7%9B%91%E7%AE%A1%E5%85%AC%E5%91%8A20130327.pdf",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T09:21:24.210Z"
+          }
+        ],
+        "rejectedClaimCount": 1,
+        "quoteVerification": "model_only",
+        "classificationClues": [
+          {
+            "field": "companyNature",
+            "value": "state_owned",
+            "quote": "公司是国有大型商业银行之一，是全球系统重要性银行和国内系统重要性银行，截至2025年末，资产规模在国内商业银行中位居首位，网点及客户数量众多，市场地位显著"
+          },
+          {
+            "field": "companyNature",
+            "value": "state_owned",
+            "quote": "目前，中国工商银行、中国建设银行、中国农业银行、中国银行、交通银行以及中国邮政储蓄银行统称为国有大型商业银行，均属于中国的中央金融企业。"
+          },
+          {
+            "field": "companyTags",
+            "value": "banking",
+            "quote": "中国工商银行（亚洲）有限公司（“中国工商银行（亚洲）”）是一家在香港注册成立的持牌银行，为目前全中国最大商业银行——中国工商银行股份有限公司（“中国工商银行”）在港子公司"
+          }
+        ],
+        "evidence": [
+          {
+            "field": "companyNature",
+            "quote": "公司是国有大型商业银行之一，是全球系统重要性银行和国内系统重要性银行，截至2025年末，资产规模在国内商业银行中位居首位，网点及客户数量众多，市场地位显著",
+            "sourceUrl": "https://www.chinamoney.com.cn/dqs/cm-s-notice-query/fileDownLoad.do?contentId=3339216&priority=0&mode=save"
+          },
+          {
+            "field": "companyNature",
+            "quote": "目前，中国工商银行、中国建设银行、中国农业银行、中国银行、交通银行以及中国邮政储蓄银行统称为国有大型商业银行，均属于中国的中央金融企业。",
+            "sourceUrl": "https://zh.wikipedia.org/zh-hans/%E5%9B%BD%E6%9C%89%E5%A4%A7%E5%9E%8B%E5%95%86%E4%B8%9A%E9%93%B6%E8%A1%8C"
+          },
+          {
+            "field": "companyTags",
+            "quote": "中国工商银行（亚洲）有限公司（“中国工商银行（亚洲）”）是一家在香港注册成立的持牌银行，为目前全中国最大商业银行——中国工商银行股份有限公司（“中国工商银行”）在港子公司",
+            "sourceUrl": "https://www.icbcasia.com/hk/sc/about-us/profile/introduction/default.html"
+          }
+        ],
+        "model": "qwen3.8-max",
+        "promptVersion": "company-metadata-v5",
+        "elapsedMs": 57217
+      }
+    }
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-11T09:21:24.245Z"
+}

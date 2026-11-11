@@ -1,3 +1,5 @@
+import { atomicBatch, versionGuard } from "@/lib/jd-store";
+import { validateDefaultSubmissionResume, submissionProfileVersionGuard } from "@/lib/submission-defaults";
 import { ApiError, apiError, getDatabase, safeJson, requireApiUser } from "@/lib/server-data";
 import { ProfileDataSchema } from "@/lib/data-contracts";
 
@@ -33,17 +35,10 @@ export async function PATCH(request: Request) {
     const existing = current ? safeJson<Record<string, unknown>>(String(current.data), {}) : {};
     const { version: _version, ...updates } = body;
     const data = ProfileDataSchema.parse({ ...existing, ...updates, email: String(updates.email || existing.email || user.email) });
-    if (current) {
-      await getDatabase()
-        .prepare("UPDATE profiles SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND version = ?")
-        .bind(JSON.stringify(data), user.userId, body.version)
-        .run();
-    } else {
-      await getDatabase()
-        .prepare("INSERT INTO profiles (owner_id, data, version) VALUES (?, ?, 1)")
-        .bind(user.userId, JSON.stringify(data))
-        .run();
-    }
+    const defaultChanged = "defaultSubmissionResume" in updates && JSON.stringify(data.defaultSubmissionResume) !== JSON.stringify(existing.defaultSubmissionResume);
+    if (defaultChanged) await validateDefaultSubmissionResume(user.userId,data.defaultSubmissionResume || null);
+    const selected=defaultChanged?data.defaultSubmissionResume:null;
+    await atomicBatch([submissionProfileVersionGuard(user.userId,current?Number(current.version):0),...(selected?[versionGuard(user.userId,selected.fileId,selected.version,"stored_files")]:[]),current?getDatabase().prepare("UPDATE profiles SET data = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND version = ?").bind(JSON.stringify(data),user.userId,body.version):getDatabase().prepare("INSERT INTO profiles(owner_id,data,version) VALUES(?,?,1)").bind(user.userId,JSON.stringify(data))]);
     const saved = await getDatabase()
       .prepare("SELECT data, version, created_at, updated_at FROM profiles WHERE owner_id = ?")
       .bind(user.userId)

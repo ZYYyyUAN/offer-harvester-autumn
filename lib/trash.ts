@@ -1,5 +1,5 @@
 import { ApiError, getBindings } from "./server-data.ts";
-import { scrubJDJobs, eraseJDFileCopies, retainDeletedSavedJobSource } from "./jd-trash";
+import { scrubJDJobs, eraseJDFileCopies, retainDeletedSavedJobSource, retainDeletedApplicationSource } from "./jd-trash";
 import { atomicBatch, versionGuard } from "./jd-store";
 import { detachDeletedCompanyProfile, detachDeletedResearchReport } from "./job-metadata-delete";
 
@@ -25,6 +25,7 @@ export async function purgeExpiredTrash(ownerId: string) {
   const statements = expiredRecords.results.flatMap((r) => scrubJDJobs(ownerId, r.id));
   for (const r of expiredRecords.results) {
     if (r.kind === "company_profiles") statements.push(...await detachDeletedCompanyProfile(ownerId, r.id));
+    if (r.kind === "applications") statements.push(retainDeletedApplicationSource(ownerId,r.id));
     if (r.kind === "saved_jobs") statements.push(...await retainDeletedSavedJobSource(ownerId, r.id));
     if (r.kind === "research") statements.push(...await detachDeletedResearchReport(ownerId, r.id));
   }
@@ -70,7 +71,7 @@ export async function permanentlyDeleteTrash(ownerId: string, targets: TrashTarg
       if (target.type === "record") {
         const batchId = JSON.parse(String(row.data)).deletionBatchId;
         const members = batchId ? (await db.prepare("SELECT id FROM records WHERE owner_id = ? AND deleted_at IS NOT NULL AND json_extract(data, '$.deletionBatchId') = ?").bind(ownerId, batchId).all<{ id: string }>()).results : [{ id: target.id }];
-        await atomicBatch([versionGuard(ownerId, target.id, target.version, "records", "deleted"), ...(row.kind === "company_profiles" ? await detachDeletedCompanyProfile(ownerId, target.id) : []), ...(row.kind === "saved_jobs" ? await retainDeletedSavedJobSource(ownerId, target.id) : []), ...(row.kind === "research" ? await detachDeletedResearchReport(ownerId, target.id) : []), ...members.flatMap((r) => [...scrubJDJobs(ownerId, r.id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ? AND deleted_at IS NOT NULL").bind(r.id, ownerId)])]);
+        await atomicBatch([versionGuard(ownerId, target.id, target.version, "records", "deleted"), ...(row.kind === "applications" ? [retainDeletedApplicationSource(ownerId,target.id)] : []), ...(row.kind === "company_profiles" ? await detachDeletedCompanyProfile(ownerId, target.id) : []), ...(row.kind === "saved_jobs" ? await retainDeletedSavedJobSource(ownerId, target.id) : []), ...(row.kind === "research" ? await detachDeletedResearchReport(ownerId, target.id) : []), ...members.flatMap((r) => [...scrubJDJobs(ownerId, r.id), db.prepare("DELETE FROM records WHERE id = ? AND owner_id = ? AND deleted_at IS NOT NULL").bind(r.id, ownerId)])]);
         deleted += members.length;
       } else {
         await atomicBatch([versionGuard(ownerId, target.id, target.version, "stored_files", "deleted"), ...(await eraseJDFileCopies(ownerId, target.id)), db.prepare("DELETE FROM stored_files WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NOT NULL").bind(target.id, ownerId, target.version)]);

@@ -12,7 +12,7 @@ test("v6 backup preserves closure and capture telemetry through a compatible rea
   const id = (await preview.json()).importId;
   const commit = await request.post(`/api/data/imports/${id}/commit`, { data: {} }); expect(commit.ok(), await commit.text()).toBe(true);
   const restored = await (await request.get("/api/data/export?format=json")).json();
-  expect(restored.schemaVersion).toBe(6); expect(restored.aiJobs).toEqual(backup.aiJobs); expect(restored.aiJobAttempts).toEqual(backup.aiJobAttempts);
+  expect(restored.schemaVersion).toBe(7); expect(restored.aiJobs).toEqual(backup.aiJobs); expect(restored.aiJobAttempts).toEqual(backup.aiJobAttempts);
   expect(restored.records.find((r: any) => r.id === application.id).data.closure).toEqual(application.data.closure);
   expect(restored.records.length).toBe(backup.records.length);
 });

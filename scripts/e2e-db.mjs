@@ -3,7 +3,7 @@ import path from "node:path";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { projectRoot } from "./sites-env.mjs";
 const target = process.argv[2] || ".wrangler/e2e";
-if (![".wrangler/e2e", ".wrangler/jd-regression"].includes(target)) throw new Error("Unknown isolated test target");
+if (![".wrangler/e2e", ".wrangler/jd-regression", ".wrangler/submission-regression"].includes(target)) throw new Error("Unknown isolated test target");
 const statePath = path.resolve(projectRoot, target);
 if (!statePath.startsWith(path.resolve(projectRoot) + path.sep)) throw new Error("Refusing to clear outside the workspace");
 rmSync(statePath, { recursive: true, force: true });

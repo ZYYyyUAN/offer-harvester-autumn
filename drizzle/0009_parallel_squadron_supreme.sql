@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `uq_submission_intake_draft` ON `records` (`owner_id`, json_extract(`data`, '$.intakeDraftId')) WHERE `kind` = 'applications' AND json_extract(`data`, '$.intakeDraftId') IS NOT NULL;

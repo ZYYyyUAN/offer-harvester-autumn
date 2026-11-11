@@ -1,3 +1,4 @@
+import { CompanyVerificationInputSchema, CompanyVerificationOutputSchema, companyVerificationJsonSchema, companyVerificationSystem, verifiedCompanyResult } from "./company-verification";
 import { ApiError, getBindings, getDatabase, safeJson } from "@/lib/server-data";
 import { aiErrorDetails, analyzeResumeFile, ocrImage, responsesSearch, structuredChat, transcribeAudio } from "@/lib/qwen";
 import { CompanyResearchSchema, deterministicScore, filterEvidenceIds, ForeignInterviewReviewSchema, foreignInterviewJsonSchema, InterviewReviewSchema, interviewJsonSchema, JobAnalysisSchema, companyJsonSchema, requirementJsonSchema, ResumeSuggestionSchema, resumeJsonSchema, type AIJobType } from "@/lib/ai-contracts";
@@ -22,6 +23,7 @@ function normalizeCaptureResponse(value: unknown, sourceUrl = "") {
 const classificationInstructions = "classificationClues 应完整提取页面明确记载的公司性质、行业/发展阶段标签及本岗位用工形式，并逐项附原文 quote。companyNature 使用 state_owned/private/foreign_invested/public_institution/other；employmentType 使用 direct_hire/outsourced/labor_dispatch；companyTags 使用 banking（银行业）、internet（互联网）、manufacturing（制造业）、healthcare（医疗）、startup（初创）或其他原文标签。原文明示‘行业：制造业’时必须提取 manufacturing；明示‘公司性质：民营企业’时提取 private。不得根据公司名称、英文名、技术栈或印象补全；银行不等于国企，上市不等于大厂，提供外包服务不等于本岗位外包。没有明确记载则不输出该字段；未披露不是否定，也不能猜测。行业标签必须有明确行业原文，软件外包服务不能推断互联网；大厂、中厂只由用户确认，不输出。若截图明确写有“平台：BOSS直聘”等当前平台标识，可输出 linkPlatform（boss/xiaohongshu/maimai/nowcoder/liepin/zhaopin/51job/lagou/shixiseng/linkedin），引用该完整标识；正文提到的平台或转载来源不能证明当前平台。不得从平台推断用户最初发现来源、实际投递或内推。";
 
 const modelFor: Record<AIJobType, string> = {
+  company_metadata_verify: "qwen3.8-max",
   jd_requirements_extract: "qwen3.8-max", resume_text_extract: "qwen-doc-turbo", resume_gap_analysis: "qwen3.8-max",
   job_analysis: "qwen3.8-max", resume_suggestions: "qwen-doc-turbo", company_research: "qwen3.8-max",
   interview_review: "qwen3.8-max", transcription: "qwen3-asr-flash", evaluation_case: "qwen3.8-max",
@@ -29,6 +31,7 @@ const modelFor: Record<AIJobType, string> = {
   job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
+  company_metadata_verify: "company-metadata-v5",
   jd_requirements_extract: "jd-requirements-v2", resume_text_extract: "resume-text-v1", resume_gap_analysis: "resume-gap-v4",
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",
@@ -170,6 +173,12 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
     const output = await analyzeResumeFile({ bytes: await object.arrayBuffer(), filename: String(file.filename) }, `目标岗位描述：${String(input.jd || "未提供")}。提取可验证事实，并给出原文位置、问题、建议表达、引用原文与风险提示。禁止增加文档中不存在的事实。`, resumeJsonSchema, ResumeSuggestionSchema);
     const facts = (output.facts as Array<Record<string, unknown>>).map((item) => ({ ...item, status: "pending", sourceFileId: fileId }));
     return { result: { ...output, facts }, usage: {}, confidence: "medium", record: null };
+  }
+  if (type === "company_metadata_verify") {
+    const data = input as import("zod").infer<typeof CompanyVerificationInputSchema>;
+    const response = await responsesSearch({ model: "qwen3.8-max", searchOnly: true, system: companyVerificationSystem, prompt: `仅核实该主体：${JSON.stringify(data)}。不要做薪资、员工评价或其他背调，不读取求职者简历。`, schemaName: "company_metadata_verify_v1", schema: companyVerificationJsonSchema, validator: CompanyVerificationOutputSchema, reasoningEffort: "low", maxOutputTokens: 6000, timeoutMs: 120000 });
+    const result = verifiedCompanyResult(response.data as import("zod").infer<typeof CompanyVerificationOutputSchema>, data, response.sources);
+    return { result, usage: response.usage, confidence: "low", record: null };
   }
   if (type === "company_research") {
     const company = String(input.company || "").trim();

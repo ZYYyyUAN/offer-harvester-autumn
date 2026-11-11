@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       const rows = records.map((item) => [item.id, item.kind, item.title, item.data, item.version, item.createdAt, item.updatedAt, item.deletedAt || ""].map(csvEscape).join(","));
       return new Response(`\uFEFF${[header, ...rows].join("\r\n")}`, { headers: { "content-type": "text/csv;charset=utf-8", "content-disposition": `attachment; filename="offer-harvester-${stamp}.csv"` } });
     }
-    const payload = { schemaVersion: 6, exportedAt: new Date().toISOString(), profile: profileRow ? { data: safeJson(String(profileRow.data), {}), version: profileRow.version, createdAt: profileRow.created_at, updatedAt: profileRow.updated_at } : null, records, files, aiJobs: jobRows.results, aiJobAttempts: attemptRows.results, note: "请同时下载全部附件 TAR 分包；恢复时先导入此 JSON，再上传分包并确认提交。" };
+    const payload = { schemaVersion: 7, exportedAt: new Date().toISOString(), profile: profileRow ? { data: safeJson(String(profileRow.data), {}), version: profileRow.version, createdAt: profileRow.created_at, updatedAt: profileRow.updated_at } : null, records, files, aiJobs: jobRows.results, aiJobAttempts: attemptRows.results, note: "请同时下载全部附件 TAR 分包；恢复时先导入此 JSON，再上传分包并确认提交。" };
     return new Response(JSON.stringify(payload, null, 2), { headers: { "content-type": "application/json;charset=utf-8", "content-disposition": `attachment; filename="offer-harvester-${stamp}.json"` } });
   } catch (error) { return apiError(error); }
 }

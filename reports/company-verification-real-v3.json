@@ -1,0 +1,437 @@
+{
+  "startedAt": "2026-11-11T05:02:41.604Z",
+  "privateJobDataUsed": false,
+  "syntheticAccount": true,
+  "publicCompanyLookup": true,
+  "cases": [
+    {
+      "name": "fictitious",
+      "pass": true,
+      "referencesValid": true,
+      "expectedNature": null,
+      "model": "qwen3.8-max",
+      "promptVersion": "company-metadata-v3",
+      "elapsedMs": 43036,
+      "attempts": [
+        {
+          "status": "succeeded",
+          "tokenUsage": {
+            "input_tokens": 8213,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 2176
+            },
+            "output_tokens": 363,
+            "output_tokens_details": {
+              "reasoning_tokens": 139
+            },
+            "total_tokens": 8576,
+            "x_details": [
+              {
+                "input_tokens": 8213,
+                "output_tokens": 363,
+                "output_tokens_details": {
+                  "reasoning_tokens": 139
+                },
+                "plugins": {
+                  "web_search": {
+                    "count": 2
+                  }
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 2176
+                },
+                "total_tokens": 8576,
+                "x_billing_type": "response_api"
+              }
+            ],
+            "x_tools": {
+              "web_search": {
+                "count": 2
+              }
+            }
+          }
+        }
+      ],
+      "result": {
+        "legalName": "",
+        "registryId": "",
+        "entityStatus": "not_found",
+        "claims": [],
+        "conflicts": [],
+        "notes": [
+          "未能在公司官网、政府公告或监管资料中检索到名为“OFFER验收虚构蓝桥科技有限公司”的法人主体，无法确认其登记名称、统一社会信用代码或经营状态。",
+          "检索仅返回名称相近但主体不同的结果（如“国信蓝桥教育科技股份有限公司”“深圳市蓝桥管理技术有限公司”“北京四梯科技有限公司”等），与输入主体不构成同一法人，未予采纳。",
+          "由于未取得该主体的任何明确原文表述，companyNature 与 companyTags 均保持未知，未作推断。",
+          "来源链接由联网接口校验；引文仍由模型摘录，未独立抓取全文核对。请打开来源核对主体与原文后采用。"
+        ],
+        "rawOutput": {
+          "legalName": "",
+          "registryId": "",
+          "entityStatus": "not_found",
+          "claims": [],
+          "conflicts": [],
+          "notes": [
+            "未能在公司官网、政府公告或监管资料中检索到名为“OFFER验收虚构蓝桥科技有限公司”的法人主体，无法确认其登记名称、统一社会信用代码或经营状态。",
+            "检索仅返回名称相近但主体不同的结果（如“国信蓝桥教育科技股份有限公司”“深圳市蓝桥管理技术有限公司”“北京四梯科技有限公司”等），与输入主体不构成同一法人，未予采纳。",
+            "由于未取得该主体的任何明确原文表述，companyNature 与 companyTags 均保持未知，未作推断。"
+          ]
+        },
+        "company": "OFFER验收虚构蓝桥科技有限公司（合成不存在主体）",
+        "sourceUrl": "",
+        "sources": [
+          {
+            "title": "www.4t.wiki",
+            "url": "https://www.4t.wiki/lanqiao",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.lanqiao.cn",
+            "url": "https://www.lanqiao.cn/bootcamp-payment-agreement/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.laioffer.com",
+            "url": "https://www.laioffer.com/zh/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.bluebridgeadvisors.com",
+            "url": "https://www.bluebridgeadvisors.com/lqst",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.dotcpp.com",
+            "url": "https://www.dotcpp.com/oj/lanqiao/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "github.com",
+            "url": "https://github.com/Pengxin-Guo/lanqiao",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.luogu.com.cn",
+            "url": "https://www.luogu.com.cn/problem/P12214",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "zhuanlan.zhihu.com",
+            "url": "https://zhuanlan.zhihu.com/p/1954586327401099410",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "cn.linkedin.com",
+            "url": "https://cn.linkedin.com/company/%E5%9B%BD%E4%BF%A1%E8%93%9D%E6%A1%A5%E6%95%99%E8%82%B2%E7%A7%91%E6%8A%80-%E5%8C%97%E4%BA%AC-%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "mianshizhushou.com",
+            "url": "https://mianshizhushou.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.tianyancha.com",
+            "url": "https://www.tianyancha.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.qcc.com",
+            "url": "https://www.qcc.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.aiqicha.com",
+            "url": "https://www.aiqicha.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "baike.baidu.com",
+            "url": "https://baike.baidu.com/item/%E6%B7%B1%E5%9C%B3%E5%B8%82%E8%93%9D%E5%BF%83%E6%A1%A5%E7%A7%91%E6%8A%80%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/3414952",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "qiye.qizhidao.com",
+            "url": "https://qiye.qizhidao.com/company/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.tianyancha.com",
+            "url": "https://www.tianyancha.com/company/2349734817",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "91440300ma5gxxgn0d.yellowurl.cn",
+            "url": "https://91440300ma5gxxgn0d.yellowurl.cn/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "m.qixin.com",
+            "url": "https://m.qixin.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "credit1.gz.gov.cn",
+            "url": "https://credit1.gz.gov.cn/sgs/CreditFormula/formula",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.cods.org.cn",
+            "url": "https://www.cods.org.cn/gscx/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "lhnb.mofcom.gov.cn",
+            "url": "https://lhnb.mofcom.gov.cn/search/list",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "credit.gd.gov.cn",
+            "url": "https://credit.gd.gov.cn/page/creditIndustry/zmqdqy.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "shanghai.chinatax.gov.cn",
+            "url": "https://shanghai.chinatax.gov.cn/newxbwz/gspt/xzxkxyxx/GSPTxzxkxyxxcxCtrl-initFj.pfv?swjgdm=13101040000",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "credit.baiyin.gov.cn",
+            "url": "https://credit.baiyin.gov.cn/aqsc/index.jhtml",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "credit.shanwei.gov.cn",
+            "url": "https://credit.shanwei.gov.cn/homepage/creditindex/shxydmList",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.fengxian.gov.cn",
+            "url": "https://www.fengxian.gov.cn/credit/tyshxydmcx/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          },
+          {
+            "title": "www.tianyancha.com",
+            "url": "https://www.tianyancha.com/company/3444863781",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:24.814Z"
+          }
+        ],
+        "rejectedClaimCount": 0,
+        "quoteVerification": "model_only",
+        "classificationClues": [],
+        "evidence": [],
+        "model": "qwen3.8-max",
+        "promptVersion": "company-metadata-v3",
+        "elapsedMs": 42997
+      }
+    },
+    {
+      "name": "ambiguous_brand",
+      "pass": true,
+      "referencesValid": true,
+      "expectedNature": null,
+      "model": "qwen3.8-max",
+      "promptVersion": "company-metadata-v3",
+      "elapsedMs": 18016,
+      "attempts": [
+        {
+          "status": "succeeded",
+          "tokenUsage": {
+            "input_tokens": 3311,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 353,
+            "output_tokens_details": {
+              "reasoning_tokens": 115
+            },
+            "total_tokens": 3664,
+            "x_details": [
+              {
+                "input_tokens": 3311,
+                "output_tokens": 353,
+                "output_tokens_details": {
+                  "reasoning_tokens": 115
+                },
+                "plugins": {
+                  "web_search": {
+                    "count": 1
+                  }
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 0
+                },
+                "total_tokens": 3664,
+                "x_billing_type": "response_api"
+              }
+            ],
+            "x_tools": {
+              "web_search": {
+                "count": 1
+              }
+            }
+          }
+        }
+      ],
+      "result": {
+        "legalName": "",
+        "registryId": "",
+        "entityStatus": "not_found",
+        "claims": [],
+        "conflicts": [],
+        "notes": [
+          "输入仅为业务/岗位描述“OFFER合成验收 Global Bank 银行外包”，未提供可核实的法人主体名称（无公司全称、无统一社会信用代码），且明确要求不得套用其他公司，故无法定位唯一主体。",
+          "检索“Global Bank”返回多个互不相关的境外机构（如 globalbankny.com 纽约環球銀行、globalonebank.com、globalbankgroup 等），无法确定与输入所指主体对应，按规则不得由英文名或银行业务字样推断公司性质与行业标签。",
+          "“银行外包”属于业务合作或服务内容描述，不能据此推断用工主体或公司性质；本任务不输出岗位用工信息。",
+          "如需核实，请补充可查询的法人主体全称（营业执照/登记名称）或统一社会信用代码，以及注册地。",
+          "来源链接由联网接口校验；引文仍由模型摘录，未独立抓取全文核对。请打开来源核对主体与原文后采用。"
+        ],
+        "rawOutput": {
+          "legalName": "",
+          "registryId": "",
+          "entityStatus": "not_found",
+          "claims": [],
+          "conflicts": [],
+          "notes": [
+            "输入仅为业务/岗位描述“OFFER合成验收 Global Bank 银行外包”，未提供可核实的法人主体名称（无公司全称、无统一社会信用代码），且明确要求不得套用其他公司，故无法定位唯一主体。",
+            "检索“Global Bank”返回多个互不相关的境外机构（如 globalbankny.com 纽约環球銀行、globalonebank.com、globalbankgroup 等），无法确定与输入所指主体对应，按规则不得由英文名或银行业务字样推断公司性质与行业标签。",
+            "“银行外包”属于业务合作或服务内容描述，不能据此推断用工主体或公司性质；本任务不输出岗位用工信息。",
+            "如需核实，请补充可查询的法人主体全称（营业执照/登记名称）或统一社会信用代码，以及注册地。"
+          ]
+        },
+        "company": "OFFER合成验收 Global Bank 银行外包（未给法人主体，不得套用其他公司）",
+        "sourceUrl": "",
+        "sources": [
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/en-us/careers/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/en-us/personal-banking/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.globalonebank.com",
+            "url": "https://www.globalonebank.com/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.usbank.com",
+            "url": "https://www.usbank.com/corporate-and-commercial-banking/solutions/international-banking/global-trade-financing-services.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "globalbankny.com",
+            "url": "https://globalbankny.com/zh-hant/about/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.bny.com",
+            "url": "https://www.bny.com/corporate/global/en/solutions/platforms/global-payments-trade.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.linkedin.com",
+            "url": "https://www.linkedin.com/company/globalbankgroup",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "business.bofa.com",
+            "url": "https://business.bofa.com/en-us/content/trade-supply-chain.html",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.wellsfargo.com",
+            "url": "https://www.wellsfargo.com/com/solutions/global-receivables-and-trade/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.citibank.com.cn",
+            "url": "https://www.citibank.com.cn/rcs/citi-china/storage/public/CitizenshipReport/EN/CorporateCitizenship/CSR2022.pdf",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "thesis.lib.nycu.edu.tw",
+            "url": "https://thesis.lib.nycu.edu.tw/bitstreams/e5ba36ec-5b16-4bbc-894f-7a692c9d3f79/download",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "stockn.xueqiu.com",
+            "url": "https://stockn.xueqiu.com/01244/20250430549758.pdf",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.863Z"
+          },
+          {
+            "title": "www.scribd.com",
+            "url": "https://www.scribd.com/document/794684786/%E8%B2%A1%E5%AF%8C%E8%83%8C%E5%BE%8C%E7%9A%84%E6%B3%95%E5%BE%8B%E5%AF%86%E7%A2%BC-Code-of-Capital",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.864Z"
+          },
+          {
+            "title": "www.globalbankbase.com",
+            "url": "https://www.globalbankbase.com/guides/",
+            "publishedAt": null,
+            "crawledAt": "2026-11-11T05:03:42.864Z"
+          }
+        ],
+        "rejectedClaimCount": 0,
+        "quoteVerification": "model_only",
+        "classificationClues": [],
+        "evidence": [],
+        "model": "qwen3.8-max",
+        "promptVersion": "company-metadata-v3",
+        "elapsedMs": 17984
+      }
+    }
+  ],
+  "passed": false,
+  "error": "504 AI_TIMEOUT",
+  "finishedAt": "2026-11-11T05:05:43.114Z"
+}

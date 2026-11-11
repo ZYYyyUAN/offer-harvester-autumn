@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DefaultSubmissionResumeSchema } from "./submission-intake-contracts.ts";
 import { ApplicationClosureSchema } from "./application-closure.ts";
 import { ActionTaskSchema } from "./workflow-contracts.ts";
 import { jdDataSchemas } from "./jd-contracts.ts";
@@ -12,6 +13,7 @@ const checklistValue = z.union([
 ]);
 
 export const ProfileDataSchema = z.object({
+  defaultSubmissionResume: DefaultSubmissionResumeSchema.optional(),
   name: text(120), phone: text(80), email: z.string().email().or(z.literal("")), city: text(120),
   jobStatus: text(80), availableDate: optionalDate, targetRoles: text(500), targetIndustries: text(500),
   targetCities: text(500), expectedSalary: text(240), education: text(12000), experience: text(20000),
@@ -20,6 +22,9 @@ export const ProfileDataSchema = z.object({
 }).passthrough();
 
 export const ApplicationDataSchema = z.object({
+  appliedAt: z.string().datetime().or(z.literal("")).nullable().optional(),
+  appliedAtStatus: z.enum(["known","unknown"]).optional(),
+  intakeDraftId: z.string().uuid().optional(),
   closure: ApplicationClosureSchema.nullable().optional(),
   jobMetadata: JobMetadataSchema.optional(),
   company: z.string().trim().min(1).max(240), role: z.string().trim().min(1).max(240), direction: text(240),
@@ -77,7 +82,10 @@ const schemas: Record<string, z.ZodTypeAny> = {
   tasks: ActionTaskSchema,
 };
 
-export function validateRecordData(kind: string, data: Record<string, unknown>) {
-  const schema = schemas[kind];
-  return schema ? schema.parse(data) as Record<string, unknown> : data;
+const LegacyApplicationReadSchema = ApplicationDataSchema.omit({stage:true}).extend({stage:z.string().max(120).nullish()});
+export function validateRecordData(kind: string, data: Record<string, unknown>, options: { preserveLegacyStage?: boolean } = {}) {
+  const schema = kind === "applications" && options.preserveLegacyStage ? LegacyApplicationReadSchema : schemas[kind];
+  const parsed = schema ? schema.parse(data) as Record<string, unknown> : data;
+  if (kind === "applications" && parsed.appliedAtStatus && parsed.appliedAtStatus !== (parsed.appliedAt ? "known" : "unknown")) throw new z.ZodError([{code:"custom",message:"实际投递时间与未知状态不一致",path:["appliedAtStatus"]}]);
+  return parsed;
 }

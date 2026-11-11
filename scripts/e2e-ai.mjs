@@ -1,4 +1,5 @@
 import http from "node:http";
+const timeoutCalls=new Map();
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET") { res.end("test provider"); return; }
   let body = ""; for await (const chunk of req) body += chunk;
@@ -6,6 +7,15 @@ const server = http.createServer(async (req, res) => {
   const capture = { company:"合成截图科技",role:"Java 后端",location:"杭州",salary:"",deadline:"",jd:"岗位职责：使用 Java 开发接口。任职要求：熟悉 MySQL。",sourceUrl:"",evidence:[{field:"jd",quote:"使用 Java 开发接口"}],warnings:[] };
   if (req.url === "/responses") {
     if (!payload.text?.format?.json_schema?.schema) { res.writeHead(400,{"content-type":"application/json"});res.end(JSON.stringify({error:{message:"json_schema configuration is required"}}));return; }
+    if (payload.text.format.json_schema.name === "company_metadata_verify_v1") {
+      if (payload.input.includes("VERIFY_TIMEOUT") && !timeoutCalls.has(payload.input)){timeoutCalls.set(payload.input,true);await new Promise(resolve=>setTimeout(resolve,125000));}
+      if (payload.input.includes("VERIFY_SLOW")) await new Promise(resolve=>setTimeout(resolve,2500));
+      const unknown=payload.input.includes("VERIFY_UNKNOWN"), conflict=payload.input.includes("VERIFY_CONFLICT"), invalid=payload.input.includes("VERIFY_BAD_URL"), malformed=payload.input.includes("VERIFY_BAD_SCHEMA");
+      const company="合成精确主体有限公司";
+      const claims=unknown?[]:[{field:"companyNature",value:"private",subject:company,quote:company+"是一家民营企业。",sourceUrl:invalid?"https://fake.invalid/invented":"https://example.test/company"},...(conflict?[{field:"companyNature",value:"state_owned",subject:company,quote:company+"是国有企业。",sourceUrl:"https://example.test/company"}]:[])];
+      const output={legalName:unknown?"":company,registryId:"",entityStatus:unknown?"not_found":"matched",claims,conflicts:[],notes:malformed?"not-an-array":[]};
+      res.setHeader("content-type","application/json");res.end(JSON.stringify({status:payload.input.includes("VERIFY_TRUNCATED")?"incomplete":"completed",search_info:{search_results:[{title:"合成公司资料",url:"https://example.test/company"}]},output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(output)}]}],usage:{total_tokens:50}}));return;
+    }
     if (payload.input.includes("/slow-capture")) await new Promise((resolve) => setTimeout(resolve, 4500));
     const blocked = payload.input.includes("/restricted");
     const output = blocked ? {...capture,company:"",role:"",location:"",jd:"",evidence:[],warnings:["未取得网页正文"]} : {...capture,company:"合成链接科技", ...(payload.input.includes("/malformed") ? { classificationClues: [{ field: "companyNature", value: "private", quote: "" }] } : {})};

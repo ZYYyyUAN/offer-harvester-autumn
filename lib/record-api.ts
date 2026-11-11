@@ -102,7 +102,7 @@ export async function updateRecord(request: Request) {
     if ([...jdKinds, ...metadataKinds].includes(String(existing.kind) as any)) throw new ApiError(405, "归档记录只能通过专用接口处理");
     const kind = normalizeKind(String(existing.kind));
     const current = JSON.parse(String(existing.data ?? "{}")) as Record<string, unknown>;
-    let data = validateRecordData(kind, { ...current, ...(body.data ?? {}) });
+    let data = validateRecordData(kind, { ...current, ...(body.data ?? {}) }, { preserveLegacyStage: kind === "applications" && (body.data?.stage === undefined || body.data.stage === current.stage) });
     if (["applications", "saved_jobs"].includes(kind)) data = await validateJobMetadata(userId, data, current);
     if (kind === "applications" && !body.restore) return Response.json({ record: await saveApplication(userId, body.id, data, mapRecord(existing)) });
     const title = (body.title?.trim() || recordTitle(kind, data)).slice(0, 180);

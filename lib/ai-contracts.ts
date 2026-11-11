@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const aiJobTypes = ["job_analysis", "resume_suggestions", "company_research", "interview_review", "foreign_interview_review", "transcription", "evaluation_case", "job_capture_url", "job_capture_image", "jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"] as const;
+export const aiJobTypes = ["company_metadata_verify", "job_analysis", "resume_suggestions", "company_research", "interview_review", "foreign_interview_review", "transcription", "evaluation_case", "job_capture_url", "job_capture_image", "jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"] as const;
 export const aiJobStatuses = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
 export const AIJobTypeSchema = z.enum(aiJobTypes);
 export const AIJobStatusSchema = z.enum(aiJobStatuses);

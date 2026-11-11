@@ -1,29 +1,25 @@
 "use client";
+import { submissionStageBucket } from "@/lib/submission-workspace";
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   AlertTriangle,
-  ArrowDown,
   Bookmark,
-  BriefcaseBusiness,
   Building2,
   CheckCircle2,
-  Columns3,
   Database,
   Download,
-  Eye,
   ExternalLink,
+  Eye,
   FileText,
-  ImageIcon,
-  List,
   MessagesSquare,
   Mic,
   Pencil,
   Plus,
   RefreshCw,
   Save,
-  Search,
   Sparkles,
   Square,
   Timer,
@@ -36,26 +32,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { closureLabel, ClosureStatistics, useClosureConfirmation } from "@/components/workspace/application-closure";
+import { useClosureConfirmation } from "@/components/workspace/application-closure";
 import { WorkspaceShell } from "@/components/workspace/shell";
 import { DataManagement, TrashView } from "@/components/workspace/data-module";
 import { JobResourcesView } from "@/components/workspace/resources-module";
 import { CalendarView, OffersView } from "@/components/workspace/decision-module";
 import { FilePreview, RecordEditor } from "@/components/workspace/dialogs";
 import { JobMetadataEditor, confirmMetadataReview } from "@/components/workspace/job-metadata-editor";
-import { JobMetadataStatistics } from "@/components/workspace/job-metadata-statistics";
-import { JobMetadataSummary } from "@/components/workspace/job-metadata-summary";
-import { useCaptureTask } from "@/components/workspace/use-capture-task";
-import { useCaptureDraft } from "@/components/workspace/use-capture-draft";
+import { ApplicationsView } from "@/components/workspace/applications-module";
+import { SubmissionMetrics } from "@/components/workspace/submission-metrics";
+import { SavedJobsView } from "@/components/workspace/submission-intake";
+import { DefaultResumePreference } from "@/components/workspace/default-resume";
 import { useSubmissionConfirmation } from "@/components/workspace/use-submission-confirmation";
 import { JobMetadataSchema, type JobMetadata } from "@/lib/job-metadata";
 import { FeishuView } from "@/components/workspace/feishu-module";
-import { JDArchivePanel, SkillProfileView, ResumeImprovementLinks } from "@/components/workspace/jd-module";
+import { SkillProfileView, ResumeImprovementLinks } from "@/components/workspace/jd-module";
 import "./jd.css";
 import "./metadata.css";
 import { api, EmptyState, Field, fileSize, formatDate, PageHead, StatusPill, useConfirmDialog } from "@/components/workspace/shared";
-import { workspaceViews, type AIJob, type Dashboard, type Kind, type RecordItem, type ResearchDraft, type StoredFile, type View } from "@/components/workspace/types";
-import { defaultJobSearchSettings, jobDeadlineStatus } from "@/lib/workflow-contracts";
+import { workspaceViews, type AIJob, type Dashboard, type Kind, type RecordItem, type ResearchDraft, type StoredFile, type SubmissionSummary, type View } from "@/components/workspace/types";
+import { defaultJobSearchSettings } from "@/lib/workflow-contracts";
 import {
   Dialog,
   DialogContent,
@@ -66,11 +62,13 @@ import {
 } from "@/components/ui/dialog";
 
 const emptyDashboard: Dashboard = { totalApplications: 0, savedCount: 0, interviewCount: 0, offerCount: 0, invitationRate: 0, stageCounts: {}, funnel: {}, upcoming: [], risks: [], openTasks: [], pendingEvidence: 0, recentApplications: [], segments: {}, settings: {} };
-const stageOrder = ["待投递", "已投递", "笔试中", "面试中", "OFFER", "已结束"];
-const stageLabel = (stage: string) => stage === "待投递" ? "准备中" : stage === "已投递" ? "已投简历" : stage;
 
 export function OfferWorkspace({ user }: { user: { email: string; displayName: string } }) {
+  const [intakeOpenRequest,setIntakeOpenRequest]=useState(0);
+  const [applicationRevision, setApplicationRevision] = useState(0);
+  const updateSubmissionSummary = useCallback((summary: SubmissionSummary) => setDashboard(current => ({ ...current, totalApplications: summary.totalRecords, workspaceSummary: summary })), []);
   const [view, setView] = useState<View>("dashboard");
+  useEffect(()=>{if(view!=="savedJobs")setIntakeOpenRequest(0);},[view]);
   const [mobileNav, setMobileNav] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Record<string, any>>({ email: user.email, name: "" });
@@ -239,9 +237,11 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       }
       const result = await api<{ dashboard: Dashboard }>("/api/dashboard");
       setDashboard(result.dashboard);
+      setApplicationRevision(value => value + 1);
     } catch (error) { toast.error((error as Error).message); }
   }, []);
 
+  function beginSubmissionIntake(){setView("savedJobs");setIntakeOpenRequest(value=>value+1);}
   async function saveProfile(next: Record<string, any>) {
     setSaveState("保存中…");
     try {
@@ -263,10 +263,10 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     profileTimer.current = setTimeout(() => saveProfile(next), 900);
   }
 
-  async function deleteRecord(kind: Kind, id: string) {
+  async function deleteRecord(kind: Kind, id: string, knownItem?: RecordItem) {
     if (!await confirmation.ask("移入回收站？", "记录将在回收站保留30天，期间可以恢复。")) return;
     try {
-      const item = records[kind].find((record) => record.id === id); if (!item) throw new Error("记录不存在或已刷新");
+      const item = knownItem || records[kind].find((record) => record.id === id); if (!item) throw new Error("记录不存在或已刷新");
       await api(`/api/records?id=${encodeURIComponent(id)}&version=${item.version}`, { method: "DELETE" });
       toast.success("已移入回收站", {
         duration: 10000,
@@ -312,18 +312,18 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     if (item.data.stage === stage) return;
     const closure = stage === "已结束" ? await closureConfirmation.ask(item) : undefined;
     if (closure === null) return;
-    const shouldConfirm = (item.data.stage || "待投递") === "待投递" && ["已投递", "笔试中", "面试中", "OFFER"].includes(stage);
+    const shouldConfirm = ((item.data.stage || "待投递") === "待投递" || submissionStageBucket(item.data.stage)==="unknown") && ["已投递", "笔试中", "面试中", "OFFER"].includes(stage);
     const jobMetadata = shouldConfirm ? await submissionConfirmation.ask(item) : undefined;
     if (jobMetadata === null) return;
     try {
       await api("/api/applications/stage", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, stage, version: item.version, jobMetadata, closure }) });
       toast.success(`已移动到「${stage}」`);
-      refresh("applications");
+      await refresh("applications");
     } catch (error) { toast.error((error as Error).message); }
   }
 
   async function toggleChecklist(item: RecordItem, key: string, done: boolean) {
-    const jobMetadata = key === "submitted" && done && (item.data.stage || "待投递") === "待投递" ? await submissionConfirmation.ask(item) : undefined;
+    const jobMetadata = key === "submitted" && done && ((item.data.stage || "待投递") === "待投递" || submissionStageBucket(item.data.stage)==="unknown") ? await submissionConfirmation.ask(item) : undefined;
     if (jobMetadata === null) return;
     try { await api("/api/applications/checklist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, key, done, version: item.version, jobMetadata }) }); await Promise.all([refresh("applications"), refresh("tasks")]); }
     catch (error) { toast.error((error as Error).message); }
@@ -353,32 +353,11 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
 
-  async function saveJob(data: Record<string, any>, screenshot?: File) {
-    const toastId = toast.loading("正在保存岗位…");
-    try {
-      let screenshotFileId = data.screenshotFileId || "";
-      if (screenshot) {
-        const saved = await uploadFile(screenshot, "job_screenshot", { displayName: `${data.company || "岗位"} JD 截图` });
-        screenshotFileId = saved.id;
-        setJobScreenshots((items) => [saved, ...items]);
-      }
-      const response = await api<any>(data.draftId ? `/api/job-capture-drafts/${data.draftId}/confirm` : "/api/records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data.draftId ? { ...data, screenshotFileId } : { kind: "saved_jobs", data: { ...data, screenshotFileId, savedAt: new Date().toISOString() } }) });
-      if (response.requiresConfirmation) throw new Error("已存在相同岗位，请先查看收藏列表，或从提取预览确认保存副本");
-      await refresh("saved_jobs");
-      toast.success("岗位已收藏", { id: toastId });
-    } catch (error) { toast.error((error as Error).message, { id: toastId }); throw error; }
-  }
-
   async function extractJob(sourceUrl?: string, screenshot?: File, refresh = false) {
     let screenshotFileId = "";
     if (screenshot) { const saved = await uploadFile(screenshot, "job_screenshot", { displayName: "待识别 JD 截图" }); screenshotFileId = saved.id; setJobScreenshots((items) => [saved, ...items]); }
     const result = await api<{ job: AIJob }>("/api/job-captures", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...(screenshotFileId ? { screenshotFileId } : { sourceUrl }), wait: false, refresh }) });
     await refreshAIJobs(); return { job: result.job, screenshotFileId };
-  }
-
-  async function confirmCapturedJob(jobId: string, data: Record<string, any>, allowDuplicate = false) {
-    const result = await api<{ record?: RecordItem; duplicate?: RecordItem; requiresConfirmation?: boolean }>(`/api/job-captures/${jobId}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...data, allowDuplicate }) });
-    await refresh("saved_jobs"); return result;
   }
 
   async function convertSavedJob(item: RecordItem) {
@@ -448,7 +427,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   async function createOptimizationResume(applicationId: string, sourceFileId: string) {
     const toastId = toast.loading("正在创建岗位专用优化副本…");
     try {
-      const application = records.applications.find((item) => item.id === applicationId);
+      const application = (await api<{record: RecordItem}>(`/api/applications/${encodeURIComponent(applicationId)}`)).record;
       const source = resumes.find((item) => item.id === sourceFileId);
       if (!application || !source) throw new Error("岗位或源简历不存在，请刷新后重试");
       await api("/api/resume-optimizations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ applicationId, applicationVersion: application.version, sourceFileId, sourceFileVersion: source.version }) });
@@ -482,7 +461,7 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
 
   async function linkApplicationResume(applicationId: string, fileId: string | null) {
     try {
-      const application = records.applications.find((item) => item.id === applicationId);
+      const application = (await api<{record: RecordItem}>(`/api/applications/${encodeURIComponent(applicationId)}`)).record;
       const file = resumes.find((item) => item.id === fileId);
       const previous = resumes.find((item) => item.id === application?.data.resumeId);
       if (!application) throw new Error("投递记录不存在或已刷新");
@@ -495,11 +474,11 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   async function finalizeApplicationResume(applicationId: string, fileId: string, appliedAt: string, jobMetadata?: JobMetadata) {
     const toastId = toast.loading("正在确认最终投递版本…");
     try {
-      const application = records.applications.find((item) => item.id === applicationId);
+      const application = (await api<{record: RecordItem}>(`/api/applications/${encodeURIComponent(applicationId)}`)).record;
       if (!application) throw new Error("投递记录不存在或已刷新");
       const affectedFiles = resumes.filter((item) => item.id === fileId || item.metadata.applicationId === applicationId);
       const fileVersions = Object.fromEntries(affectedFiles.map((item) => [item.id, item.version]));
-      await api("/api/applications/finalize-resume", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ applicationId, applicationVersion: application.version, fileId, fileVersions, appliedAt: new Date(appliedAt).toISOString(), jobMetadata }) });
+      await api("/api/applications/finalize-resume", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ applicationId, applicationVersion: application.version, fileId, fileVersions, appliedAt: appliedAt ? new Date(appliedAt).toISOString() : null, jobMetadata }) });
       await Promise.all([reloadResumes(), refresh("applications"), refresh("tasks")]);
       toast.success("已完成投递：岗位状态、投递时间和简历关联已同步", { id: toastId });
     } catch (error) { toast.error((error as Error).message, { id: toastId }); throw error; }
@@ -664,12 +643,12 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
       <WorkspaceShell view={view} onNavigate={(next) => { if (next === "resumes") setResumeViewRequest({ tab: "completed" }); setView(next); }} mobileNav={mobileNav} setMobileNav={setMobileNav} profile={profile} displayName={user.displayName} saveState={saveState} totalApplications={dashboard.totalApplications}>
         {migrationItems && <div className="migration-banner"><div><b>发现旧版保存在本机的记录</b><p>{migrationItems.applications.length} 条投递、{migrationItems.evidence.length} 条事实可迁移到云端。</p></div><div><Button variant="outline" onClick={() => setMigrationItems(null)}>忽略</Button><Button onClick={importOldData}>迁移记录</Button></div></div>}
         {activeAIJobId && view !== "aiCenter" && aiJobs.find((item) => item.id === activeAIJobId) && <button className="ai-task-strip" onClick={() => setView("aiCenter")}><ListChecks /><span><b>最近 AI 任务</b>{aiJobs.find((item) => item.id === activeAIJobId)?.status === "succeeded" ? "已完成，可查看完整追溯记录" : aiJobs.find((item) => item.id === activeAIJobId)?.status === "failed" ? "执行失败，输入已保留，可重试" : "正在处理或等待执行"}</span><ExternalLink /></button>}
-        {view === "dashboard" && <DashboardView dashboard={dashboard} profile={profile} records={records} onNavigate={setView} onAdd={() => setView("savedJobs")} />}
+        {view === "dashboard" && <DashboardView dashboard={dashboard} profile={profile} records={records} onNavigate={setView} onAdd={beginSubmissionIntake} />}
         {view === "today" && <TodayView dashboard={dashboard} records={records} onNavigate={setView} />}
         {view === "profile" && <ProfileView profile={profile} saveState={saveState} onChange={updateProfile} onSave={() => saveProfile(profile)} onAvatar={async (file) => { const saved = await uploadFile(file, "avatar"); updateProfile("avatarFileId", saved.id); }} />}
-        {view === "resumes" && <ResumeView resumes={resumes} applications={records.applications} initialTab={resumeViewRequest.tab} initialApplicationId={resumeViewRequest.applicationId} onUpload={uploadResume} onPreview={setPreview} onDelete={deleteFile} onAnalyze={analyzeResume} onCreateOptimization={createOptimizationResume} onUploadRevision={uploadOptimizationRevision} onLink={linkApplicationResume} onFinalize={finalizeApplicationResume} />}
-        {view === "savedJobs" && <SavedJobsView onEdit={(item) => setEditor({ kind: "saved_jobs", item })} items={records.saved_jobs} screenshots={jobScreenshots} settings={dashboard.settings} serverNow={dashboard.serverNow} onSave={saveJob} onExtract={extractJob} onConfirm={confirmCapturedJob} onConvert={convertSavedJob} onDelete={(id) => deleteRecord("saved_jobs", id)} />}
-        {view === "applications" && <ApplicationsView items={records.applications} resumes={resumes} settings={dashboard.settings} serverNow={dashboard.serverNow} onAdd={() => setView("savedJobs")} onEdit={(item) => setEditor({ kind: "applications", item })} onDelete={(id) => deleteRecord("applications", id)} onMove={moveApplication} onChecklist={toggleChecklist} onUnlink={(item) => linkApplicationResume(item.id, null)} onOptimize={(item) => { setResumeViewRequest({ tab: "optimization", applicationId: item.id }); setView("resumes"); }} />}
+        {view === "resumes" && <ResumeView onDefaultsChanged={async()=>{const result=await api<any>("/api/profile");setProfile(result.profile);}} resumes={resumes} applications={records.applications} initialTab={resumeViewRequest.tab} initialApplicationId={resumeViewRequest.applicationId} onUpload={uploadResume} onPreview={setPreview} onDelete={deleteFile} onAnalyze={analyzeResume} onCreateOptimization={createOptimizationResume} onUploadRevision={uploadOptimizationRevision} onLink={linkApplicationResume} onFinalize={finalizeApplicationResume} />}
+        {view === "savedJobs" && <SavedJobsView resumes={resumes} openRequest={intakeOpenRequest} onUploadScreenshot={async(file)=>{const saved=await uploadFile(file,"job_screenshot",{displayName:"岗位来源截图"});setJobScreenshots(current=>[saved,...current]);return saved.id;}} onRecorded={async(result)=>{await Promise.all([refresh("saved_jobs"),refresh("applications")]);if(result.applicationId){const url=new URL(window.location.href);url.searchParams.set("view","applications");url.searchParams.set("stage","已投递");url.searchParams.set("applicationId",result.applicationId);url.searchParams.delete("q");url.searchParams.delete("page");window.history.pushState(null,"",url);setView("applications");}}} onEdit={(item) => setEditor({ kind: "saved_jobs", item })} items={records.saved_jobs} screenshots={jobScreenshots} settings={dashboard.settings} serverNow={dashboard.serverNow} onExtract={extractJob} onConvert={convertSavedJob} onDelete={(id) => deleteRecord("saved_jobs", id)} />}
+        {view === "applications" && <ApplicationsView revision={applicationRevision} onSummary={updateSubmissionSummary} resumes={resumes} dashboard={dashboard} onAdd={beginSubmissionIntake} onEdit={(item) => setEditor({ kind: "applications", item })} onDelete={(item) => deleteRecord("applications", item.id, item)} onMove={moveApplication} onChecklist={toggleChecklist} onUnlink={(item) => linkApplicationResume(item.id, null)} onOptimize={(item) => { setRecords(current => ({...current, applications: [item, ...current.applications.filter(r=>r.id!==item.id)]})); setResumeViewRequest({ tab: "optimization", applicationId: item.id }); setView("resumes"); }} />}
         {view === "tasks" && <TasksView items={records.tasks} applications={records.applications} onChanged={() => refresh("tasks")} />}
         {view === "evidence" && <EvidenceView items={records.evidence} onAdd={() => setEditor({ kind: "evidence" })} onEdit={(item) => setEditor({ kind: "evidence", item })} onDelete={(id) => deleteRecord("evidence", id)} />}
         {view === "analysis" && <AnalysisView input={analysisInput} setInput={setAnalysisInput} busy={analysisBusy} result={analysisResult || records.analyses[0]?.data || null} onRun={runAnalysis} onEvidence={() => setView("evidence")} onCreateTask={createAIAction} />}
@@ -696,42 +675,20 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
   );
 }
 
-function DashboardView({ dashboard, profile, records, onNavigate, onAdd: _onAdd }: { dashboard: Dashboard; profile: Record<string, any>; records: Record<Kind, RecordItem[]>; onNavigate: (view: View) => void; onAdd: () => void }) {
-  const applications = records.applications;
-  const saved = dashboard.savedCount || records.saved_jobs.length;
-  const discovered = saved + applications.filter((item) => !item.data.savedJobId).length;
-  const reached = (stage: string) => applications.filter((item) => stageOrder.indexOf(item.data.stage || "待投递") >= stageOrder.indexOf(stage) && item.data.stage !== "已结束").length;
-  const funnel = [
-    { label: "收藏岗位", count: dashboard.funnel.saved ?? discovered },
-    { label: "已投简历", count: dashboard.funnel.applied ?? reached("已投递") },
-    { label: "笔试阶段", count: dashboard.funnel.written ?? reached("笔试中") },
-    { label: "面试阶段", count: dashboard.funnel.interview ?? reached("面试中") },
-    { label: "拿到 OFFER", count: dashboard.funnel.offer ?? reached("OFFER") },
-  ];
+function DashboardView({ dashboard, profile, onNavigate, onAdd }: { dashboard: Dashboard; profile: Record<string, any>; records: Record<Kind, RecordItem[]>; onNavigate: (view: View) => void; onAdd: () => void }) {
   const phaseCountdowns = dashboard.phaseCountdowns || [];
-  const hasData = discovered > 0;
-  const metrics = [
-    ["收藏岗位", saved, "待判断是否值得投递", "savedJobs" as View],
-    ["已投简历", reached("已投递"), "进入正式流程", "applications" as View],
-    ["笔试阶段", reached("笔试中"), "当前或已通过笔试", "applications" as View],
-    ["面试阶段", reached("面试中"), `邀约率 ${dashboard.invitationRate}%`, "interviews" as View],
-    ["拿到 OFFER", dashboard.offerCount, "等待比较与决策", "offers" as View],
-    ["公司背调", records.research.length, "带来源的已保存报告", "company" as View],
-  ] as const;
+  const hasData = dashboard.totalApplications > 0 || dashboard.savedCount > 0;
   return <>
-    <PageHead eyebrow="真实数据总览" title={`${profile.name ? `${profile.name}，` : ""}今天推进哪一个机会？`} description="收藏、投递、笔试、面试与 OFFER 均由你的真实记录计算。" action={<div className="head-actions"><Button onClick={() => onNavigate("savedJobs")}><Bookmark />收藏岗位</Button></div>} />
-    <section className="metric-grid metric-grid-six">{metrics.map(([label, value, text, target]) => <button key={label} onClick={() => onNavigate(target)}><span>{label}</span><strong>{value}</strong><small>{text}</small></button>)}</section>
-    {!hasData && <section className="onboarding panel"><div><span>从第一条真实机会开始</span><h2>先收藏，再决定是否投递</h2><p>保存岗位链接、JD 截图和关键信息，确认匹配后再转成投递记录。</p></div><ol><li><button onClick={() => onNavigate("profile")}><b>01</b><span>完善个人资料<small>用于分析与面试上下文</small></span></button></li><li><button onClick={() => onNavigate("resumes")}><b>02</b><span>上传简历版本<small>保存原文件与投递关联</small></span></button></li><li><button onClick={() => onNavigate("savedJobs")}><b>03</b><span>收藏第一个岗位<small>保存链接、JD 与截止时间</small></span></button></li></ol></section>}
+    <PageHead eyebrow="真实数据总览" title={`${profile.name ? `${profile.name}，` : ""}今天推进哪一个机会？`} description="收藏、投递、笔试、面试与 OFFER 均由你的真实记录计算。" action={<div className="head-actions"><Button onClick={onAdd}><Bookmark />记录已投岗位</Button></div>} />
+    {dashboard.workspaceSummary && <SubmissionMetrics summary={dashboard.workspaceSummary} />}
+    {!hasData && <section className="onboarding panel"><div><span>从第一条真实机会开始</span><h2>从已经投递的岗位开始</h2><p>提取链接、识别截图或手动填写，在同一个窗口核对后保存真实投递。</p></div><ol><li><button onClick={() => onNavigate("profile")}><b>01</b><span>完善个人资料<small>用于分析与面试上下文</small></span></button></li><li><button onClick={() => onNavigate("resumes")}><b>02</b><span>上传简历版本<small>保存原文件与投递关联</small></span></button></li><li><button onClick={() => onNavigate("savedJobs")}><b>03</b><span>记录第一条投递<small>保存链接、JD 与截止时间</small></span></button></li></ol></section>}
     <div className="dashboard-grid dashboard-grid-main">
-      <section className="panel funnel-panel"><div className="panel-title"><div><h2>岗位转化漏斗</h2><p>从发现机会到 OFFER 的真实转化</p></div><button onClick={() => onNavigate("applications")}>查看明细</button></div><div className="funnel">{funnel.map((item, index) => { const previous = index ? funnel[index - 1].count : item.count; const rate = index && previous ? Math.min(100, Math.round(item.count / previous * 100)) : null; const width = Math.max(34, 100 - index * 12); return <div key={item.label}><small>{rate == null ? "起点" : `${rate}%`}</small><button style={{ width: `${width}%` }} onClick={() => onNavigate(index === 0 ? "savedJobs" : "applications")}><span>{item.label}</span><strong>{item.count}</strong></button>{index < funnel.length - 1 && <ArrowDown />}</div>; })}</div></section>
       <div className="dashboard-side">
         {dashboard.settings.phaseCountdownConfirmed !== false ? <section className="panel autumn-countdown"><div className="autumn-countdown-head"><div><span>秋招阶段提醒</span><small>按服务端北京时间计算 · 日期可自定义</small></div><button onClick={() => onNavigate("profile")}>调整日期</button></div><div className="phase-countdown-list">{phaseCountdowns.map((phase, index) => <article className={`phase-countdown phase-${phase.key}`} key={phase.key}><span className="phase-index">{index + 1}</span><div><b>{phase.label}</b><p>{phase.hint}</p><small>{phase.date ? formatDate(phase.date) : "日期未设置"}</small></div><strong>{phase.status === "ended" ? "该阶段已结束" : phase.status === "today" ? "今天结束" : phase.status === "unset" ? "待设置" : <><em>{phase.daysRemaining}</em> 天</>}</strong></article>)}</div></section> : <section className="panel setup-countdown"><Timer /><div><b>秋招阶段提醒暂未显示</b><p>可在个人资料中确认三个冲刺节点并随时修改。</p></div><Button variant="outline" onClick={() => onNavigate("profile")}>设置节点</Button></section>}
         <section className="panel"><div className="panel-title"><div><h2>七日内日程</h2><p>关键节点别错过</p></div><button onClick={() => onNavigate("calendar")}>查看全部</button></div><div className="agenda-list">{dashboard.upcoming.length ? dashboard.upcoming.map((item, index) => <article key={index}><time>{formatDate(item.data.dueAt, true)}</time><div><b>{item.data.title}</b><p>{item.data.type || "提醒"}</p></div></article>) : <p className="muted">未来七天没有安排</p>}</div></section>
         <section className="panel risk-panel"><div className="panel-title"><div><h2>需要处理</h2><p>截止风险与停滞机会</p></div><button onClick={() => onNavigate("tasks")}>行动清单</button></div>{dashboard.risks.length ? dashboard.risks.slice(0, 5).map((entry, index) => <article key={index}><AlertTriangle /><span><b>{entry.item.data.company || entry.item.data.title || "求职事项"}</b><small>{entry.risk.reason}</small></span></article>) : <p className="muted">当前没有风险提醒</p>}</section>
       </div>
     </div>
-    <JobMetadataStatistics refreshToken={JSON.stringify(records.applications.map((r) => [r.id, r.version]))} />
-    <section className="panel segment-panel"><div className="panel-title"><div><h2>转化效果对比</h2><p>按渠道、简历版本和岗位方向查看历史到达情况；样本不足 {dashboard.settings.minimumSample || 5} 条时只展示数量。</p></div></div><div className="segment-grid">{Object.entries({ channel: "投递渠道", resume: "简历版本", direction: "岗位方向" }).map(([key, title]) => <div key={key}><h3>{title}</h3>{(dashboard.segments?.[key] || []).length ? (dashboard.segments[key] as any[]).map((item) => <article key={item.label}><div><b>{item.label}</b><small>{item.count} 条记录</small></div>{item.ratesVisible ? <span>面试 {Math.round(item.interviewCount / item.count * 100)}% · OFFER {Math.round(item.offerCount / item.count * 100)}%</span> : <span>面试 {item.interviewCount} · OFFER {item.offerCount}</span>}</article>) : <p className="muted">暂无可比较记录</p>}</div>)}</div></section>
     <div className="dashboard-grid dashboard-followups"><section className="panel"><div className="panel-title"><div><h2>本周行动</h2><p>待办与进行中的下一步</p></div><button onClick={() => onNavigate("tasks")}>查看全部</button></div><div className="agenda-list">{dashboard.openTasks.length ? dashboard.openTasks.slice(0, 6).map((task, index) => <article key={task.id || index}><time>{task.dueAt ? formatDate(task.dueAt) : "待安排"}</time><div><b>{task.title}</b><p>{task.type || "自定义"} · {task.status === "doing" ? "进行中" : "待办"}</p></div></article>) : <p className="muted">当前没有待办行动</p>}</div></section><section className="panel"><div className="panel-title"><div><h2>待补事实</h2><p>未经确认的经历不会被 AI 当作正式证据</p></div><button onClick={() => onNavigate("evidence")}>前往核对</button></div><div className="pending-evidence"><strong>{dashboard.pendingEvidence}</strong><span>条事实等待确认或补充</span></div></section></div>
   </>;
 }
@@ -760,7 +717,7 @@ function localDateTimeValue(date = new Date()) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
-function ResumeView({ resumes, applications, initialTab, initialApplicationId, onUpload, onPreview, onDelete, onAnalyze, onCreateOptimization, onUploadRevision, onLink, onFinalize }: { resumes: StoredFile[]; applications: RecordItem[]; initialTab: "completed" | "optimization"; initialApplicationId?: string; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onPreview: (file: StoredFile) => void; onDelete: (id: string) => void; onAnalyze: (file: StoredFile, application?: RecordItem) => Promise<void>; onCreateOptimization: (applicationId: string, sourceFileId: string) => Promise<void>; onUploadRevision: (file: File, application: RecordItem, parent: StoredFile) => Promise<void>; onLink: (applicationId: string, fileId: string | null) => Promise<void>; onFinalize: (applicationId: string, fileId: string, appliedAt: string, jobMetadata?: JobMetadata) => Promise<void> }) {
+function ResumeView({ resumes, applications, initialTab, initialApplicationId, onUpload, onPreview, onDelete, onAnalyze, onCreateOptimization, onUploadRevision, onLink, onFinalize, onDefaultsChanged }: { onDefaultsChanged:()=>Promise<void>; resumes: StoredFile[]; applications: RecordItem[]; initialTab: "completed" | "optimization"; initialApplicationId?: string; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; onPreview: (file: StoredFile) => void; onDelete: (id: string) => void; onAnalyze: (file: StoredFile, application?: RecordItem) => Promise<void>; onCreateOptimization: (applicationId: string, sourceFileId: string) => Promise<void>; onUploadRevision: (file: File, application: RecordItem, parent: StoredFile) => Promise<void>; onLink: (applicationId: string, fileId: string | null) => Promise<void>; onFinalize: (applicationId: string, fileId: string, appliedAt: string, jobMetadata?: JobMetadata) => Promise<void> }) {
   const [tab, setTab] = useState<"completed" | "optimization">(initialTab);
   const completed = resumes.filter((file) => file.metadata.libraryType !== "optimization");
   const optimizations = resumes.filter((file) => file.metadata.libraryType === "optimization");
@@ -769,66 +726,18 @@ function ResumeView({ resumes, applications, initialTab, initialApplicationId, o
   const [sourceFileId, setSourceFileId] = useState(completed[0]?.id || "");
   const [finalizing, setFinalizing] = useState<{ file: StoredFile; application: RecordItem } | null>(null);
   const [finalSaving, setFinalSaving] = useState(false), [finalizeError, setFinalizeError] = useState("");
-  const [appliedAt, setAppliedAt] = useState(localDateTimeValue());
+  const [appliedAt, setAppliedAt] = useState("");
   const [finalMetadata, setFinalMetadata] = useState<JobMetadata>(() => JobMetadataSchema.parse({}));
   useEffect(() => { if (finalizing) setFinalMetadata(JobMetadataSchema.parse(finalizing.application.data.jobMetadata || {})); }, [finalizing]);
   const currentItems = tab === "completed" ? completed : optimizations;
   return <><PageHead eyebrow="简历工作台" title="完成稿与岗位优化稿分开管理" description="AI 只给出带原文依据的修改建议；你手动修改文件，再确认真正投递的最终版本。" action={<label className="upload-button"><Upload />上传完成简历<input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onUpload} /></label>} />
+    <DefaultResumePreference resumes={resumes} onChanged={onDefaultsChanged} />
     <section className="ats-note panel"><AlertTriangle /><div><b>ATS 不是“AI 简历检测器”</b><p>ATS（Applicant Tracking System）是企业用来收集、解析、筛选和跟踪候选人的招聘系统。这里不自动重写整份简历，重点是格式可解析、事实真实、关键词与岗位相关，并保留你的自然表达。</p></div><a href="https://www.oracle.com/cn/human-capital-management/recruiting/what-is-applicant-tracking-system/" target="_blank" rel="noreferrer">了解 ATS <ExternalLink /></a></section>
     <div className="resume-library-tabs"><button className={tab === "completed" ? "active" : ""} onClick={() => setTab("completed")}><FileText />简历库（已完成）<span>{completed.length}</span></button><button className={tab === "optimization" ? "active" : ""} onClick={() => setTab("optimization")}><Sparkles />简历优化库（待投递）<span>{optimizations.length}</span></button></div>
     {tab === "optimization" && <ResumeImprovementLinks resumes={resumes} />}
     {tab === "optimization" && <section className="panel optimization-starter"><div><b>为准备中的岗位建立优化副本</b><p>先选择岗位和一份完成稿。系统创建私有副本并关联岗位，原简历不会被覆盖。</p></div><select value={applicationId} onChange={(e) => setApplicationId(e.target.value)}><option value="">选择待投递岗位</option>{preparing.map((item) => <option value={item.id} key={item.id}>{item.data.company} · {item.data.role}</option>)}</select><select value={sourceFileId} onChange={(e) => setSourceFileId(e.target.value)}><option value="">选择源简历</option>{completed.map((file) => <option value={file.id} key={file.id}>{file.metadata.displayName || file.filename}</option>)}</select><Button disabled={!applicationId || !sourceFileId} onClick={() => onCreateOptimization(applicationId, sourceFileId)}><Plus />创建优化副本</Button></section>}
-    {currentItems.length ? <div className="resume-grid">{currentItems.map((file) => { const linked = applications.filter((item) => item.data.resumeId === file.id); const application = applications.find((item) => item.id === file.metadata.applicationId); const review = file.metadata.review as Record<string, any> | undefined; return <article className={`resume-card ${file.metadata.isFinalSubmitted ? "final-resume" : ""}`} key={file.id}><div className="file-cover"><FileText /><span>{file.mimeType.includes("pdf") ? "PDF" : file.mimeType.includes("wordprocessing") ? "DOCX" : "DOC"}</span>{file.metadata.isFinalSubmitted && <b>最终投递版</b>}</div><div className="resume-body"><div><h2>{file.metadata.displayName || file.filename}</h2><p>{application ? `${application.data.company} · ${application.data.role}` : file.metadata.target || "未设置目标方向"}</p></div><dl><div><dt>源文件</dt><dd>{file.filename}</dd></div><div><dt>{tab === "completed" ? "保存时间" : "版本"}</dt><dd>{tab === "completed" ? formatDate(file.createdAt, true) : `优化稿 ${file.metadata.optimizationRevision || 1}`}</dd></div><div><dt>文件大小</dt><dd>{fileSize(file.size)}</dd></div><div><dt>{tab === "completed" ? "已投岗位" : "状态"}</dt><dd>{tab === "completed" ? `${linked.length} 个` : file.metadata.optimizationStatus || "待优化"}</dd></div></dl>{file.metadata.note && <p className="resume-note">{file.metadata.note}</p>}{review && <div className="resume-review"><header><b>AI 评审建议</b><small>{formatDate(file.metadata.reviewedAt, true)} · {review.suggestions?.length || 0} 条</small></header>{(review.suggestions || []).slice(0, 2).map((item: any, index: number) => <article key={index}><b>{item.location}</b><p>{item.issue}</p><span>{item.suggestion}</span><small>依据：{item.sourceQuotes?.[0] || "无有效原文引用"}</small></article>)}{(review.warnings || []).slice(0, 2).map((warning: string) => <p className="review-warning" key={warning}><AlertTriangle />{warning}</p>)}</div>}<div className="tag-row">{(file.metadata.tags || []).map((tag: string) => <span key={tag}>{tag}</span>)}{linked.slice(0, 3).map((item) => <span key={item.id}>{item.data.company}</span>)}</div><div className="card-actions"><Button variant="outline" onClick={() => onPreview(file)}><Eye />预览</Button><Button variant="outline" asChild><a href={`/api/files/content?id=${file.id}&download=true`}><Download />下载</a></Button>{tab === "completed" ? <Button onClick={() => onAnalyze(file)}><Sparkles />通用检查</Button> : application ? <><Button onClick={() => onAnalyze(file, application)}><Sparkles />按 JD 评审</Button><label className="upload-button secondary"><Upload />上传手动修改稿<input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { const next = e.target.files?.[0]; if (next) onUploadRevision(next, application, file); e.target.value = ""; }} /></label><Button variant="outline" onClick={() => { setAppliedAt(localDateTimeValue()); setFinalizing({ file, application }); }} disabled={Boolean(file.metadata.isFinalSubmitted)}><CheckCircle2 />{file.metadata.isFinalSubmitted ? "已设为最终版" : "设为最终投递简历"}</Button><Button variant="ghost" onClick={() => onLink(application.id, null)}><X />取消岗位关联</Button></> : <StatusPill tone="orange">未关联岗位</StatusPill>}<Button variant="ghost" size="icon" aria-label="删除简历" onClick={() => onDelete(file.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={FileText} title={tab === "completed" ? "还没有完成简历" : "还没有岗位优化稿"} text={tab === "completed" ? "上传 PDF、DOCX 或 DOC，原文件会保存为你的私有云端副本。" : "选择一个准备中的岗位和一份完成简历，创建独立优化副本。"} action={tab === "completed" ? <label className="upload-button"><Upload />上传第一份简历<input type="file" accept=".pdf,.doc,.docx" onChange={onUpload} /></label> : undefined} />}
-    {finalizing && <Dialog open onOpenChange={(open) => !open && setFinalizing(null)}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>确认最终投递版本</DialogTitle><DialogDescription>{finalizing.application.data.company} · {finalizing.application.data.role}<br />确认后岗位会从“准备中”自动进入“已投递”，并在岗位分析和简历库中同步关联。</DialogDescription></DialogHeader><Field label="实际投递时间"><Input type="datetime-local" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} /></Field><div className="final-resume-summary"><FileText /><span><b>{finalizing.file.metadata.displayName || finalizing.file.filename}</b><small>请确认这与招聘网站实际上传的文件完全一致</small></span></div><JobMetadataEditor company={finalizing.application.data.company} sourceUrl={finalizing.application.data.sourceUrl || ""} value={finalMetadata} onChange={setFinalMetadata} submission />{finalizeError && <p role="alert">{finalizeError}</p>}<DialogFooter><Button variant="outline" onClick={() => setFinalizing(null)}>取消</Button><Button onClick={async () => { setFinalSaving(true); setFinalizeError(""); try { await onFinalize(finalizing.application.id, finalizing.file.id, appliedAt, confirmMetadataReview(finalMetadata, finalizing.application.data.company, finalizing.application.data.sourceUrl || "")); setFinalizing(null); } catch (error) { setFinalizeError((error as Error).message); } finally { setFinalSaving(false); } }} disabled={!appliedAt || finalSaving}><CheckCircle2 />确认已投递</Button></DialogFooter></DialogContent></Dialog>}
-  </>;
-}
-
-function JobDeadlineNotice({ data, settings, serverNow }: { data: Record<string, any>; settings?: Record<string, any>; serverNow?: string }) {
-  if (!serverNow) return <div className="job-deadline missing"><Timer />正在校准截止时间</div>;
-  const status = jobDeadlineStatus(data, { ...defaultJobSearchSettings, ...(settings || {}) }, new Date(serverNow));
-  return <div className={`job-deadline ${status.level}`}><AlertTriangle />{status.message}</div>;
-}
-
-function SavedJobsView({ items, onEdit, screenshots, settings, serverNow, onSave, onExtract, onConfirm, onConvert, onDelete }: { items: RecordItem[]; onEdit: (item: RecordItem) => void; screenshots: StoredFile[]; settings: Record<string, any>; serverNow?: string; onSave: (data: Record<string, any>, screenshot?: File) => Promise<void>; onExtract: (url?: string, screenshot?: File, refresh?: boolean) => Promise<{ job: AIJob; screenshotFileId: string }>; onConfirm: (jobId: string, data: Record<string, any>, allowDuplicate?: boolean) => Promise<any>; onConvert: (item: RecordItem) => Promise<void>; onDelete: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [file, setFile] = useState<File>();
-  const [captureError, setCaptureError] = useState(""); const screenshotInput = useRef<HTMLInputElement>(null); const jdInput = useRef<HTMLTextAreaElement>(null);
-  const [jobId, setJobId] = useState(""); const [screenshotFileId, setScreenshotFileId] = useState(""); const [extracting, setExtracting] = useState(false); const [warnings, setWarnings] = useState<string[]>([]); const [conflicts, setConflicts] = useState<Array<{ key: string; current: string; incoming: string }>>([]);
-  const confirmation = useConfirmDialog();
-  const empty = { sourceUrl: "", company: "", role: "", location: "", salary: "", deadline: "", recruitmentMode: "自动判断", priority: "普通", jd: "", jobMetadata: JobMetadataSchema.parse({}), manualFields: [] }; const [draft, setDraft] = useState<Record<string, any>>(empty);
-  const latestDraft = useRef(draft); useEffect(() => { latestDraft.current = draft; }, [draft]);
-  const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value, manualFields: [...new Set([...(current.manualFields || []), key])] }));
-  const cloudDraft = useCaptureDraft(open, { ...draft, screenshotFileId }, jobId, (values, restoredJobId) => { setDraft(values); setJobId(restoredJobId); setScreenshotFileId(values.screenshotFileId || ""); setOpen(true); });
-  async function applyCaptureResult(job: AIJob) { const output = { job }; const result = output.job.result || {}; const current = latestDraft.current; if (current.resultAppliedJobId === output.job.id) return; if (output.job.type === "job_capture_url" && current.sourceUrl !== output.job.inputSnapshot.sourceUrl) { setWarnings(["提取已完成，但岗位链接已改变；旧结果保存在 AI 任务中心，未覆盖当前草稿。"]); toast.warning("链接已改变，已保留当前填写"); return; } const next = { ...current }; const found: Array<{ key: string; current: string; incoming: string }> = []; ["sourceUrl","company","role","location","salary","deadline","jd"].forEach((key) => { const incoming = String(result[key] || ""); if (!incoming) return; if ((next.manualFields?.includes(key) || String(next[key] || "").trim()) && String(next[key] || "").trim() !== incoming.trim()) found.push({ key, current: String(next[key]), incoming }); else next[key] = incoming; }); const suggested = await api<any>("/api/job-metadata/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ company: next.company, sourceUrl: next.sourceUrl, jobMetadata: latestDraft.current.jobMetadata, extractionJobId: output.job.id }) }); if (latestDraft.current !== current) { setWarnings(["你在识别期间修改了内容；结果保存在 AI 任务中心，当前填写未被覆盖，请重新核对。"]); toast.warning("已保留识别期间的人工修改"); return; } setDraft({ ...next, jobMetadata: suggested.metadata, resultAppliedJobId: output.job.id }); setConflicts(found); setWarnings(result.warnings || []); setJobId(output.job.id);  if (result.jd) toast.success("提取完成，请核对后保存"); else toast.warning("只获取到部分信息，请补充 JD 后保存"); }
-  const captureTask = useCaptureTask(jobId, applyCaptureResult);
-  useEffect(() => { if (captureTask.job?.status === "failed") setCaptureError(captureTask.job.errorMessage || "读取失败，请重试或手动保存"); }, [captureTask.job]);
-  async function extract(mode: "url" | "image", refresh = false) {
-    if (mode === "url" && !/^https?:\/\//i.test(draft.sourceUrl)) return toast.error("请先输入公开岗位链接");
-    if (mode === "image" && !file) return toast.error("请先选择岗位截图");
-    setCaptureError(""); setWarnings([]); setConflicts([]); setExtracting(true);
-    try {
-      await cloudDraft.flush();
-      const output = await onExtract(mode === "url" ? draft.sourceUrl : undefined, mode === "image" ? file : undefined, refresh);
-      setJobId(output.job.id); setScreenshotFileId(output.screenshotFileId);
-      await cloudDraft.attachJob(output.job.id, output.screenshotFileId);
-    } catch (error) { setCaptureError((error as Error).message); }
-    finally { setExtracting(false); }
-  }
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!draft.sourceUrl && !file && !draft.company && !draft.role) return toast.error("请填写岗位链接、上传截图或补充岗位信息");
-    setSaving(true);
-    try {
-      const savedDraft = await cloudDraft.flush(); const confirmedDraft = { ...draft, screenshotFileId, jobMetadata: confirmMetadataReview(draft.jobMetadata, draft.company, draft.sourceUrl), draftId: savedDraft.id, draftVersion: savedDraft.version };
-      if (jobId) { const result = await onConfirm(jobId, { ...confirmedDraft, screenshotFileId }); if (result.requiresConfirmation && result.duplicate) { if (!await confirmation.ask("保存重复岗位？", `已存在「${result.duplicate.title}」。只有确实需要两条独立记录时才保存副本。`)) return; await onConfirm(jobId, { ...confirmedDraft, screenshotFileId }, true); } }
-      else await onSave({ ...confirmedDraft }, screenshotFileId ? undefined : file);
-      cloudDraft.clear(); setFile(undefined); setDraft(empty); setJobId(""); setWarnings([]); setConflicts([]); setCaptureError(""); setOpen(false); toast.success("岗位已保存");
-    } finally { setSaving(false); }
-  }
-  return <><PageHead eyebrow="机会收集箱" title="先收藏岗位，再决定是否投递" description="保存岗位链接、JD 截图和关键信息；确认后可一键转入投递看板。" action={<Button onClick={() => setOpen(true)}><Plus />收藏岗位</Button>} />
-    {items.length ? <div className="saved-job-grid">{items.map((item) => { const image = screenshots.find((entry) => entry.id === item.data.screenshotFileId); return <article className="saved-job-card" key={item.id}>{item.data.screenshotFileId && !image && <p className="job-source-attachment">来源附件不可用；JD 正文仍保留，可在编辑收藏中解除关联。</p>}{image && <details className="job-source-attachment"><summary>来源附件 · {image.filename}</summary><Image unoptimized width={720} height={360} src={`/api/files/content?id=${image.id}`} alt={`${item.data.company || "岗位"} JD 截图`} /><a href={`/api/files/content?id=${image.id}&download=true`}>下载原始截图</a></details>}<div className="saved-job-body"><div><span className="resource-badge">{item.data.priority || "待评估"}</span><h2>{item.data.company || "公司待补充"}</h2><p>{item.data.role || "岗位名称待补充"}</p></div><dl><div><dt>地点</dt><dd>{item.data.location || "—"}</dd></div><div><dt>招聘方式</dt><dd>{item.data.recruitmentMode || (item.data.deadline ? "固定截止" : "滚动招聘")}</dd></div></dl><JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} />{item.data.jd && <p className="saved-job-jd">{item.data.jd}</p>}<div className="card-actions">{item.data.sourceUrl && <Button variant="outline" asChild><a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />查看原岗位</a></Button>}<Button disabled={Boolean(item.data.convertedApplicationId)} onClick={() => onConvert(item)}>{item.data.convertedApplicationId ? <CheckCircle2 /> : <BriefcaseBusiness />}{item.data.convertedApplicationId ? "已转投递" : "转入投递"}</Button><Button variant="outline" onClick={() => onEdit(item)}><Pencil />编辑收藏</Button><Button variant="ghost" size="icon" aria-label="删除收藏岗位" onClick={() => onDelete(item.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={Bookmark} title="还没有收藏岗位" text="遇到感兴趣的岗位时，先保存链接和 JD，避免信息散落在浏览器标签页和聊天记录中。" action={<Button onClick={() => setOpen(true)}><Plus />收藏第一个岗位</Button>} />}
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="editor-dialog capture-dialog"><DialogHeader><DialogTitle>收藏岗位</DialogTitle><DialogDescription>AI 只在你点击时提取，结果不会直接写入正式记录。</DialogDescription></DialogHeader><form onSubmit={submit}><p role="status">{cloudDraft.status}</p>{cloudDraft.status.startsWith("草稿未保存") && <div className="card-actions"><Button type="button" variant="outline" onClick={() => cloudDraft.retry()}>重试保存草稿</Button><Button type="button" variant="outline" onClick={() => cloudDraft.retry(true)}>另存为新草稿，保留本次填写</Button></div>}{jobId && <div className="capture-warnings" role="status"><p>{captureTask.phase} · 已耗时 {captureTask.elapsed} 秒</p><a href={`?view=aiCenter&job=${jobId}`}>查看任务与来源</a>{captureTask.job?.finishedAt && <p>结果时间：{captureTask.job.finishedAt}；已有结果不会自动重新读取。</p>}{captureTask.busy && <Button type="button" variant="outline" onClick={() => captureTask.cancel()}>取消提取</Button>}{["failed", "cancelled"].includes(captureTask.job?.status || "") && <Button type="button" variant="outline" onClick={captureTask.retry}>重试提取</Button>}{!captureTask.busy && <><Button type="button" variant="outline" onClick={() => { setJobId(""); void cloudDraft.attachJob(""); }}>保留填写，改为手动保存</Button><Button type="button" variant="outline" disabled={!draft.sourceUrl} onClick={() => extract("url", true)}>重新读取链接</Button></>}<p>取消后不采用任务结果；供应商请求可能仍在执行。</p>{(captureTask.error || captureTask.job?.errorMessage) && <p role="alert">{captureTask.error || captureTask.job?.errorMessage}</p>}{captureTask.error && <Button type="button" variant="outline" onClick={captureTask.reload}>重新获取任务状态</Button>}</div>}<div className="capture-source"><Field label="岗位链接"><Input type="url" value={draft.sourceUrl} placeholder="https://..." onChange={(e) => update("sourceUrl", e.target.value)} /></Field><Button type="button" variant="outline" disabled={extracting || captureTask.busy || !draft.sourceUrl} onClick={() => extract("url")}><Sparkles />提取链接</Button></div><div className="editor-grid"><Field label="公司"><Input value={draft.company} onChange={(e) => update("company", e.target.value)} /></Field><Field label="岗位"><Input value={draft.role} onChange={(e) => update("role", e.target.value)} /></Field><Field label="工作地点"><Input value={draft.location} onChange={(e) => update("location", e.target.value)} /></Field><Field label="薪资范围"><Input value={draft.salary} onChange={(e) => update("salary", e.target.value)} /></Field><Field label="招聘方式"><select value={draft.recruitmentMode} onChange={(e) => update("recruitmentMode", e.target.value)}><option>自动判断</option><option>滚动招聘</option><option>固定截止</option></select></Field><Field label="网申截止日期（可空）"><Input type="date" value={draft.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field><Field label="优先级"><select value={draft.priority} onChange={(e) => update("priority", e.target.value)}><option>高</option><option>普通</option><option>低</option></select></Field><Field label="完整 JD"><Textarea ref={jdInput} value={draft.jd} placeholder="提取结果或手动粘贴岗位职责与任职要求…" onChange={(e) => update("jd", e.target.value)} /></Field><Field label="JD 截图"><label className="upload-zone"><ImageIcon /><span>{file ? file.name : "选择 PNG、JPG 或 WebP，最大 10 MB"}</span><input ref={screenshotInput} type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { setFile(e.target.files?.[0]); setScreenshotFileId(""); setJobId(""); }} /></label><Button className="ocr-button" type="button" variant="outline" disabled={extracting || captureTask.busy || !file} onClick={() => extract("image")}><ImageIcon />识别截图</Button></Field></div><JobMetadataEditor value={draft.jobMetadata} company={draft.company} sourceUrl={draft.sourceUrl} onChange={(jobMetadata) => setDraft((current) => ({ ...current, jobMetadata }))} />{captureError && <div className="capture-warnings" role="alert"><b>未完成提取，已保留你的填写</b><p>{captureError}</p><div className="card-actions"><Button type="button" variant="outline" onClick={() => screenshotInput.current?.click()}>上传 JD 截图</Button><Button type="button" variant="outline" onClick={() => jdInput.current?.focus()}>粘贴 JD 正文</Button></div></div>}{warnings.length > 0 && <div className="capture-warnings"><AlertTriangle />{warnings.map((item) => <p key={item}>{item}</p>)}</div>}{conflicts.length > 0 && <div className="capture-conflicts"><b>发现字段冲突，当前保留你的填写</b>{conflicts.map((item) => <div key={item.key}><span><small>当前</small>{item.current}</span><span><small>AI 提取</small>{item.incoming}</span><Button type="button" variant="outline" onClick={() => { update(item.key, item.incoming); setConflicts((items) => items.filter((entry) => entry.key !== item.key)); }}>采用提取值</Button></div>)}</div>}<div className="capture-tip"><AlertTriangle /><span>未填写截止日期时自动按滚动招聘处理；若官网虽然写了远期截止，但岗位实际招满即止，请手动选择“滚动招聘”。</span></div><DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>取消</Button><Button type="submit" disabled={saving || extracting || captureTask.busy}>{saving ? <RefreshCw className="spin" /> : <Bookmark />}{saving ? "正在保存…" : "核对并保存"}</Button></DialogFooter></form></DialogContent></Dialog>{confirmation.dialog}
+    {currentItems.length ? <div className="resume-grid">{currentItems.map((file) => { const linked = applications.filter((item) => item.data.resumeId === file.id); const application = applications.find((item) => item.id === file.metadata.applicationId); const review = file.metadata.review as Record<string, any> | undefined; return <article className={`resume-card ${file.metadata.isFinalSubmitted ? "final-resume" : ""}`} key={file.id}><div className="file-cover"><FileText /><span>{file.mimeType.includes("pdf") ? "PDF" : file.mimeType.includes("wordprocessing") ? "DOCX" : "DOC"}</span>{file.metadata.isFinalSubmitted && <b>最终投递版</b>}</div><div className="resume-body"><div><h2>{file.metadata.displayName || file.filename}</h2><p>{application ? `${application.data.company} · ${application.data.role}` : file.metadata.target || "未设置目标方向"}</p></div><dl><div><dt>源文件</dt><dd>{file.filename}</dd></div><div><dt>{tab === "completed" ? "保存时间" : "版本"}</dt><dd>{tab === "completed" ? formatDate(file.createdAt, true) : `优化稿 ${file.metadata.optimizationRevision || 1}`}</dd></div><div><dt>文件大小</dt><dd>{fileSize(file.size)}</dd></div><div><dt>{tab === "completed" ? "已投岗位" : "状态"}</dt><dd>{tab === "completed" ? `${linked.length} 个` : file.metadata.optimizationStatus || "待优化"}</dd></div></dl>{file.metadata.note && <p className="resume-note">{file.metadata.note}</p>}{review && <div className="resume-review"><header><b>AI 评审建议</b><small>{formatDate(file.metadata.reviewedAt, true)} · {review.suggestions?.length || 0} 条</small></header>{(review.suggestions || []).slice(0, 2).map((item: any, index: number) => <article key={index}><b>{item.location}</b><p>{item.issue}</p><span>{item.suggestion}</span><small>依据：{item.sourceQuotes?.[0] || "无有效原文引用"}</small></article>)}{(review.warnings || []).slice(0, 2).map((warning: string) => <p className="review-warning" key={warning}><AlertTriangle />{warning}</p>)}</div>}<div className="tag-row">{(file.metadata.tags || []).map((tag: string) => <span key={tag}>{tag}</span>)}{linked.slice(0, 3).map((item) => <span key={item.id}>{item.data.company}</span>)}</div><div className="card-actions"><Button variant="outline" onClick={() => onPreview(file)}><Eye />预览</Button><Button variant="outline" asChild><a href={`/api/files/content?id=${file.id}&download=true`}><Download />下载</a></Button>{tab === "completed" ? <Button onClick={() => onAnalyze(file)}><Sparkles />通用检查</Button> : application ? <><Button onClick={() => onAnalyze(file, application)}><Sparkles />按 JD 评审</Button><label className="upload-button secondary"><Upload />上传手动修改稿<input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { const next = e.target.files?.[0]; if (next) onUploadRevision(next, application, file); e.target.value = ""; }} /></label><Button variant="outline" onClick={() => { setAppliedAt(application.data.appliedAt ? localDateTimeValue(new Date(application.data.appliedAt)) : ""); setFinalizing({ file, application }); }} disabled={Boolean(file.metadata.isFinalSubmitted)}><CheckCircle2 />{file.metadata.isFinalSubmitted ? "已设为最终版" : "设为最终投递简历"}</Button><Button variant="ghost" onClick={() => onLink(application.id, null)}><X />取消岗位关联</Button></> : <StatusPill tone="orange">未关联岗位</StatusPill>}<Button variant="ghost" size="icon" aria-label="删除简历" onClick={() => onDelete(file.id)}><Trash2 /></Button></div></div></article>; })}</div> : <EmptyState icon={FileText} title={tab === "completed" ? "还没有完成简历" : "还没有岗位优化稿"} text={tab === "completed" ? "上传 PDF、DOCX 或 DOC，原文件会保存为你的私有云端副本。" : "选择一个准备中的岗位和一份完成简历，创建独立优化副本。"} action={tab === "completed" ? <label className="upload-button"><Upload />上传第一份简历<input type="file" accept=".pdf,.doc,.docx" onChange={onUpload} /></label> : undefined} />}
+    {finalizing && <Dialog open onOpenChange={(open) => !open && setFinalizing(null)}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>确认最终投递版本</DialogTitle><DialogDescription>{finalizing.application.data.company} · {finalizing.application.data.role}<br />确认后岗位会从“准备中”自动进入“已投递”，并在岗位分析和简历库中同步关联。</DialogDescription></DialogHeader><Field label="实际投递时间（可未知）"><Input type="datetime-local" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} /></Field><div className="final-resume-summary"><FileText /><span><b>{finalizing.file.metadata.displayName || finalizing.file.filename}</b><small>请确认这与招聘网站实际上传的文件完全一致</small></span></div><JobMetadataEditor company={finalizing.application.data.company} sourceUrl={finalizing.application.data.sourceUrl || ""} value={finalMetadata} onChange={setFinalMetadata} submission />{finalizeError && <p role="alert">{finalizeError}</p>}<DialogFooter><Button variant="outline" onClick={() => setFinalizing(null)}>取消</Button><Button onClick={async () => { setFinalSaving(true); setFinalizeError(""); try { await onFinalize(finalizing.application.id, finalizing.file.id, appliedAt, confirmMetadataReview(finalMetadata, finalizing.application.data.company, finalizing.application.data.sourceUrl || "")); setFinalizing(null); } catch (error) { setFinalizeError((error as Error).message); } finally { setFinalSaving(false); } }} disabled={finalSaving}><CheckCircle2 />确认已投递</Button></DialogFooter></DialogContent></Dialog>}
   </>;
 }
 
@@ -960,34 +869,6 @@ function KnowledgeView({ onNavigate }: { onNavigate: (view: View) => void }) {
   </>;
 }
 
-function ApplicationsView({ items, resumes, settings, serverNow, onAdd, onEdit, onDelete, onMove, onChecklist, onUnlink, onOptimize }: { items: RecordItem[]; resumes: StoredFile[]; settings: Record<string, any>; serverNow?: string; onAdd: () => void; onEdit: (item: RecordItem) => void; onDelete: (id: string) => void; onMove: (item: RecordItem, stage: string) => void; onChecklist: (item: RecordItem, key: string, done: boolean) => void; onUnlink: (item: RecordItem) => void; onOptimize: (item: RecordItem) => void }) {
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("all");
-  const [sort, setSort] = useState("updated");
-  const [mode, setMode] = useState<"board" | "list">("board");
-  const [selected, setSelected] = useState<RecordItem | null>(null);
-  const tabStages: Record<string, string[]> = { all: stageOrder, prepare: ["待投递", "已投递"], written: ["笔试中"], interview: ["面试中", "OFFER"] };
-  const filtered = items.filter((item) => `${item.data.company} ${item.data.role} ${item.data.location}`.toLowerCase().includes(query.toLowerCase()) && tabStages[tab].includes(item.data.stage || "待投递")).sort((a, b) => {
-    if (sort === "company") return String(a.data.company).localeCompare(String(b.data.company), "zh-CN");
-    if (sort === "deadline") return new Date(a.data.deadline || "2999-12-31").getTime() - new Date(b.data.deadline || "2999-12-31").getTime();
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
-  const card = (item: RecordItem) => { const resume = resumes.find((file) => file.id === item.data.resumeId); const completed = Object.values(item.data.checklist || {}).filter((entry: any) => typeof entry === "boolean" ? entry : entry?.done).length; return <article draggable key={item.id} onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}><div className="job-card-head"><span>{String(item.data.company || "?").slice(0, 1)}</span><div><h3>{item.data.company}</h3><p>{item.data.role}</p></div></div><div className="job-meta"><span>{item.data.location || "地点待定"}</span><span>{item.data.priority || "普通"}</span></div>{resume && <small>简历：{resume.metadata.displayName || resume.filename}</small>}<small>执行清单：{completed}/7</small>{item.data.stage === "已结束" && <small>{closureLabel(item.data.closure)}</small>}<JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} /><footer>{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink />原岗位</a>}<button onClick={() => setSelected(item)}><Eye />详情</button><button onClick={() => onEdit(item)}><Pencil />编辑</button><button onClick={() => onDelete(item.id)}><Trash2 />删除</button></footer></article>; };
-  return <><PageHead eyebrow="投递管理" title="每个机会都有下一步" description="看板拖动会记录阶段变化；列表视图便于筛选、排序与集中核对。" action={<Button onClick={onAdd}><Bookmark />收藏岗位</Button>} /><ClosureStatistics revision={items.map((r) => r.id + ":" + r.version).join(",")} />
-    <div className="pipeline-tabs">{[["all","全部"],["prepare","准备简历"],["written","笔试邀约"],["interview","面试邀约"]].map(([value,label]) => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{label}<span>{items.filter((item) => tabStages[value].includes(item.data.stage || "待投递")).length}</span></button>)}</div>
-    <div className="toolbar application-toolbar"><div className="searchbox"><Search /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索公司、岗位或城市" /></div><div className="toolbar-controls"><label>排序<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="updated">最近更新</option><option value="deadline">截止日期</option><option value="company">公司名称</option></select></label><div className="view-toggle"><Button variant={mode === "board" ? "default" : "outline"} size="icon" aria-label="看板视图" onClick={() => setMode("board")}><Columns3 /></Button><Button variant={mode === "list" ? "default" : "outline"} size="icon" aria-label="列表视图" onClick={() => setMode("list")}><List /></Button></div></div></div>
-    {items.length ? mode === "board" ? <div className="kanban">{stageOrder.filter((stage) => tabStages[tab].includes(stage)).map((stage) => <section key={stage} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { const item = items.find((candidate) => candidate.id === e.dataTransfer.getData("text/plain")); if (item) onMove(item, stage); }}><header><b>{stageLabel(stage)}</b><span>{filtered.filter((item) => (item.data.stage || "待投递") === stage).length}</span></header><div>{filtered.filter((item) => (item.data.stage || "待投递") === stage).map(card)}</div></section>)}</div> : <div className="application-table"><div className="application-row head"><span>公司与岗位</span><span>阶段</span><span>截止风险</span><span>关联简历</span><span>操作</span></div>{filtered.map((item) => { const resume = resumes.find((file) => file.id === item.data.resumeId); return <div className="application-row" key={item.id}><span><b>{item.data.company}</b><small>{item.data.role} · {item.data.location || "地点待定"}</small></span><span><StatusPill>{stageLabel(item.data.stage || "待投递")}</StatusPill>{item.data.stage === "已结束" && <small>{closureLabel(item.data.closure)}</small>}</span><span><JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} /></span><span>{resume?.metadata.displayName || resume?.filename || "未关联"}</span><span className="row-actions">{item.data.sourceUrl && <a href={item.data.sourceUrl} target="_blank" rel="noreferrer" aria-label="查看原岗位"><ExternalLink /></a>}<button onClick={() => setSelected(item)} aria-label="查看详情"><Eye /></button><button onClick={() => onEdit(item)} aria-label="编辑"><Pencil /></button><button onClick={() => onDelete(item.id)} aria-label="删除"><Trash2 /></button></span></div>; })}</div> : <EmptyState icon={BriefcaseBusiness} title="还没有投递记录" text="添加一个目标岗位，从 JD、简历到面试都可以围绕它持续积累。" action={<Button onClick={onAdd}><Plus />去收藏岗位</Button>} />}
-    {selected && <ApplicationDetail item={items.find((item) => item.id === selected.id) || selected} resume={resumes.find((file) => file.id === selected.data.resumeId)} settings={settings} serverNow={serverNow} onClose={() => setSelected(null)} onEdit={() => { onEdit(items.find((item) => item.id === selected.id) || selected); setSelected(null); }} onChecklist={(key, done) => onChecklist(items.find((item) => item.id === selected.id) || selected, key, done)} onUnlink={() => { onUnlink(selected); setSelected(null); }} onOptimize={() => { setSelected(null); onOptimize(selected); }} />}
-  </>;
-}
-
-const checklistLabels: Record<string, string> = { research: "完成公司背调", analysis: "完成岗位分析", resumeSelected: "选择投递简历", resumeOptimized: "核对简历优化", submitted: "完成正式投递", followedUp: "完成一次跟进", interviewScheduled: "安排面试日程" };
-function ApplicationDetail({ item, resume, settings, serverNow, onClose, onEdit, onChecklist, onUnlink, onOptimize }: { item: RecordItem; resume?: StoredFile; settings: Record<string, any>; serverNow?: string; onClose: () => void; onEdit: () => void; onChecklist: (key: string, done: boolean) => void; onUnlink: () => void; onOptimize: () => void }) {
-  return <Dialog open onOpenChange={(open) => !open && onClose()}><DialogContent className="application-detail-dialog"><DialogHeader><DialogTitle>{item.data.company} · {item.data.role}</DialogTitle><DialogDescription>{stageLabel(item.data.stage || "待投递")} · 最近更新 {formatDate(item.updatedAt, true)}</DialogDescription></DialogHeader><JobDeadlineNotice data={item.data} settings={settings} serverNow={serverNow} /><div className="application-detail-grid"><section><h3>投递执行清单</h3><div className="checklist">{Object.entries(checklistLabels).map(([key, label]) => { const entry = item.data.checklist?.[key]; const done = typeof entry === "boolean" ? entry : Boolean(entry?.done); return <label key={key}><input type="checkbox" checked={done} onChange={(e) => onChecklist(key, e.target.checked)} /><span>{label}</span>{done && typeof entry === "object" && entry?.at && <small>{formatDate(entry.at, true)}</small>}</label>; })}</div></section><section><h3>联系与投递信息</h3>{item.data.stage === "已结束" && <p>{closureLabel(item.data.closure)}</p>}<dl className="detail-list"><div><dt>招聘方式</dt><dd>{item.data.recruitmentMode || (item.data.deadline ? "固定截止" : "滚动招聘")}</dd></div><div><dt>官方截止</dt><dd>{formatDate(item.data.deadline)}</dd></div><div><dt>投递时间</dt><dd>{formatDate(item.data.appliedAt, true)}</dd></div><div><dt>联系人 / 内推人</dt><dd>{item.data.contactName || item.data.contact || "未填写"}</dd></div><div><dt>联系方式</dt><dd>{item.data.contactValue || "未填写"}</dd></div><div><dt>下次跟进</dt><dd>{formatDate(item.data.nextFollowUpAt, true)}</dd></div><div><dt>关联简历</dt><dd>{resume?.metadata.displayName || resume?.filename || "未关联"}</dd></div></dl><div className="detail-actions"><Button variant="outline" onClick={onEdit}><Pencil />编辑完整信息</Button>{item.data.stage === "待投递" && <Button onClick={onOptimize}><Sparkles />去简历优化库</Button>}{resume && <Button variant="ghost" onClick={onUnlink}><X />取消简历关联</Button>}</div></section></div><JobMetadataSummary item={item} /><JDArchivePanel sourceId={item.id} /><ActivityTimeline entityId={item.id} /></DialogContent></Dialog>;
-}
-
-function ActivityTimeline({ entityId }: { entityId: string }) { const [events, setEvents] = useState<RecordItem[]>([]); useEffect(() => { api<{ events: RecordItem[] }>(`/api/activity?entityType=applications&entityId=${encodeURIComponent(entityId)}`).then((result) => setEvents(result.events)).catch(() => setEvents([])); }, [entityId]); return <section className="activity-timeline"><h3>操作时间线</h3>{events.length ? events.map((event) => <article key={event.id}><time>{formatDate(event.createdAt, true)}</time><div><b>{event.title}</b><small>{({ application_closed: "机会已结束", application_reopened: "机会重新开启", application_closure_corrected: "结束信息已纠正" } as Record<string, string>)[event.data.action] || event.data.action || "记录更新"}</small>{event.data.closure && <p>{closureLabel(event.data.closure)} · 结束时间：{formatDate(event.data.closure.endedAt, true)}{event.data.closure.reason && ` · ${event.data.closure.reason}`}{event.data.closure.notes && ` · ${event.data.closure.notes}`}</p>}</div></article>) : <p className="muted">还没有操作历史</p>}</section>; }
-
 function TasksView({ items, applications, onChanged }: { items: RecordItem[]; applications: RecordItem[]; onChanged: () => void }) {
   const submissionConfirmation = useSubmissionConfirmation();
   const [open, setOpen] = useState(false); const [status, setStatus] = useState("active"); const visible = items.filter((item) => status === "all" ? true : status === "active" ? !["done", "dismissed"].includes(item.data.status) : item.data.status === status);
@@ -995,7 +876,7 @@ function TasksView({ items, applications, onChanged }: { items: RecordItem[]; ap
   async function create(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await api("/api/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: form.get("title"), category: form.get("category"), priority: form.get("priority"), dueAt: form.get("dueAt"), notes: form.get("notes"), applicationId: form.get("applicationId"), entityType: form.get("applicationId") ? "applications" : "", entityId: form.get("applicationId") || "", status: "todo", createdBy: "user", aiJobId: "", checklistKey: "", sourceRefs: [] }) }); setOpen(false); onChanged(); toast.success("行动任务已创建"); } catch (error) { toast.error((error as Error).message); } }
   async function update(item: RecordItem, data: Record<string, any>) {
     const app = applications.find((entry) => entry.id === item.data.applicationId);
-    const jobMetadata = data.status === "done" && item.data.checklistKey === "submitted" && app && (app.data.stage || "待投递") === "待投递" ? await submissionConfirmation.ask(app) : undefined;
+    const jobMetadata = data.status === "done" && item.data.checklistKey === "submitted" && app && ((app.data.stage || "待投递") === "待投递" || submissionStageBucket(app.data.stage)==="unknown") ? await submissionConfirmation.ask(app) : undefined;
     if (jobMetadata === null) return;
     try { await api("/api/tasks", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id, version: item.version, data, jobMetadata, applicationVersion: app?.version }) }); onChanged(); } catch (error) { toast.error((error as Error).message); }
   }
@@ -1019,7 +900,7 @@ function AnalysisView({ input, setInput, busy, result, onRun, onEvidence, onCrea
   </>;
 }
 
-const aiTypeLabels: Record<string, string> = { jd_requirements_extract: "JD 要求提取", resume_text_extract: "简历文本解析", resume_gap_analysis: "简历差距分析", job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", foreign_interview_review: "外企英文面试点评", transcription: "录音转写", evaluation_case: "合成评测", job_capture_url: "岗位链接提取", job_capture_image: "岗位截图识别" };
+const aiTypeLabels: Record<string, string> = { company_metadata_verify: "公司性质核实", jd_requirements_extract: "JD 要求提取", resume_text_extract: "简历文本解析", resume_gap_analysis: "简历差距分析", job_analysis: "岗位分析", resume_suggestions: "简历建议", company_research: "公司背调", interview_review: "面试复盘", foreign_interview_review: "外企英文面试点评", transcription: "录音转写", evaluation_case: "合成评测", job_capture_url: "岗位链接提取", job_capture_image: "岗位截图识别" };
 const aiStatusLabels: Record<string, string> = { queued: "排队中", running: "运行中", succeeded: "成功", failed: "失败", cancelled: "已取消" };
 
 function AICenterView({ jobs, legacy, activeId, attempts, evaluation, onSelect, onRetry, onCancel, onRefresh, onRunEvaluation, onNavigate }: { jobs: AIJob[]; legacy: any[]; activeId: string | null; attempts: any[]; evaluation: Record<string, any> | null; onSelect: (id: string) => void; onRetry: (id: string) => void; onCancel: (id: string) => void; onRefresh: () => void; onRunEvaluation: () => void; onNavigate: (view: View) => void }) {

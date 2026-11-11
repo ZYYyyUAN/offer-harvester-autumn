@@ -1,3 +1,5 @@
+import { clearDefaultSubmissionResumeStatement } from "@/lib/submission-defaults";
+import { atomicBatch, versionGuard } from "@/lib/jd-store";
 import { ApiError, apiError, getBindings, mapFile, requireApiUser } from "@/lib/server-data";
 import { sha256Hex } from "@/lib/data-safety";
 
@@ -105,8 +107,8 @@ export async function PATCH(request: Request) {
     if (body.version !== Number(current.version)) throw new ApiError(409, "文件信息已被更新", "VERSION_CONFLICT", false, { currentVersion: Number(current.version) });
     if (current.deleted_at && !body.restore) throw new ApiError(409, "文件已在回收站，请先恢复", "FILE_DELETED");
     const metadata = { ...JSON.parse(String(current.metadata)), ...(body.metadata ?? {}) };
-    await db.prepare("UPDATE stored_files SET metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP, deleted_at = ? WHERE id = ? AND owner_id = ? AND version = ?")
-      .bind(JSON.stringify(metadata), body.restore ? null : current.deleted_at, body.id, userId, body.version).run();
+    await atomicBatch([versionGuard(userId, body.id, body.version!, "stored_files", current.deleted_at ? "deleted" : undefined), ...(metadata.libraryType === "optimization" ? [clearDefaultSubmissionResumeStatement(userId, body.id)] : []), db.prepare("UPDATE stored_files SET metadata = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP, deleted_at = ? WHERE id = ? AND owner_id = ? AND version = ?")
+      .bind(JSON.stringify(metadata), body.restore ? null : current.deleted_at, body.id, userId, body.version)]);
     return Response.json({ ok: true });
   } catch (error) {
     return apiError(error);
@@ -131,7 +133,7 @@ export async function DELETE(request: Request) {
       await bucket.delete(String(row.object_key));
       await db.prepare("DELETE FROM stored_files WHERE id = ? AND owner_id = ?").bind(id, userId).run();
     } else {
-      await db.prepare("UPDATE stored_files SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ?").bind(id, userId, version).run();
+      await atomicBatch([versionGuard(userId,id,version,"stored_files"), clearDefaultSubmissionResumeStatement(userId,id), db.prepare("UPDATE stored_files SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ?").bind(id,userId,version)]);
     }
     return Response.json({ ok: true });
   } catch (error) {

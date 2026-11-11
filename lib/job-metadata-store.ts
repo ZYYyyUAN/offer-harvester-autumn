@@ -59,6 +59,10 @@ export async function validateJobMetadata(ownerId: string, data: Record<string, 
   const contextKey = metadataContext(String(data.company || ""), String(data.sourceUrl || ""));
   const metadata = applyMetadataSuggestions(data.jobMetadata, [], contextKey);
   const priorMetadata = current?.jobMetadata ? applyMetadataSuggestions(current.jobMetadata, [], contextKey) : null;
+  if (metadata.companyVerificationJobId && metadata.companyVerificationJobId !== priorMetadata?.companyVerificationJobId) {
+    const task = await getDatabase().prepare("SELECT id FROM ai_jobs WHERE id = ? AND owner_id = ? AND type = 'company_metadata_verify'").bind(metadata.companyVerificationJobId, ownerId).first();
+    if (!task) throw new ApiError(404, "公司核实任务不存在");
+  }
   if (metadata.actualSubmission && JSON.stringify(metadata.actualSubmission) !== JSON.stringify(priorMetadata?.actualSubmission)) metadata.actualSubmission.confirmedAt = new Date().toISOString();
   if (metadata.companyProfileCandidate && metadata.companyProfileCandidate.contextKey !== contextKey) metadata.companyProfileCandidate = null;
   if (current && current.company !== data.company && metadata.companyProfileId === current.jobMetadata?.companyProfileId) metadata.companyProfileId = null;
@@ -88,7 +92,7 @@ export async function validateJobMetadata(ownerId: string, data: Record<string, 
       if (profile.id !== (metadata.companyProfileId || metadata.companyProfileCandidate?.id) || profile.version !== state.evidence.profileVersion || JSON.stringify(profile.data[field]) !== JSON.stringify(metadata[field])) throw new ApiError(409, "公司资料已变化，请重新核对建议");
     }
     if (state.evidence && ["page_explicit", "ocr_explicit", "ai_inference"].includes(state.evidence.sourceType)) {
-      const job = await getDatabase().prepare("SELECT result, type, prompt_version FROM ai_jobs WHERE id = ? AND owner_id = ? AND status = 'succeeded' AND type IN ('job_capture_url','job_capture_image','company_research')").bind(state.evidence.sourceRef, ownerId).first<{ result: string; type: string; prompt_version: string }>();
+      const job = await getDatabase().prepare("SELECT result, type, prompt_version FROM ai_jobs WHERE id = ? AND owner_id = ? AND status = 'succeeded' AND type IN ('job_capture_url','job_capture_image','company_research','company_metadata_verify')").bind(state.evidence.sourceRef, ownerId).first<{ result: string; type: string; prompt_version: string }>();
       if (!job || job.prompt_version !== state.evidence.version || (state.evidence.sourceType === "ocr_explicit" && job.type !== "job_capture_image") || (state.evidence.sourceType === "page_explicit" && job.type !== "job_capture_url")) throw new ApiError(422, "分类建议缺少有效提取依据");
       const result = JSON.parse(job.result), quotes = [state.evidence.quote, ...(state.evidence.additionalQuotes || [])];
       if (state.evidence.sourceType === "page_explicit" && result.captureMethod !== "public_ats_api") throw new ApiError(422, "网页线索尚未取得可核对原文，只能作为 AI 待核实建议");
@@ -110,7 +114,8 @@ export const MetadataChangeSchema = z.object({
 export function submissionMetadata(data: Record<string, any>) {
   return freezeSubmissionMetadata(data.jobMetadata, String(data.company || ""), String(data.sourceUrl || ""));
 }
-export async function validateCaptureDraftReferences(ownerId: string, data: { confirmedSavedJobId: string | null; extractionJobId: string; values: Record<string, unknown> }) {
+export async function validateCaptureDraftReferences(ownerId: string, data: { confirmedSavedJobId: string | null; confirmation?: unknown; extractionJobId: string; values: Record<string, unknown> }) {
+  if (data.confirmation) throw new ApiError(422, "确认凭据只能通过核对确认接口写入");
   if (data.confirmedSavedJobId) throw new ApiError(422, "草稿收藏状态只能通过核对确认接口写入");
   const db = getDatabase();
   if (data.extractionJobId && !await db.prepare("SELECT id FROM ai_jobs WHERE owner_id = ? AND id = ? AND type IN ('job_capture_url','job_capture_image')").bind(ownerId, data.extractionJobId).first()) throw new ApiError(404, "岗位提取任务不存在");

@@ -64,6 +64,13 @@
       "when": 1794290147185,
       "tag": "0008_odd_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794333142052,
+      "tag": "0009_parallel_squadron_supreme",
+      "breakpoints": true
     }
   ]
 }

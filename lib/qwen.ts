@@ -15,15 +15,17 @@ function config() {
 async function qwenFetch(path: string, init: RequestInit) {
   const { apiKey, baseUrl } = config();
   let response: Response;
+  let text: string;
   try {
     response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: { Authorization: `Bearer ${apiKey}`, ...(init.headers || {}) },
     });
-  } catch {
+    text = await response.text();
+  } catch (error) {
+    if (error instanceof Error && ["TimeoutError","AbortError"].includes(error.name)) throw new ApiError(504,"AI 核实超时，输入已保留，可手动重试","AI_TIMEOUT",false);
     throw new ApiError(502, "无法连接 AI 服务，请稍后重试", "NETWORK_ERROR", true);
   }
-  const text = await response.text();
   if (!response.ok) {
     let message = `AI 服务请求失败（${response.status}）`;
     try {
@@ -186,18 +188,21 @@ export function aiErrorDetails(error: unknown) {
   return { code: "UNKNOWN_ERROR", message: error instanceof Error ? error.message : "未知错误", retryable: false };
 }
 
-export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType; model?: "qwen3.8-max" | "qwen3.8-flash" }) {
+export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType; model?: "qwen3.8-max" | "qwen3.8-flash"; reasoningEffort?: "low"; maxOutputTokens?: number; timeoutMs?: number; searchOnly?: boolean }) {
   const response = await qwenFetch("/responses", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model: options.model || "qwen3.8-max",
       input: `${options.system}\n\n${options.prompt}\n只返回符合以下 JSON Schema 的 JSON，不要添加 Markdown：${JSON.stringify(options.schema)}`,
-      tools: [{ type: "web_search" }, { type: "web_extractor" }],
-      enable_thinking: true,
+      tools: options.searchOnly ? [{type:"web_search"}] : [{ type: "web_search" }, { type: "web_extractor" }],
+      ...(options.reasoningEffort ? {reasoning:{effort:options.reasoningEffort}} : {enable_thinking:true}),
+      ...(options.maxOutputTokens ? {max_output_tokens:options.maxOutputTokens} : {}),
       text: { format: { type: "json_schema", json_schema: { name: options.schemaName, strict: true, schema: options.schema } } },
     }),
+    signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
   });
+  if (response.status === "incomplete") throw new ApiError(502,"联网结果未完整生成，请重试或保持未知","OUTPUT_TRUNCATED",false);
   const output = Array.isArray(response.output) ? response.output as Array<Record<string, unknown>> : [];
   const content = output.flatMap((item) => Array.isArray(item.content) ? item.content as Array<Record<string, unknown>> : []).map((item) => item.text).filter((item): item is string => typeof item === "string").join("");
   const parsed = parseJsonContent(content || response.output_text);
@@ -212,10 +217,12 @@ export async function responsesSearch(options: { system: string; prompt: string;
       const rawUrl = typeof source === "string" ? source : source && typeof source === "object" ? String((source as Record<string, unknown>).url || "") : "";
       try {
         const url = new URL(rawUrl);
+        if (!["http:","https:"].includes(url.protocol)) continue;
         if (!seen.has(url.href)) { seen.add(url.href); const object = typeof source === "object" && source ? source as Record<string, unknown> : {}; sources.push({ title: String(object.title || url.hostname), url: url.href, publishedAt: object.published_at ? String(object.published_at) : null, crawledAt: new Date().toISOString() }); }
       } catch {}
     }
   }
+  for (const source of extractSearchSources(response)) if (!seen.has(source.url)) { sources.push(source); seen.add(source.url); }
   return { data, sources, raw: response, usage: (response.usage || {}) as Record<string, unknown> };
 }
 

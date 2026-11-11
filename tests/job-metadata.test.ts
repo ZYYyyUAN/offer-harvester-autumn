@@ -90,6 +90,15 @@ test("discovery and confirmed company data survive a new application link for th
   assert.equal(frozen.submissionChannel, "unknown");
 });
 
+test("correcting a source link never erases an already confirmed actual submission channel",()=>{
+ const oldContext=metadataContext(company,"https://example.test/original");
+ const actual={channel:"email" as const,customLabel:"",contextKey:oldContext,confirmedAt:now};
+ const metadata=JobMetadataSchema.parse({actualSubmission:actual});
+ const changed=applyMetadataSuggestions(metadata,[],metadataContext(company,"https://example.test/corrected"));
+ assert.deepEqual(changed.actualSubmission,actual);
+ assert.deepEqual(freezeSubmissionMetadata(changed,company,"https://example.test/corrected").actualSubmission,actual);
+});
+
 test("server contract separates discovery choices from submission channels", () => {
   assert.equal(JobMetadataSchema.safeParse({ discoverySource: "xiaohongshu" }).success, true);
   assert.equal(JobMetadataSchema.safeParse({ submissionChannel: "xiaohongshu" }).success, false);

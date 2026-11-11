@@ -4,13 +4,14 @@ import { applicationSaveStatements } from "@/lib/application-submission";
 import { atomicBatch, versionGuard } from "@/lib/jd-store";
 import { JobMetadataSchema } from "@/lib/job-metadata";
 import { validateJobMetadata } from "@/lib/job-metadata-store";
+import { submissionStageBucket } from "@/lib/submission-workspace";
 
 const FinalizeSchema = z.object({
   applicationId: z.string().min(1),
   applicationVersion: z.number().int().positive(),
   fileId: z.string().min(1),
   fileVersions: z.record(z.string(), z.number().int().positive()),
-  appliedAt: z.string().datetime(),
+  appliedAt: z.string().datetime().nullable(),
   jobMetadata: JobMetadataSchema.optional(),
 }).strict();
 
@@ -34,11 +35,12 @@ export async function POST(request: Request) {
     if (input.jobMetadata) data.jobMetadata = (await validateJobMetadata(userId, { ...data, jobMetadata: input.jobMetadata }, data)).jobMetadata;
     const now = new Date().toISOString();
     const previousStage = String(data.stage || "待投递");
-    data.stage = previousStage === "待投递" ? "已投递" : previousStage;
+    data.stage = previousStage === "待投递" || submissionStageBucket(previousStage) === "unknown" ? "已投递" : previousStage;
     data.resumeId = input.fileId;
     data.finalResumeFileId = input.fileId;
     data.resumeName = String(selectedMetadata.displayName || selected.filename);
     data.appliedAt = data.appliedAt || input.appliedAt;
+    data.appliedAtStatus = data.appliedAt ? "known" : "unknown";
     data.checklist = {
       ...(data.checklist || {}),
       resumeSelected: { done: true, at: now },
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
     }
     statements.push(
       db.prepare("INSERT INTO records (id, owner_id, kind, title, data) VALUES (?, ?, 'application_events', ?, ?)")
-        .bind(crypto.randomUUID(), userId, `完成投递：${data.resumeName}`, JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: "application_submitted", from: previousStage, to: "已投递", fileId: input.fileId, appliedAt: input.appliedAt }))
+        .bind(crypto.randomUUID(), userId, `完成投递：${data.resumeName}`, JSON.stringify({ entityType: "applications", entityId: input.applicationId, applicationId: input.applicationId, action: "application_submitted", from: previousStage, to: data.stage, fileId: input.fileId, appliedAt: data.appliedAt }))
     );
     await atomicBatch([...(await applicationSaveStatements(userId, input.applicationId, data, mapRecord(application))), ...statements]);
     const saved = await db.prepare("SELECT id, kind, title, data, version, created_at, updated_at, deleted_at FROM records WHERE id = ? AND owner_id = ?")
