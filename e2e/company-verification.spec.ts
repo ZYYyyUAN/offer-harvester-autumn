@@ -16,11 +16,11 @@ test("company checks filter fabricated sources, ambiguity and malformed output, 
 test("company verification is click-only, preserves a manual override and restores its task from the cloud draft",async({page,request})=>{
  await page.goto("/?view=savedJobs");await page.getByRole("main").getByRole("button",{name:"记录已投岗位",exact:true}).click();let dialog=page.getByRole("dialog",{name:"记录已投岗位",exact:true});
  await dialog.getByLabel("公司",{exact:true}).fill("合成精确主体有限公司");await dialog.getByLabel("岗位",{exact:true}).fill("Java");expect((await json(await request.get("/api/ai/jobs?type=company_metadata_verify"))).jobs).toHaveLength(0);
- await dialog.getByText("公司性质需要进一步核实？",{exact:true}).click();await dialog.getByRole("button",{name:"联网核实公司性质",exact:true}).click();
- await expect(dialog.getByRole("button",{name:"已核对主体与原文，加入分类建议",exact:true})).toBeVisible();
- await dialog.getByRole("combobox",{name:"公司性质",exact:true}).selectOption("state_owned");await dialog.getByRole("button",{name:"已核对主体与原文，加入分类建议",exact:true}).click();await expect(dialog.getByRole("combobox",{name:"公司性质",exact:true})).toHaveValue("state_owned");
+ await dialog.getByRole("combobox",{name:"公司性质",exact:true}).selectOption("state_owned");await dialog.getByRole("button",{name:"核实性质",exact:true}).click();
+ await expect(dialog.getByText("查看公司性质来源",{exact:true})).toBeVisible();
+ await expect(dialog.getByRole("combobox",{name:"公司性质",exact:true})).toHaveValue("state_owned");
  await expect(dialog.getByRole("status").first()).toContainText("草稿已保存到云端");await page.reload();dialog=page.getByRole("dialog",{name:"记录已投岗位",exact:true});await expect(dialog.getByRole("combobox",{name:"公司性质",exact:true})).toHaveValue("state_owned");
- await dialog.getByText("公司性质需要进一步核实？",{exact:true}).click();await expect(dialog.getByRole("button",{name:"已核对主体与原文，加入分类建议",exact:true})).toBeVisible();
+ await expect(dialog.getByText("查看公司性质来源",{exact:true})).toBeVisible();
  expect((await json(await request.get("/api/ai/jobs?type=company_metadata_verify"))).jobs).toHaveLength(1);
  await dialog.getByLabel("公司",{exact:true}).fill("另一家合成子公司");await expect(dialog.getByText("公司或链接已经变化，此任务不用于当前岗位，请重新核实。")).toBeVisible();await expect(dialog.getByRole("button",{name:"已核对主体与原文，加入分类建议",exact:true})).toHaveCount(0);
 });

@@ -20,8 +20,8 @@ export function useCaptureTask(id: string, onResult: (job: AIJob) => Promise<voi
         const timestamp = (value: string) => new Date(value.includes("T") ? value : value.replace(" ", "T") + "Z").getTime();
         setElapsed(Math.max(0, Math.floor((timestamp(current.finishedAt || response.serverNow) - timestamp(current.createdAt)) / 1000)));
         if (current.status === "succeeded" && delivered.current !== id) {
-          delivered.current = id;
           await callback.current(current);
+          delivered.current = id;
         }
         if (current.status === "queued" && !running) {
           running = true;

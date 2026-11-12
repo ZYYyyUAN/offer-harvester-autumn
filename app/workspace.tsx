@@ -353,8 +353,8 @@ export function OfferWorkspace({ user }: { user: { email: string; displayName: s
     } catch (error) { toast.error((error as Error).message, { id: toastId }); }
   }
 
-  async function extractJob(sourceUrl?: string, screenshot?: File, refresh = false) {
-    let screenshotFileId = "";
+  async function extractJob(sourceUrl?: string, screenshot?: File, refresh = false, existingScreenshotFileId = "") {
+    let screenshotFileId = existingScreenshotFileId;
     if (screenshot) { const saved = await uploadFile(screenshot, "job_screenshot", { displayName: "待识别 JD 截图" }); screenshotFileId = saved.id; setJobScreenshots((items) => [saved, ...items]); }
     const result = await api<{ job: AIJob }>("/api/job-captures", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...(screenshotFileId ? { screenshotFileId } : { sourceUrl }), wait: false, refresh }) });
     await refreshAIJobs(); return { job: result.job, screenshotFileId };

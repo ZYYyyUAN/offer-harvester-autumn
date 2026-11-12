@@ -31,7 +31,7 @@ const modelFor: Record<AIJobType, string> = {
   job_capture_url: "qwen3.8-max", job_capture_image: "qwen3.5-ocr",
 };
 const promptFor: Record<AIJobType, string> = {
-  company_metadata_verify: "company-metadata-v5",
+  company_metadata_verify: "company-metadata-v6",
   jd_requirements_extract: "jd-requirements-v2", resume_text_extract: "resume-text-v1", resume_gap_analysis: "resume-gap-v4",
   job_analysis: "job-analysis-v2", resume_suggestions: "resume-suggestions-v2", company_research: "company-research-v3",
   interview_review: "interview-review-v2", transcription: "transcription-v2", evaluation_case: "evaluation-job-analysis-v2",

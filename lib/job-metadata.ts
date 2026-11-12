@@ -95,6 +95,7 @@ export function explicitClassificationClue(clue: { field: string; value: string;
     private: /民营企业|私营企业|民营公司|私营公司|privately[- ]owned|private company/i,
     foreign_invested: /外商投资|外商独资|外资企业|外资公司|外资银行|中外合资|foreign[- ](?:invested|owned)/i,
     public_institution: /事业单位|public institution/i,
+    other: /社会团体|民办非企业单位|社会服务机构|social organization|nonprofit organization/i,
   };
   if (clue.field === "companyNature") return Boolean(nature[clue.value] && hasPositivePhrase(clue.quote, nature[clue.value]));
   if (clue.field === "employmentType") {
@@ -160,6 +161,7 @@ export function applyMetadataSuggestions(metadata: JobMetadata, suggestions: Met
     if (!existing) next.suggestions.push(suggestion);
     const state = next.fieldStates[suggestion.field];
     if (state && state.status !== "unset" && state.status !== "suggested") continue;
+    if (state?.evidence?.sourceType === "confirmed_profile" && suggestion.evidence.sourceType !== "confirmed_profile") continue;
     if (state?.rejectedValues.some((v) => JSON.stringify(v) === JSON.stringify(suggestion.value))) continue;
     (next as Record<string, unknown>)[suggestion.field] = suggestion.value;
     next.fieldStates[suggestion.field] = { status: "suggested", contextKey, evidence: suggestion.evidence, rejectedValues: state?.rejectedValues || [] };
@@ -231,5 +233,16 @@ export function freezeSubmissionMetadata(metadata: JobMetadata | undefined, comp
       (next as Record<string, unknown>)[field] = field === "companyTags" ? [] : field === "referralCode" ? "" : "unknown";
     }
   }
+  return next;
+}
+
+export function confirmVisibleMetadata(metadata: JobMetadata, company: string, sourceUrl: string, daily = false) {
+  let next = metadata;
+  const contextKey = metadataContext(company, sourceUrl), now = new Date().toISOString();
+  metadata.suggestions.forEach((suggestion, index) => {
+    if (daily && suggestion.field !== "companyNature") return;
+    const evidence = metadata.fieldStates[suggestion.field]?.evidence;
+    if (suggestion.status === "suggested" && suggestion.evidence.contextKey === contextKey && metadata.fieldStates[suggestion.field]?.status === "suggested" && evidence?.sourceType === suggestion.evidence.sourceType && evidence.sourceRef === suggestion.evidence.sourceRef && evidence.version === suggestion.evidence.version && evidence.profileVersion === suggestion.evidence.profileVersion && JSON.stringify(metadata[suggestion.field]) === JSON.stringify(suggestion.value)) next = decideMetadataSuggestion(next, index, true, contextKey, now);
+  });
   return next;
 }

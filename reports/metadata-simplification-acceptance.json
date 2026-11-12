@@ -1,0 +1,43 @@
+{
+  "baselineCommit": "6f30289c922821c2eff146fcb0f8c00101724fcd",
+  "databaseMigrations": false,
+  "backupWriterVersion": 7,
+  "backupReaderVersions": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unitTests": {
+      "passed": 71
+    },
+    "affectedE2E": {
+      "passed": 48,
+      "viewports": [
+        1440,
+        390
+      ]
+    },
+    "finalMainFlowAfterProvenanceFix": {
+      "passed": 6
+    },
+    "companyTimeoutAndSchemaTests": "desktop passed; duplicate mobile timeout skipped",
+    "productionBuild": "passed",
+    "axe": "passed for new dialog in both viewports",
+    "horizontalOverflow": "none in both viewports"
+  },
+  "realAI": {
+    "passed": true,
+    "cases": 3,
+    "report": "company-verification-real-v6.json",
+    "model": "qwen3.8-max",
+    "promptVersion": "company-metadata-v6",
+    "privateJobDataUsed": false
+  },
+  "productionBrowserReplay": "not performed; local synthetic Playwright only",
+  "releaseProof": "Sites native deployment result, separate from this source report"
+}

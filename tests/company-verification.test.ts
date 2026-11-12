@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CompanyVerificationOutputSchema, companyVerificationSuggestions, verifiedCompanyResult } from "../lib/company-verification.ts";
-import { applyMetadataSuggestions, JobMetadataSchema, manualMetadataEdit, metadataContext } from "../lib/job-metadata.ts";
+import { applyMetadataSuggestions, confirmVisibleMetadata, JobMetadataSchema, manualMetadataEdit, metadataContext } from "../lib/job-metadata.ts";
 import { applicationToFeishuFields, mergeFeishuApplication } from "../lib/feishu-contracts.ts";
 const now="2026-11-11T00:00:00.000Z", input={company:"合成主体",sourceUrl:""};
 const source={title:"公开资料",url:"https://example.test/company",publishedAt:null,crawledAt:now};
@@ -32,4 +32,22 @@ test("Feishu displays confirmed actual channel and treats legacy inbound channel
 test("explicit state-owned bank wording is recognized without treating banking software as a bank",()=>{
  const bank=raw();bank.claims[0].value="state_owned";bank.claims[0].quote="合成主体有限公司为国有大型商业银行。";assert.equal(verifiedCompanyResult(bank,input,[source]).claims.length,1);
  const software=raw();software.claims[0].field="companyTags";software.claims[0].value="banking";software.claims[0].quote="合成主体有限公司提供银行业务软件外包服务。";assert.equal(verifiedCompanyResult(software,input,[source]).claims.length,0);
+});
+
+test("all six nature choices keep unknown distinct from explicitly supported other",()=>{
+ for (const [value,quote] of [["state_owned","公司性质：国有企业"],["private","公司性质：民营企业"],["foreign_invested","公司性质：外商投资企业"],["public_institution","单位性质：事业单位"],["other","单位登记为社会团体"]]) {
+  const item=raw();item.claims=[{...item.claims[0],value,quote}];assert.equal(verifiedCompanyResult(item,input,[source]).claims[0]?.value,value);
+ }
+ const missing=raw();missing.claims=[{...missing.claims[0],value:"other",quote:"公司未披露性质"}];assert.equal(verifiedCompanyResult(missing,input,[source]).claims.length,0);
+});
+test("daily confirmation excludes hidden suggestions and keeps confirmed-profile priority",()=>{
+ const key=metadataContext(input.company,input.sourceUrl), nature=companyVerificationSuggestions(verifiedCompanyResult(raw(),input,[source]),"00000000-0000-4000-8000-000000000001","company-metadata-v6")[0];
+ const tags={...nature,field:"companyTags" as const,value:["banking"]};
+ const values=applyMetadataSuggestions(JobMetadataSchema.parse({}),[nature,tags],key), saved=confirmVisibleMetadata(values,input.company,input.sourceUrl,true);
+ assert.equal(saved.fieldStates.companyNature?.status,"confirmed");assert.equal(saved.fieldStates.companyTags?.status,"suggested");
+ const profile={...nature,value:"state_owned",evidence:{...nature.evidence,sourceType:"confirmed_profile" as const,sourceRef:"profile",profileVersion:1}};
+ const reused=applyMetadataSuggestions(values,[profile],key);
+ assert.equal(applyMetadataSuggestions(reused,[nature],key).companyNature,"state_owned");
+ const sameValue={...nature,value:"state_owned"};
+ assert.equal(confirmVisibleMetadata(applyMetadataSuggestions(reused,[sameValue],key),input.company,input.sourceUrl,true).fieldStates.companyNature?.evidence?.sourceType,"confirmed_profile");
 });

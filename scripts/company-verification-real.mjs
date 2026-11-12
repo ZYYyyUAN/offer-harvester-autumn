@@ -11,11 +11,11 @@ try{
   const done=await api(`/api/ai/jobs/${created.job.id}/run`,"POST"),result=done.job.result;
   const urls=new Set(result.sources.map(s=>s.url)),referencesValid=result.claims.every(c=>urls.has(new URL(c.sourceUrl).href)&&c.subject===result.legalName);
   const pass=done.job.status==="succeeded"&&referencesValid&&result.quoteVerification==="model_only"&&(fixture.expectedNature?result.claims.some(c=>c.field==="companyNature"&&c.value===fixture.expectedNature):result.claims.length===0);
-  const entry={name:fixture.name,pass,referencesValid,expectedNature:fixture.expectedNature,model:done.job.model,promptVersion:done.job.promptVersion,elapsedMs:Date.now()-start,attempts:done.attempts.map(a=>({status:a.status,tokenUsage:a.tokenUsage})),result};report.cases.push(entry);writeFileSync(`reports/company-verification-real${selected?"-"+selected:""}.json`,JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({case:fixture.name,pass,claims:result.claims.length,sources:result.sources.length,elapsedMs:entry.elapsedMs}));
+  const entry={name:fixture.name,pass,referencesValid,expectedNature:fixture.expectedNature,model:done.job.model,promptVersion:done.job.promptVersion,elapsedMs:Date.now()-start,attempts:done.attempts.map(a=>({status:a.status,tokenUsage:a.tokenUsage})),result};report.cases.push(entry);writeFileSync(`reports/company-verification-real-v6${selected?"-"+selected:""}.json`,JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({case:fixture.name,pass,claims:result.claims.length,sources:result.sources.length,elapsedMs:entry.elapsedMs}));
  }
  report.passed=report.cases.length>0&&report.cases.every(c=>c.pass);
  if(!report.passed)throw new Error("Company verification regression failed");
 }catch(error){report.error=error.message;process.exitCode=1;}finally{
- report.finishedAt=new Date().toISOString();writeFileSync(`reports/company-verification-real${selected?"-"+selected:""}.json`,JSON.stringify(report,null,2)+"\n");
+ report.finishedAt=new Date().toISOString();writeFileSync(`reports/company-verification-real-v6${selected?"-"+selected:""}.json`,JSON.stringify(report,null,2)+"\n");
  await api("/api/profile?confirm=DELETE","DELETE");
 }
