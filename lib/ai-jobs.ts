@@ -58,6 +58,7 @@ export function mapAttempt(row: JobRow) {
 }
 
 export async function createAIJob(ownerId: string, type: AIJobType, input: Record<string, unknown>, options: { batchId?: string; sourceRefs?: unknown[]; captureKey?: string } = {}) {
+  if (type === "company_metadata_verify") throw new ApiError(503,"联网性质核实暂未开放，可使用已有资料或手动选择","COMPANY_LOOKUP_DISABLED");
   const id = crypto.randomUUID();
   const publicSource = type === "job_capture_url" && input.readStrategy !== "model" && publicAtsSource(String(input.sourceUrl || ""));
   const model = publicSource ? "public-ats-parser" : type === "job_capture_url" && input.executionProfile === "capture-flash-v1" ? "qwen3.8-flash" : modelFor[type];
@@ -242,6 +243,7 @@ export async function runAIJob(ownerId: string, id: string) {
   const db = getDatabase();
   const row = await db.prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
   if (!row) throw new ApiError(404, "AI 任务不存在");
+  if (row.type === "company_metadata_verify") throw new ApiError(503,"联网性质核实暂未开放，可使用已有资料或手动选择","COMPANY_LOOKUP_DISABLED");
   if (row.status === "cancelled") throw new ApiError(409, "任务已取消");
   if (row.status === "succeeded") return getAIJob(ownerId, id);
   if (row.status === "running") return getAIJob(ownerId, id);
@@ -316,6 +318,8 @@ export async function cancelAIJob(ownerId: string, id: string) {
 }
 
 export async function retryAIJob(ownerId: string, id: string) {
+  const target = await getDatabase().prepare("SELECT type FROM ai_jobs WHERE owner_id = ? AND id = ?").bind(ownerId,id).first<{type:string}>();
+  if (target?.type === "company_metadata_verify") throw new ApiError(503,"联网性质核实暂未开放，可使用已有资料或手动选择","COMPANY_LOOKUP_DISABLED");
   const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'queued', result = NULL, result_record_id = NULL, error_code = NULL, error_message = NULL, finished_at = NULL, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('failed','cancelled') AND (capture_key IS NULL OR NOT EXISTS (SELECT 1 FROM ai_jobs AS active WHERE active.owner_id = ai_jobs.owner_id AND active.capture_key = ai_jobs.capture_key AND active.status IN ('queued','running')))").bind(id, ownerId).run();
   if (!result.meta.changes) throw new ApiError(409, "仅失败或已取消任务可重试；同一岗位已有运行任务时请先查看该任务");
   return runAIJob(ownerId, id);
