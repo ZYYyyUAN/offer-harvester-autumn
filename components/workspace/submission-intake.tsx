@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { api, EmptyState, Field, PageHead, useConfirmDialog } from "./shared";
 import type { AIJob, RecordItem, StoredFile } from "./types";
-import { JobMetadataSchema, applyMetadataSuggestions, metadataContext, channelLabels } from "@/lib/job-metadata";
+import { JobMetadataSchema, manualMetadataEdit, applyMetadataSuggestions, metadataContext, channelLabels } from "@/lib/job-metadata";
 import { defaultJobSearchSettings, jobDeadlineStatus } from "@/lib/workflow-contracts";
 import { JobMetadataEditor, confirmMetadataReview } from "./job-metadata-editor";
 import { useCaptureTask } from "./use-capture-task";
@@ -30,7 +30,7 @@ export function SavedJobsView({ items, onEdit, screenshots, settings, serverNow,
   const [jobId, setJobIdState] = useState(""); const activeJobId = useRef(""); const setJobId = (id: string) => { activeJobId.current = id; setJobIdState(id); }; const [screenshotFileId, setScreenshotFileId] = useState(""); const [extracting, setExtracting] = useState(false); const [warnings, setWarnings] = useState<string[]>([]); const [conflicts, setConflicts] = useState<Array<{ key: string; current: string; incoming: string }>>([]);
   const confirmation = useConfirmDialog();
   const [showConverted,setShowConverted]=useState(false);
-  const empty = { intent: "submitted", appliedAtLocal: new Date(new Date(serverNow || Date.now()).getTime() - new Date(serverNow || Date.now()).getTimezoneOffset()*60000).toISOString().slice(0,16), resumeSelection: null, resumeTouched: false, channelTouched: false, actualChannel: "unknown", actualChannelCustom: "", direction: "", sourceUrl: "", company: "", role: "", location: "", salary: "", deadline: "", recruitmentMode: "自动判断", priority: "普通", jd: "", jobMetadata: JobMetadataSchema.parse({}), manualFields: [] }; const [draft, setDraft] = useState<Record<string, any>>(empty);
+  const empty = { intent: "submitted", appliedAtLocal: new Date(new Date(serverNow || Date.now()).getTime() - new Date(serverNow || Date.now()).getTimezoneOffset()*60000).toISOString().slice(0,16), resumeSelection: null, resumeTouched: false, channelTouched: false, actualChannel: "unknown", actualChannelCustom: "", direction: "", sourceUrl: "", company: "", role: "", location: "", salary: "", deadline: "", recruitmentMode: "自动判断", priority: "普通", jd: "", jobMetadata: JobMetadataSchema.parse({ employmentType: "direct_hire", referralStatus: "no" }), manualFields: [] }; const [draft, setDraft] = useState<Record<string, any>>(empty);
   const latestDraft = useRef(draft); useEffect(() => { latestDraft.current = draft; }, [draft]);
   const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value, manualFields: [...new Set([...(current.manualFields || []), key])] }));
   const cloudDraft = useCaptureDraft(open, { ...draft, screenshotFileId }, jobId, (values, restoredJobId) => { setDraft({ ...empty, ...values, intent: values.intent || "saved_only", resumeTouched: true }); setJobId(restoredJobId); setScreenshotFileId(values.screenshotFileId || ""); setOpen(true); });
@@ -85,7 +85,11 @@ export function SavedJobsView({ items, onEdit, screenshots, settings, serverNow,
       const imageId=screenshotFileId||(file?await onUploadScreenshot(file):"");setScreenshotFileId(imageId);
       const savedDraft=await cloudDraft.attachJob(jobId,imageId);
       const values=Object.fromEntries(["company","role","direction","sourceUrl","location","salary","deadline","jd","notes","priority","recruitmentMode"].map(key=>[key,draft[key]||""]));
-      const input={requestVersion:2,draftVersion:savedDraft.version,operationKey:savedDraft.id,intent:draft.intent,values:{...values,screenshotFileId:imageId},submission:{appliedAt:draft.appliedAtLocal?new Date(draft.appliedAtLocal).toISOString():null,appliedAtStatus:draft.appliedAtLocal?"known":"unknown",resumeSelection:draft.resumeSelection,actualChannel:{value:actualChannel,customLabel:draft.actualChannelCustom||draft.jobMetadata.actualSubmission?.customLabel||""}},jobMetadata:confirmMetadataReview(draft.jobMetadata,draft.company,draft.sourceUrl,true)};
+      let reviewedMetadata = draft.jobMetadata;
+      for (const [field, value] of [["employmentType", "direct_hire"], ["referralStatus", "no"]] as const) {
+        if (!reviewedMetadata.fieldStates[field] && reviewedMetadata[field] === value) reviewedMetadata = manualMetadataEdit(reviewedMetadata, field, value, metadataContext(draft.company, draft.sourceUrl), new Date().toISOString());
+      }
+      const input={requestVersion:2,draftVersion:savedDraft.version,operationKey:savedDraft.id,intent:draft.intent,values:{...values,screenshotFileId:imageId},submission:{appliedAt:draft.appliedAtLocal?new Date(draft.appliedAtLocal).toISOString():null,appliedAtStatus:draft.appliedAtLocal?"known":"unknown",resumeSelection:draft.resumeSelection,actualChannel:{value:actualChannel,customLabel:draft.actualChannelCustom||draft.jobMetadata.actualSubmission?.customLabel||""}},jobMetadata:confirmMetadataReview(reviewedMetadata,draft.company,draft.sourceUrl,true)};
       const url=`/api/job-capture-drafts/${savedDraft.id}/confirm`;
       let result=await api<any>(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(input)});
       if(result.requiresConfirmation){if(!await confirmation.ask("相同岗位已存在",`已有「${result.duplicate.title}」。确实是独立的一次投递或收藏时才保存副本。`))return;result=await api<any>(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({...input,allowDuplicate:true})});}
