@@ -1,0 +1,12 @@
+{
+  "actualWorkerTerminated": true,
+  "clockAdvancedInLocalD1": true,
+  "simulatedElapsedMinutes": 11,
+  "realAIRequests": 0,
+  "jobStatus": "failed",
+  "errorCode": "EXECUTION_INTERRUPTED",
+  "attemptStatus": "failed",
+  "providerStatus": "unknown",
+  "result": null,
+  "passed": true
+}

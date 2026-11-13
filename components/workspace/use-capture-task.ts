@@ -18,7 +18,7 @@ export function useCaptureTask(id: string, onResult: (job: AIJob) => Promise<voi
         if (disposed) return;
         const current = response.job; setJob(current); setError("");
         const timestamp = (value: string) => new Date(value.includes("T") ? value : value.replace(" ", "T") + "Z").getTime();
-        setElapsed(Math.max(0, Math.floor((timestamp(current.finishedAt || response.serverNow) - timestamp(current.createdAt)) / 1000)));
+        setElapsed(Math.max(0, Math.floor((timestamp(current.finishedAt || response.serverNow) - timestamp(current.startedAt || current.createdAt)) / 1000)));
         if (current.status === "succeeded" && delivered.current !== id) {
           await callback.current(current);
           delivered.current = id;
@@ -28,7 +28,7 @@ export function useCaptureTask(id: string, onResult: (job: AIJob) => Promise<voi
           void api(`/api/ai/jobs/${id}/run`, { method: "POST" }).catch((failure) => { if (!disposed) setError(failure.message); });
         }
         if ((["queued", "running"].includes(current.status) || retrying.current) && !disposed) timer = setTimeout(poll, 1500);
-      } catch (failure) { if (!disposed) setError((failure as Error).message); }
+      } catch (failure) { if (!disposed) setError(`连接中断，任务状态待同步：${(failure as Error).message}`); }
     }
     void poll();
     return () => { disposed = true; clearTimeout(timer); };

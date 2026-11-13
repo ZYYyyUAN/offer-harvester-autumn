@@ -23,7 +23,10 @@ async function qwenFetch(path: string, init: RequestInit) {
     });
     text = await response.text();
   } catch (error) {
-    if (error instanceof Error && ["TimeoutError","AbortError"].includes(error.name)) throw new ApiError(504,"AI 核实超时，输入已保留，可手动重试","AI_TIMEOUT",false);
+    if (error instanceof Error && ["TimeoutError","AbortError"].includes(error.name)) {
+      const interrupted = init.signal?.aborted && init.signal.reason?.name !== "TimeoutError";
+      throw new ApiError(504, interrupted ? "执行请求已中断，输入已保留；供应商状态未确认" : "AI 请求超时，输入已保留，可手动重试", interrupted ? "EXECUTION_INTERRUPTED" : "AI_TIMEOUT", false);
+    }
     throw new ApiError(502, "无法连接 AI 服务，请稍后重试", "NETWORK_ERROR", true);
   }
   if (!response.ok) {
@@ -188,7 +191,7 @@ export function aiErrorDetails(error: unknown) {
   return { code: "UNKNOWN_ERROR", message: error instanceof Error ? error.message : "未知错误", retryable: false };
 }
 
-export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType; model?: "qwen3.8-max" | "qwen3.8-flash"; reasoningEffort?: "low"; maxOutputTokens?: number; timeoutMs?: number; searchOnly?: boolean }) {
+export async function responsesSearch(options: { system: string; prompt: string; schemaName: string; schema: JsonSchema; validator?: ZodType; model?: "qwen3.8-max" | "qwen3.8-flash"; reasoningEffort?: "low"; maxOutputTokens?: number; timeoutMs?: number; signal?: AbortSignal; searchOnly?: boolean }) {
   const response = await qwenFetch("/responses", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -200,7 +203,7 @@ export async function responsesSearch(options: { system: string; prompt: string;
       ...(options.maxOutputTokens ? {max_output_tokens:options.maxOutputTokens} : {}),
       text: { format: { type: "json_schema", json_schema: { name: options.schemaName, strict: true, schema: options.schema } } },
     }),
-    signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
+    signal: options.signal && options.timeoutMs ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs)]) : options.signal || (options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined),
   });
   if (response.status === "incomplete") throw new ApiError(502,"联网结果未完整生成，请重试或保持未知","OUTPUT_TRUNCATED",false);
   const output = Array.isArray(response.output) ? response.output as Array<Record<string, unknown>> : [];

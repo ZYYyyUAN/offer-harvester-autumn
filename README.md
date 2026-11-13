@@ -164,3 +164,5 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+公司性质联网核实当前由服务端关闭；手动选择、页面明确线索与已确认资料复用继续可用。任务状态修复见 `reports/AI_LIFECYCLE_REPAIR.md`。

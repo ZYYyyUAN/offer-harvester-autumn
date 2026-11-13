@@ -73,6 +73,7 @@ export async function createAIJob(ownerId: string, type: AIJobType, input: Recor
 }
 
 export async function getAIJob(ownerId: string, id: string) {
+  await reconcileAIJobs(ownerId, id);
   const row = await getDatabase().prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
   if (!row) throw new ApiError(404, "AI 任务不存在");
   const attempts = await getDatabase().prepare("SELECT * FROM ai_job_attempts WHERE job_id = ? AND owner_id = ? ORDER BY attempt_number ASC").bind(id, ownerId).all<JobRow>();
@@ -122,7 +123,7 @@ function evaluationMetrics(result: Record<string, unknown>, caseId: string) {
   };
 }
 
-async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>, trace: CaptureTrace) {
+async function execute(ownerId: string, type: AIJobType, input: Record<string, unknown>, trace: CaptureTrace, signal?: AbortSignal) {
   if (type === "job_capture_url") {
     const sourceUrl = String(input.sourceUrl || "").trim();
     try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { throw new ApiError(400, "请输入有效的公开岗位链接"); }
@@ -177,7 +178,7 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
   }
   if (type === "company_metadata_verify") {
     const data = input as import("zod").infer<typeof CompanyVerificationInputSchema>;
-    const response = await responsesSearch({ model: "qwen3.8-max", searchOnly: true, system: companyVerificationSystem, prompt: `仅核实该主体：${JSON.stringify(data)}。不要做薪资、员工评价或其他背调，不读取求职者简历。`, schemaName: "company_metadata_verify_v1", schema: companyVerificationJsonSchema, validator: CompanyVerificationOutputSchema, reasoningEffort: "low", maxOutputTokens: 6000, timeoutMs: 120000 });
+    const response = await responsesSearch({ model: "qwen3.8-max", searchOnly: true, system: companyVerificationSystem, prompt: `仅核实该主体：${JSON.stringify(data)}。不要做薪资、员工评价或其他背调，不读取求职者简历。`, schemaName: "company_metadata_verify_v1", schema: companyVerificationJsonSchema, validator: CompanyVerificationOutputSchema, reasoningEffort: "low", maxOutputTokens: 6000, timeoutMs: 30000, signal });
     const result = verifiedCompanyResult(response.data as import("zod").infer<typeof CompanyVerificationOutputSchema>, data, response.sources);
     return { result, usage: response.usage, confidence: "low", record: null };
   }
@@ -239,7 +240,7 @@ async function execute(ownerId: string, type: AIJobType, input: Record<string, u
   throw new ApiError(400, "不支持的 AI 任务");
 }
 
-export async function runAIJob(ownerId: string, id: string) {
+export async function runAIJob(ownerId: string, id: string, signal?: AbortSignal) {
   const db = getDatabase();
   const row = await db.prepare("SELECT * FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
   if (!row) throw new ApiError(404, "AI 任务不存在");
@@ -252,7 +253,7 @@ export async function runAIJob(ownerId: string, id: string) {
     row.model = "public-ats-parser"; row.prompt_version = "public-ats-v2";
   }
   const started = Date.now();
-  const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', model = ?, prompt_version = ?, started_at = COALESCE(started_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(String(row.model), String(row.prompt_version), id, ownerId, Number(row.version)).run();
+  const claimed = await db.prepare("UPDATE ai_jobs SET status = 'running', model = ?, prompt_version = ?, started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, error_code = NULL, error_message = NULL, version = version + 1 WHERE id = ? AND owner_id = ? AND version = ? AND status = 'queued'").bind(String(row.model), String(row.prompt_version), id, ownerId, Number(row.version)).run();
   if (!claimed.meta.changes) return getAIJob(ownerId, id);
   const runVersion = Number(row.version) + 1;
   const countRow = await db.prepare("SELECT COUNT(*) AS count FROM ai_job_attempts WHERE job_id = ?").bind(id).first<JobRow>();
@@ -274,10 +275,10 @@ export async function runAIJob(ownerId: string, id: string) {
     await db.prepare("INSERT INTO ai_job_attempts (id, job_id, owner_id, attempt_number, model, status) VALUES (?, ?, ?, ?, ?, 'running')").bind(attemptId, id, ownerId, nextAttempt, String(row.model)).run();
     try {
       const featureType = ["jd_requirements_extract", "resume_text_extract", "resume_gap_analysis"].includes(String(row.type));
-      const output = featureType ? await executeJDJob(ownerId, id, String(row.type), jobInput) : await execute(ownerId, String(row.type) as AIJobType, jobInput, trace);
+      const output = featureType ? await executeJDJob(ownerId, id, String(row.type), jobInput) : await execute(ownerId, String(row.type) as AIJobType, jobInput, trace, signal);
       const current = await db.prepare("SELECT status, version FROM ai_jobs WHERE id = ? AND owner_id = ?").bind(id, ownerId).first<JobRow>();
       if (current?.status !== "running" || Number(current.version) !== runVersion) {
-        await db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, response_summary = ?, telemetry = ? WHERE id = ?").bind("本次执行已取消或失效，迟到结果已丢弃", JSON.stringify(trace.telemetry), attemptId).run();
+        await db.prepare("UPDATE ai_job_attempts SET token_usage = ?, response_summary = ?, telemetry = json_patch(telemetry, ?) WHERE id = ? AND owner_id = ?").bind(JSON.stringify(output.usage || {}), "迟到结果未保存；仅补充供应商返回的用量", JSON.stringify({ ...trace.telemetry, providerStatus: "completed", usageStatus: Object.keys(output.usage || {}).length ? "received" : "unknown" }), attemptId, ownerId).run();
         return getAIJob(ownerId, id);
       }
       let resultRecordId: string | null = null;
@@ -303,7 +304,7 @@ export async function runAIJob(ownerId: string, id: string) {
       const detail = aiErrorDetails(error);
       if (isCapture) await db.batch([db.prepare("UPDATE ai_job_attempts SET telemetry = ? WHERE id = ? AND owner_id = ?").bind(JSON.stringify(trace.telemetry), attemptId, ownerId), db.prepare("UPDATE ai_jobs SET phase = 'failed' WHERE id = ? AND owner_id = ? AND status = 'running' AND version = ?").bind(id, ownerId, runVersion)]);
       await db.prepare("UPDATE ai_job_attempts SET status = 'failed', error_code = ?, error_message = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").bind(detail.code, detail.message, attemptId).run();
-      if (detail.retryable && automaticAttempt < 2) continue;
+      if (row.type !== "company_metadata_verify" && detail.retryable && automaticAttempt < 2) continue;
       await db.prepare("UPDATE ai_jobs SET status = 'failed', error_code = ?, error_message = ?, elapsed_ms = ?, finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status = 'running' AND version = ?").bind(detail.code, detail.message, Date.now() - started, id, ownerId, runVersion).run();
       throw error;
     }
@@ -312,19 +313,30 @@ export async function runAIJob(ownerId: string, id: string) {
 }
 
 export async function cancelAIJob(ownerId: string, id: string) {
-  const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'cancelled', phase = 'cancelled', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('queued','running','failed')").bind(id, ownerId).run();
-  if (!result.meta.changes) throw new ApiError(409, "任务无法取消或不存在");
+  const detail = await getAIJob(ownerId, id), db = getDatabase();
+  if (!["queued", "running", "failed"].includes(detail.job.status)) throw new ApiError(409, "任务无法取消或不存在");
+  await atomicBatch([
+    versionGuard(ownerId, id, detail.job.version, "ai_jobs"),
+    db.prepare("UPDATE ai_jobs SET status = 'cancelled', phase = 'cancelled', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ?").bind(id, ownerId),
+    db.prepare("UPDATE ai_job_attempts SET status = 'cancelled', finished_at = CURRENT_TIMESTAMP, error_code = 'USER_CANCELLED', telemetry = json_set(json_patch(json_object('profile','legacy','route','','phases',json_array(),'usage',json_object()), telemetry), '$.localClosureReason', 'user_cancelled', '$.providerStatus', 'unknown', '$.usageStatus', CASE WHEN token_usage = '{}' THEN 'unknown' ELSE 'received' END) WHERE job_id = ? AND owner_id = ? AND status = 'running'").bind(id, ownerId),
+  ]);
   return getAIJob(ownerId, id);
 }
 
-export async function retryAIJob(ownerId: string, id: string) {
+export async function retryAIJob(ownerId: string, id: string, signal?: AbortSignal) {
   const target = await getDatabase().prepare("SELECT type FROM ai_jobs WHERE owner_id = ? AND id = ?").bind(ownerId,id).first<{type:string}>();
   if (target?.type === "company_metadata_verify") throw new ApiError(503,"联网性质核实暂未开放，可使用已有资料或手动选择","COMPANY_LOOKUP_DISABLED");
   const result = await getDatabase().prepare("UPDATE ai_jobs SET status = 'queued', result = NULL, result_record_id = NULL, error_code = NULL, error_message = NULL, finished_at = NULL, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE id = ? AND owner_id = ? AND status IN ('failed','cancelled') AND (capture_key IS NULL OR NOT EXISTS (SELECT 1 FROM ai_jobs AS active WHERE active.owner_id = ai_jobs.owner_id AND active.capture_key = ai_jobs.capture_key AND active.status IN ('queued','running')))").bind(id, ownerId).run();
   if (!result.meta.changes) throw new ApiError(409, "仅失败或已取消任务可重试；同一岗位已有运行任务时请先查看该任务");
-  return runAIJob(ownerId, id);
+  return runAIJob(ownerId, id, signal);
 }
 
-export async function expireStaleJobs(ownerId: string) {
-  await getDatabase().prepare("UPDATE ai_jobs SET status = 'failed', error_code = 'STALE_TIMEOUT', error_message = '任务超过 10 分钟没有更新，可手动重试', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE owner_id = ? AND status = 'running' AND updated_at < datetime('now', '-10 minutes')").bind(ownerId).run();
+export async function reconcileAIJobs(ownerId: string, id: string | null = null) {
+  const db = getDatabase();
+  await db.batch([
+    db.prepare("UPDATE ai_jobs SET status = 'failed', phase = 'failed', error_code = 'COMPANY_LOOKUP_DISABLED', error_message = '联网性质核实已关闭，不会执行此排队任务', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE owner_id = ? AND (? IS NULL OR id = ?) AND type = 'company_metadata_verify' AND status = 'queued'").bind(ownerId,id,id),
+    db.prepare(`UPDATE ai_jobs SET status = 'failed', phase = 'failed', error_code = 'EXECUTION_INTERRUPTED', error_message = '执行超过截止时间且未返回结果，本地已停止等待；供应商状态与费用未确认', finished_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE owner_id = ? AND (? IS NULL OR id = ?) AND status = 'running' AND COALESCE((SELECT MAX(started_at) FROM ai_job_attempts WHERE job_id = ai_jobs.id AND owner_id = ai_jobs.owner_id), started_at, updated_at) < datetime('now', CASE WHEN type = 'company_metadata_verify' THEN '-40 seconds' ELSE '-10 minutes' END)`).bind(ownerId,id,id),
+    db.prepare(`UPDATE ai_job_attempts SET status = CASE WHEN (SELECT status FROM ai_jobs WHERE ai_jobs.id = job_id AND ai_jobs.owner_id = ai_job_attempts.owner_id) = 'cancelled' THEN 'cancelled' ELSE 'failed' END, finished_at = CURRENT_TIMESTAMP, error_code = 'PARENT_TERMINAL', telemetry = json_set(json_patch(json_object('profile','legacy','route','','phases',json_array(),'usage',json_object()), telemetry), '$.localClosureReason', 'parent_terminal_reconciled', '$.providerStatus', 'unknown', '$.usageStatus', CASE WHEN token_usage = '{}' THEN 'unknown' ELSE 'received' END) WHERE owner_id = ? AND (? IS NULL OR job_id = ?) AND status = 'running' AND EXISTS (SELECT 1 FROM ai_jobs WHERE ai_jobs.id = job_id AND ai_jobs.owner_id = ai_job_attempts.owner_id AND ai_jobs.status IN ('failed','cancelled','succeeded'))`).bind(ownerId,id,id),
+  ]);
 }
+export async function expireStaleJobs(ownerId: string) { await reconcileAIJobs(ownerId); }
