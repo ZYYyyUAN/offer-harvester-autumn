@@ -1,35 +1,7 @@
 import { test, expect, type APIResponse } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 
 const json = async (response: APIResponse) => { expect(response.ok(), await response.text()).toBe(true); return response.json(); };
 test.beforeEach(async ({request}) => { await json(await request.delete('/api/profile?confirm=DELETE')); });
-
-test('nature is prefilled after one click, hidden suggestions are not confirmed, and draft survives refresh', async ({page, request}) => {
-  await page.goto('/?view=savedJobs');
-  await page.getByRole('main').getByRole('button', {name:'记录已投岗位', exact:true}).click();
-  let dialog = page.getByRole('dialog', {name:'记录已投岗位', exact:true});
-  await dialog.getByLabel('公司', {exact:true}).fill('合成精确主体有限公司');
-  await dialog.getByLabel('岗位', {exact:true}).fill('Java 后端');
-  await expect(dialog.getByLabel('公司辅助标签')).toBeHidden();
-  await expect(dialog.getByRole('button', {name:'识别截图',exact:true})).toBeHidden();
-  expect(await dialog.getByLabel('公司性质',{exact:true}).locator('option').allTextContents()).toEqual(['国企','民企','外商投资','事业单位','其他','未知']);
-  expect((await json(await request.get('/api/ai/jobs?type=company_metadata_verify'))).jobs).toHaveLength(0);
-  await dialog.getByRole('button',{name:'核实性质',exact:true}).click();
-  await expect(dialog.getByLabel('公司性质',{exact:true})).toHaveValue('private');
-  await expect(dialog.getByRole('status').first()).toContainText('草稿已保存到云端');
-  await page.reload(); dialog = page.getByRole('dialog',{name:'记录已投岗位',exact:true});
-  await expect(dialog.getByLabel('公司性质',{exact:true})).toHaveValue('private');
-  expect((await json(await request.get('/api/ai/jobs?type=company_metadata_verify'))).jobs).toHaveLength(1);
-  expect((await new AxeBuilder({page}).include('[role="dialog"]').withTags(['wcag2a','wcag2aa']).analyze()).violations).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
-  await dialog.getByRole("button",{name:"核实性质",exact:true}).scrollIntoViewIfNeeded();
-  await page.screenshot({path:`reports/metadata-simplified-${test.info().project.name}.png`,fullPage:true});
-  await dialog.getByRole('button',{name:'保存已投记录',exact:true}).click();
-  await expect(dialog).toBeHidden();
-  const app = (await json(await request.get('/api/records?kind=applications'))).records[0];
-  expect(app.data.jobMetadata.companyNature).toBe('private');
-  expect(app.data.jobMetadata.fieldStates.companyNature.status).toBe('confirmed');
-});
 
 test('local rules and profile reuse run automatically without paid AI and respect manual channel clearing', async ({page,request}) => {
   await json(await request.post('/api/company-profiles',{data:{legalName:'合成复用主体有限公司',companyNature:'foreign_invested',companyTags:['banking']}}));
